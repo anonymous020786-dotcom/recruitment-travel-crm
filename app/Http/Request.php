@@ -13,6 +13,9 @@ final class Request
     /** @var array<string,string> route parameters, filled by the Router */
     private array $routeParams = [];
 
+    /** @var array<string,mixed> per-request scratch space set by middleware (csp nonce, request id, auth user, ...) */
+    private array $attributes = [];
+
     private ?array $jsonCache = null;
 
     /**
@@ -201,7 +204,8 @@ final class Request
     {
         $accept = strtolower($this->header('Accept') ?? '');
 
-        return $this->isJson()
+        return ($this->attributes['force_json'] ?? false) === true
+            || $this->isJson()
             || str_contains($accept, 'application/json')
             || str_contains($accept, '+json')
             || $this->isXmlHttpRequest();
@@ -315,6 +319,23 @@ final class Request
     public function routeParams(): array
     {
         return $this->routeParams;
+    }
+
+    // ---- Attributes (middleware scratch space) --------------------
+
+    public function setAttribute(string $key, mixed $value): void
+    {
+        $this->attributes[$key] = $value;
+    }
+
+    public function attribute(string $key, mixed $default = null): mixed
+    {
+        return $this->attributes[$key] ?? $default;
+    }
+
+    public function hasAttribute(string $key): bool
+    {
+        return array_key_exists($key, $this->attributes);
     }
 
     // ---- File normalisation ----------------------------------------

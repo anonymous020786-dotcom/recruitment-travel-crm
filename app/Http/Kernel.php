@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Http\Middleware\EnforceHttps;
+use App\Http\Middleware\ForceJson;
+use App\Http\Middleware\MaintenanceGuard;
 use App\Http\Middleware\Passthrough;
+use App\Http\Middleware\RequestId;
+use App\Http\Middleware\SecurityHeaders;
 
 /**
  * HTTP kernel configuration: global middleware (every request), named groups
@@ -18,12 +23,15 @@ use App\Http\Middleware\Passthrough;
 final class Kernel
 {
     /**
-     * Runs on every request, outermost first. (SecurityHeaders, RequestId,
-     * EnforceHttps, MaintenanceGuard land in Step 1.4.)
+     * Runs on every request, outermost first.
      *
      * @var list<string>
      */
-    public array $global = [];
+    public array $global = [
+        RequestId::class,
+        EnforceHttps::class,
+        MaintenanceGuard::class,
+    ];
 
     /**
      * Route-group bundles.
@@ -31,9 +39,18 @@ final class Kernel
      * @var array<string,list<string>>
      */
     public array $groups = [
-        'web.public' => [],   // + PublicCache, relaxed CSP  (Step 1.4)
-        'web.crm'    => [],   // + StartSession, VerifyCsrf, NoStoreCache  (Steps 1.4-1.5)
-        'api'        => [],   // + StartSession, VerifyCsrf, forceJson  (Steps 1.4-1.5)
+        'web.public' => [
+            SecurityHeaders::class . ':public',
+        ],
+        'web.crm' => [
+            SecurityHeaders::class . ':crm',
+            // StartSession, VerifyCsrf  (Step 1.5)
+        ],
+        'api' => [
+            SecurityHeaders::class . ':api',
+            ForceJson::class,
+            // StartSession, VerifyCsrf  (Step 1.5)
+        ],
     ];
 
     /**
@@ -42,6 +59,7 @@ final class Kernel
      * @var array<string,string>
      */
     public array $aliases = [
+        'headers'  => SecurityHeaders::class, // headers:crm|public|api
         'auth'     => Passthrough::class,   // Authenticate        (Step 1.6)
         'guest'    => Passthrough::class,   // RedirectIfAuthenticated (Step 1.6)
         'can'      => Passthrough::class,   // Authorize:<permission> (Step 1.7)

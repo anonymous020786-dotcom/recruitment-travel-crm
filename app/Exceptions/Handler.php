@@ -71,6 +71,11 @@ final class Handler
 
     public function render(?Request $request, Throwable $e): Response
     {
+        return $this->withBaselineHeaders($this->renderResponse($request, $e));
+    }
+
+    private function renderResponse(?Request $request, Throwable $e): Response
+    {
         $status = $this->statusFor($e);
         $headers = $e instanceof HttpException ? $e->getHeaders() : [];
         $wantsJson = $request?->wantsJson() ?? false;
@@ -104,6 +109,26 @@ final class Handler
         }
 
         return $this->htmlError($status, null, $headers);
+    }
+
+    /** Error responses always carry safe baseline headers, even if middleware never ran. */
+    private function withBaselineHeaders(Response $response): Response
+    {
+        $baseline = [
+            'X-Content-Type-Options' => 'nosniff',
+            'Referrer-Policy'        => 'strict-origin-when-cross-origin',
+            'X-Frame-Options'        => 'DENY',
+            'X-Robots-Tag'           => 'noindex, nofollow',
+            'Cache-Control'          => 'no-store, private',
+        ];
+
+        foreach ($baseline as $name => $value) {
+            if ($response->getHeader($name) === null) {
+                $response->withHeader($name, $value);
+            }
+        }
+
+        return $response;
     }
 
     private function statusFor(Throwable $e): int

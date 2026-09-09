@@ -37,4 +37,4 @@ try {
     $response = $handler->render($request, $e);
 }
 
-$response->send();
+$response->send(withBody: $request->realMethod() !== 'HEAD');

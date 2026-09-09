@@ -19,9 +19,11 @@ return static function (Router $router): void {
     });
 
     // ---- Health / readiness -------------------------------------------
-    $router->get('/health', [HealthController::class, 'index'])->name('health');
+    $router->get('/health', [HealthController::class, 'index'])
+        ->middleware(['headers:api'])
+        ->name('health');
     $router->get('/health/db', [HealthController::class, 'db'])
-        ->middleware(['auth', 'can:system.health'])
+        ->middleware(['headers:api', 'auth', 'can:system.health'])
         ->name('health.db');
 
     // ---- Authenticated CRM (filled from Step 1.6 onward) ---------------

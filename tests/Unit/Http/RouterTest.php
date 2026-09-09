@@ -8,14 +8,16 @@ use App\Exceptions\HttpException;
 use App\Http\Request;
 use App\Http\Response;
 use App\Http\Router;
-use App\Support\Container;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\TestApp;
 
 final class RouterTest extends TestCase
 {
     private function router(): Router
     {
-        return new Router(new Container());
+        // A fully-wired container so global middleware (RequestId, EnforceHttps,
+        // MaintenanceGuard) resolve. env=testing => EnforceHttps is a no-op.
+        return new Router(TestApp::make());
     }
 
     private function request(string $method, string $uri, array $server = []): Request

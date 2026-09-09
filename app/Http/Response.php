@@ -158,7 +158,7 @@ final class Response
 
     // ---- Emit ------------------------------------------------------
 
-    public function send(): void
+    public function send(bool $withBody = true): void
     {
         if (!headers_sent()) {
             http_response_code($this->status);
@@ -170,6 +170,10 @@ final class Response
             foreach ($this->cookies as [$name, $value, $options]) {
                 setcookie($name, $value, $options);
             }
+        }
+
+        if (!$withBody || $this->status === 204 || $this->status === 304) {
+            return;
         }
 
         if ($this->streamCallback !== null) {

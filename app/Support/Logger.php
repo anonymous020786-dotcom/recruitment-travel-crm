@@ -17,11 +17,20 @@ final class Logger
 
     private int $threshold;
 
+    /** @var array<string,scalar> merged into every log line (request id, user id, ...) */
+    private array $baseContext = [];
+
     public function __construct(
         private readonly string $directory,
         string $minLevel = 'debug',
     ) {
         $this->threshold = self::LEVELS[$minLevel] ?? 100;
+    }
+
+    /** Add a key that is included in every subsequent log line. */
+    public function withContext(string $key, string|int|float|bool|null $value): void
+    {
+        $this->baseContext[$key] = $value;
     }
 
     public function debug(string $m, array $c = []): void { $this->log('debug', $m, $c); }
@@ -35,6 +44,10 @@ final class Logger
     {
         if ((self::LEVELS[$level] ?? 0) < $this->threshold) {
             return;
+        }
+
+        if ($this->baseContext !== []) {
+            $context = $context + $this->baseContext;
         }
 
         if (!is_dir($this->directory)) {
