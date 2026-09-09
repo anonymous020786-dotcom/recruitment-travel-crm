@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
+use App\Audit\AuditService;
 use App\Exceptions\HttpException;
 use App\Exceptions\ValidationException;
 use App\Http\Request;
@@ -36,6 +37,7 @@ final class AuthService
         private readonly Mailer $mailer,
         private readonly Db $db,
         private readonly Logger $logger,
+        private readonly AuditService $audit,
     ) {
     }
 
@@ -85,6 +87,7 @@ final class AuthService
 
         $this->users->recordSuccessfulLogin($user->id, $ipBinary);
         $this->attempts->record($email, $ipBinary, true);
+        $this->audit->log('login', 'auth', 'user', $user->id, null, null, 'password sign-in', $user);
 
         return $user;
     }
@@ -155,6 +158,7 @@ final class AuthService
             );
         });
 
+        $this->audit->log('password_reset', 'auth', 'user', $user->id, null, null, 'via reset link', $user);
         $this->logger->info('password reset completed', ['user_id' => $user->id]);
     }
 

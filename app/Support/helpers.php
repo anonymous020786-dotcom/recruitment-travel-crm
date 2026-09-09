@@ -240,6 +240,48 @@ if (!function_exists('user')) {
     }
 }
 
+if (!function_exists('gate')) {
+    function gate(): \App\Auth\Gate
+    {
+        return app(\App\Auth\Gate::class);
+    }
+}
+
+if (!function_exists('can')) {
+    function can(string $ability, mixed ...$arguments): bool
+    {
+        return gate()->allows($ability, ...$arguments);
+    }
+}
+
+if (!function_exists('cannot')) {
+    function cannot(string $ability, mixed ...$arguments): bool
+    {
+        return gate()->denies($ability, ...$arguments);
+    }
+}
+
+if (!function_exists('authorize')) {
+    function authorize(string $ability, mixed ...$arguments): void
+    {
+        gate()->authorize($ability, ...$arguments);
+    }
+}
+
+if (!function_exists('branch_scope')) {
+    function branch_scope(): ?\App\Auth\BranchScope
+    {
+        return app()->bound(\App\Auth\BranchScope::class) ? app(\App\Auth\BranchScope::class) : null;
+    }
+}
+
+if (!function_exists('audit')) {
+    function audit(): \App\Audit\AuditService
+    {
+        return app(\App\Audit\AuditService::class);
+    }
+}
+
 if (!function_exists('abort')) {
     function abort(int $status, string $message = ''): never
     {

@@ -19,7 +19,7 @@ return static function (Router $router): void {
     // ---- Health / readiness -------------------------------------------
     $router->get('/health', [HealthController::class, 'index'])->middleware(['headers:api'])->name('health');
     $router->get('/health/db', [HealthController::class, 'db'])
-        ->middleware(['headers:api', 'auth', 'can:system.health'])
+        ->middleware(['headers:api', 'json', 'session', 'auth', 'can:system.health'])
         ->name('health.db');
 
     // ---- Guest auth (login / password reset) --------------------------
@@ -37,7 +37,7 @@ return static function (Router $router): void {
     });
 
     // ---- Authenticated CRM ------------------------------------------
-    $router->group(['middleware' => ['web.crm', 'auth']], static function (Router $r): void {
+    $router->group(['middleware' => ['web.crm', 'auth', 'branch']], static function (Router $r): void {
         $r->post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
         $r->get('/dashboard', static fn () => Response::html(

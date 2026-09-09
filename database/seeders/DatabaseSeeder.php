@@ -21,6 +21,8 @@ final class DatabaseSeeder extends Seeder
     private const SEEDERS = [
         CountriesSeeder::class,
         RolesSeeder::class,
+        PermissionsSeeder::class,
+        RolePermissionsSeeder::class,
     ];
 
     public function run(): void

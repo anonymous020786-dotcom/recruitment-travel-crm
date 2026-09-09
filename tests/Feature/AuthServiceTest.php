@@ -40,6 +40,11 @@ final class AuthServiceTest extends DbTestCase
             new QueueMailer($this->db, $this->app->get(\App\Support\Logger::class)),
             $this->db,
             $this->app->get(\App\Support\Logger::class),
+            new \App\Audit\AuditService(
+                $this->app,
+                new \App\Repositories\ActivityLogRepository($this->db),
+                $this->app->get(\App\Support\Logger::class),
+            ),
         );
 
         $this->email = 'authtest_' . bin2hex(random_bytes(5)) . '@dev.local';
@@ -61,6 +66,7 @@ final class AuthServiceTest extends DbTestCase
     {
         $this->db->affectingStatement('DELETE FROM password_resets WHERE user_id = ?', [$this->userId]);
         $this->db->affectingStatement('DELETE FROM email_log WHERE to_email = ?', [$this->email]);
+        $this->db->affectingStatement('DELETE FROM activity_logs WHERE record_type = ? AND record_id = ?', ['user', (string) $this->userId]);
         $this->cleanupUsers('authtest_%@dev.local');
     }
 

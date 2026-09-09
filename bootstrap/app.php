@@ -7,8 +7,12 @@ declare(strict_types=1);
  * Used by public/index.php (web) and every cron/*.php + scripts/*.php (CLI).
  */
 
+use App\Audit\AuditService;
 use App\Auth\Auth;
 use App\Auth\AuthService;
+use App\Auth\BranchScopeResolver;
+use App\Auth\Gate;
+use App\Auth\PermissionService;
 use App\Http\Router;
 use App\Mail\Mailer;
 use App\Mail\QueueMailer;
@@ -87,7 +91,23 @@ $app->singleton(View::class, static fn (Application $app): View => new View(
 ));
 
 $app->singleton(Auth::class);
+$app->singleton(PermissionService::class);
+$app->singleton(BranchScopeResolver::class);
+$app->singleton(AuditService::class);
 $app->singleton(AuthService::class);
+
+$app->singleton(Gate::class, static function (Application $app): Gate {
+    $gate = new Gate(
+        $app,
+        $app->get(PermissionService::class),
+        $app->get(Auth::class),
+    );
+
+    // Policy registrations land with their feature phases, e.g.:
+    // $gate->policy(\App\Models\Lead::class, \App\Policies\LeadPolicy::class);
+
+    return $gate;
+});
 
 // ---- PHP runtime posture ---------------------------------------------------
 $config = $app->config();

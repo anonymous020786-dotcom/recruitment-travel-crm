@@ -26,6 +26,7 @@ final class Handler
 
     private const TITLES = [
         400 => ['Bad request', 'The request could not be understood.'],
+        401 => ['Sign in required', 'You need to sign in to continue.'],
         403 => ['Access denied', 'You do not have permission to view this page.'],
         404 => ['Page not found', 'The page you are looking for could not be found.'],
         405 => ['Method not allowed', 'That action is not available here.'],

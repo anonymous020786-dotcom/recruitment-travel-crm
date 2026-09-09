@@ -15,7 +15,7 @@ use App\Support\Application;
  * id in the session; the User DTO is lazy-loaded and re-validated (active, not
  * locked, matching user-agent) on each request.
  */
-final class Auth
+class Auth
 {
     private ?User $user = null;
     private bool $resolved = false;

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http;
 
 use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\Authorize;
+use App\Http\Middleware\BindBranchScope;
 use App\Http\Middleware\EnforceHttps;
 use App\Http\Middleware\ForceJson;
 use App\Http\Middleware\MaintenanceGuard;
@@ -67,11 +69,14 @@ final class Kernel
      */
     public array $aliases = [
         'headers'  => SecurityHeaders::class,        // headers:crm|public|api
+        'json'     => ForceJson::class,
+        'session'  => StartSession::class,
+        'csrf'     => VerifyCsrf::class,
         'auth'     => Authenticate::class,
         'guest'    => RedirectIfAuthenticated::class,
         'throttle' => RateLimit::class,              // throttle:<bucket>
-        'can'      => Passthrough::class,            // Authorize:<permission>  (Step 1.7)
-        'branch'   => Passthrough::class,            // BindBranchScope         (Step 1.7)
+        'can'      => Authorize::class,              // can:<ability>[,<ModelClass>]
+        'branch'   => BindBranchScope::class,
         'verified' => Passthrough::class,
     ];
 
