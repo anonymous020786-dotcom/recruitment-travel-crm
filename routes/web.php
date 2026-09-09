@@ -40,10 +40,6 @@ return static function (Router $router): void {
     $router->group(['middleware' => ['web.crm', 'auth', 'branch']], static function (Router $r): void {
         $r->post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
-        $r->get('/dashboard', static fn () => Response::html(
-            '<!doctype html><meta charset="utf-8"><title>Dashboard</title>'
-            . '<h1>Dashboard</h1><p>Signed in. Full dashboard arrives in Phase 10.</p>'
-            . '<form method="post" action="/logout">' . csrf_field() . '<button>Sign out</button></form>'
-        ))->name('dashboard');
+        $r->get('/dashboard', static fn () => view_response('crm.dashboard'))->name('dashboard');
     });
 };

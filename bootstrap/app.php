@@ -90,6 +90,10 @@ $app->singleton(View::class, static fn (Application $app): View => new View(
     $app->basePath('resources/views'),
 ));
 
+$app->singleton(App\View\Assets::class, static fn (Application $app): App\View\Assets => new App\View\Assets(
+    $app->basePath('public'),
+));
+
 $app->singleton(Auth::class);
 $app->singleton(PermissionService::class);
 $app->singleton(BranchScopeResolver::class);

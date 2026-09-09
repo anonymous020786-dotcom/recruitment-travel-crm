@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root { color-scheme: light; }
+    body { @apply bg-slate-50 text-slate-800 antialiased; }
+    a { @apply text-brand-600; }
+    a:hover { @apply text-brand-700 underline; }
+    h1, h2, h3 { @apply font-semibold text-slate-900; }
+    :focus-visible { @apply outline-none ring-2 ring-brand-500 ring-offset-1; }
+    [x-cloak] { display: none !important; }
+}
+
+@layer components {
+
+    /* Buttons -------------------------------------------------------- */
+    .btn {
+        @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2
+               text-sm font-semibold transition select-none
+               disabled:opacity-50 disabled:pointer-events-none;
+    }
+    .btn-primary   { @apply bg-brand-600 text-white hover:bg-brand-700; }
+    .btn-secondary { @apply bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50; }
+    .btn-danger    { @apply bg-red-600 text-white hover:bg-red-700; }
+    .btn-ghost     { @apply text-slate-600 hover:bg-slate-100; }
+    .btn-sm        { @apply px-2.5 py-1.5 text-xs rounded-md; }
+
+    /* Form controls ------------------------------------------------- */
+    .form-label { @apply block text-sm font-medium text-slate-700 mb-1; }
+    .form-input, .form-select, .form-textarea {
+        @apply block w-full rounded-lg border-0 py-2 px-3 text-sm text-slate-900
+               ring-1 ring-inset ring-slate-300 placeholder:text-slate-400
+               focus:ring-2 focus:ring-inset focus:ring-brand-500;
+    }
+    .form-input[aria-invalid="true"],
+    .form-select[aria-invalid="true"],
+    .form-textarea[aria-invalid="true"] { @apply ring-red-400 focus:ring-red-500; }
+    .form-error { @apply mt-1 text-xs text-red-600; }
+    .form-hint  { @apply mt-1 text-xs text-slate-500; }
+
+    /* Cards / surfaces -------------------------------------------- */
+    .card { @apply bg-white rounded-xl ring-1 ring-slate-200 shadow-sm; }
+    .card-body { @apply p-4 sm:p-5; }
+    .card-header { @apply px-4 sm:px-5 py-3 border-b border-slate-200 flex items-center justify-between gap-3; }
+
+    /* Badges / status pills ------------------------------------- */
+    .badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset; }
+
+    /* Tables ---------------------------------------------------- */
+    .table-wrap { @apply overflow-x-auto rounded-xl ring-1 ring-slate-200 bg-white; }
+    table.data { @apply min-w-full divide-y divide-slate-200 text-sm; }
+    table.data thead th {
+        @apply bg-slate-50 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap;
+    }
+    table.data tbody td { @apply px-3 py-2.5 text-slate-700 align-middle; }
+    table.data tbody tr:hover { @apply bg-slate-50; }
+    table.data tbody { @apply divide-y divide-slate-100; }
+
+    /* Alerts -------------------------------------------------- */
+    .alert { @apply flex gap-2 rounded-lg p-3 text-sm ring-1 ring-inset; }
+    .alert-info    { @apply bg-blue-50 text-blue-800 ring-blue-200; }
+    .alert-success { @apply bg-emerald-50 text-emerald-800 ring-emerald-200; }
+    .alert-warning { @apply bg-amber-50 text-amber-800 ring-amber-200; }
+    .alert-danger  { @apply bg-red-50 text-red-800 ring-red-200; }
+
+    /* Nav --------------------------------------------------- */
+    .nav-link {
+        @apply flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+               text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+    }
+    .nav-link.is-active { @apply bg-brand-50 text-brand-700; }
+
+    /* Skeleton -------------------------------------------- */
+    .skeleton { @apply animate-pulse rounded bg-slate-200; }
+}

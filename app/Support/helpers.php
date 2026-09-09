@@ -191,6 +191,30 @@ if (!function_exists('view')) {
     }
 }
 
+if (!function_exists('asset')) {
+    function asset(string $key): string
+    {
+        return app(\App\View\Assets::class)->url($key);
+    }
+}
+
+if (!function_exists('component')) {
+    /** Render a component partial: component('button', ['label' => 'Save']) */
+    function component(string $name, array $props = []): string
+    {
+        return app(\App\View\View::class)->partial('components.' . $name, $props);
+    }
+}
+
+if (!function_exists('nonce')) {
+    function nonce(): string
+    {
+        $r = app()->bound(\App\Http\Request::class) ? app(\App\Http\Request::class) : null;
+
+        return (string) ($r?->attribute('csp_nonce') ?? '');
+    }
+}
+
 if (!function_exists('view_response')) {
     /** @param array<string,mixed> $data */
     function view_response(string $name, array $data = [], int $status = 200): \App\Http\Response

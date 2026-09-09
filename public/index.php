@@ -15,6 +15,16 @@ use App\Http\Request;
 use App\Http\Router;
 use App\Support\Application;
 
+// When served by the PHP built-in server (`php -S host:port public/index.php`),
+// let it serve real files in public/ directly. On Apache this never matches
+// because mod_rewrite serves existing files before reaching PHP.
+if (PHP_SAPI === 'cli-server') {
+    $file = __DIR__ . '/' . ltrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '', '/');
+    if ($file !== __FILE__ && is_file($file) && !str_ends_with($file, '.php')) {
+        return false;
+    }
+}
+
 /** @var Application $app */
 $app = require dirname(__DIR__) . '/bootstrap/app.php';
 

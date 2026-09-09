@@ -1,0 +1,12 @@
+{
+    "name": "recruitment-travel-crm-assets",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "node scripts/build.mjs",
+        "dev": "node scripts/build.mjs --watch"
+    },
+    "devDependencies": {
+        "tailwindcss": "^3.4.17"
+    }
+}

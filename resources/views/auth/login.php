@@ -1,26 +1,24 @@
-<?php $this->layout('layouts.guest', ['title' => 'Sign in']); ?>
-<?php $this->start('content'); ?>
-<form method="post" action="/login" novalidate>
+<?php
+$this->layout('layouts.guest', ['title' => 'Sign in', 'subtitle' => 'Sign in to your account to continue.']);
+$this->start('content');
+?>
+<form method="post" action="/login" data-once novalidate>
     <?= csrf_field() ?>
 
-    <div class="field">
-        <label for="email">Email address</label>
-        <input type="email" id="email" name="email" value="<?= e_attr((string) old('email', '')) ?>"
-               autocomplete="username" autofocus required>
-        <?php if ($m = error('email')): ?><p class="err"><?= e($m) ?></p><?php endif ?>
-    </div>
+    <?= component('field', [
+        'name' => 'email', 'label' => 'Email address', 'type' => 'email',
+        'autocomplete' => 'username', 'required' => true, 'attrs' => 'autofocus',
+    ]) ?>
 
-    <div class="field">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" autocomplete="current-password" required>
-        <?php if ($m = error('password')): ?><p class="err"><?= e($m) ?></p><?php endif ?>
-    </div>
+    <?= component('field', [
+        'name' => 'password', 'label' => 'Password', 'type' => 'password',
+        'autocomplete' => 'current-password', 'required' => true,
+    ]) ?>
 
-    <button type="submit">Sign in</button>
+    <button type="submit" class="btn btn-primary w-full">Sign in</button>
 
-    <div class="row">
-        <span></span>
+    <p class="mt-4 text-center text-sm">
         <a href="/forgot-password">Forgot your password?</a>
-    </div>
+    </p>
 </form>
 <?php $this->stop(); ?>

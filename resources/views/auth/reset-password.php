@@ -1,32 +1,30 @@
 <?php
 /** @var string $token @var string $email */
-$this->layout('layouts.guest', ['title' => 'Choose a new password']);
+$this->layout('layouts.guest', ['title' => 'Choose a new password', 'subtitle' => 'Pick a strong password you have not used before.']);
+$this->start('content');
 ?>
-<?php $this->start('content'); ?>
-<form method="post" action="/reset-password" novalidate>
+<form method="post" action="/reset-password" data-once novalidate>
     <?= csrf_field() ?>
     <input type="hidden" name="token" value="<?= e_attr($token) ?>">
 
-    <div class="field">
-        <label for="email">Email address</label>
-        <input type="email" id="email" name="email" value="<?= e_attr((string) old('email', $email)) ?>"
-               autocomplete="username" required>
-        <?php if ($m = error('email')): ?><p class="err"><?= e($m) ?></p><?php endif ?>
-    </div>
+    <?= component('field', [
+        'name' => 'email', 'label' => 'Email address', 'type' => 'email',
+        'value' => old('email', $email), 'autocomplete' => 'username', 'required' => true,
+    ]) ?>
 
-    <div class="field">
-        <label for="password">New password</label>
-        <input type="password" id="password" name="password" autocomplete="new-password" required minlength="10">
-        <?php if ($m = error('password')): ?><p class="err"><?= e($m) ?></p><?php endif ?>
-    </div>
+    <?= component('field', [
+        'name' => 'password', 'label' => 'New password', 'type' => 'password',
+        'autocomplete' => 'new-password', 'required' => true, 'attrs' => 'minlength="10"',
+        'hint' => 'At least 10 characters.',
+    ]) ?>
 
-    <div class="field">
-        <label for="password_confirmation">Confirm new password</label>
-        <input type="password" id="password_confirmation" name="password_confirmation"
-               autocomplete="new-password" required minlength="10">
-    </div>
+    <?= component('field', [
+        'name' => 'password_confirmation', 'label' => 'Confirm new password', 'type' => 'password',
+        'autocomplete' => 'new-password', 'required' => true, 'attrs' => 'minlength="10"',
+    ]) ?>
 
-    <button type="submit">Reset password</button>
-    <div class="row"><span></span><a href="/login">Back to sign in</a></div>
+    <button type="submit" class="btn btn-primary w-full">Reset password</button>
+
+    <p class="mt-4 text-center text-sm"><a href="/login">Back to sign in</a></p>
 </form>
 <?php $this->stop(); ?>

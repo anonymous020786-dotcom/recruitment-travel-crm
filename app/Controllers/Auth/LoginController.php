@@ -45,9 +45,10 @@ final class LoginController extends Controller
         try {
             $user = $this->authService->attempt((string) $data['email'], (string) $data['password'], $request);
         } catch (ValidationException $e) {
-            return redirect_with_errors($e->errors(), $data, '/login');
+            // The service's generic "credentials do not match" -> banner, not a field error.
+            return redirect_with_errors(['form' => $e->errors()['email'] ?? [$e->first() ?? 'Unable to sign in.']], $data, '/login');
         } catch (HttpException $e) {
-            return redirect_with_errors(['email' => [$e->getMessage()]], $data, '/login');
+            return redirect_with_errors(['form' => [$e->getMessage()]], $data, '/login');
         }
 
         $this->auth->login($user);

@@ -12,6 +12,7 @@ error_reporting(E_ALL);
 $root = dirname(__DIR__);
 
 require $root . '/bootstrap/autoload.php';
+require $root . '/app/Support/helpers.php';
 
 spl_autoload_register(static function (string $class) use ($root): void {
     $prefix = 'Tests\\';
