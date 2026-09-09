@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Exceptions\HttpException;
 use App\Http\Response;
 use App\Http\Router;
+use App\Session\Session;
 use App\Support\Application;
 use App\Support\Config;
 use App\Support\Logger;
@@ -125,6 +126,36 @@ if (!function_exists('url')) {
         $base = rtrim((string) config('app.url', ''), '/');
 
         return $path === '' ? $base : $base . '/' . ltrim($path, '/');
+    }
+}
+
+if (!function_exists('session')) {
+    function session(): ?Session
+    {
+        return app()->bound(Session::class) ? app(Session::class) : null;
+    }
+}
+
+if (!function_exists('csrf_token')) {
+    function csrf_token(): string
+    {
+        return session()?->token() ?? '';
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    function csrf_field(): string
+    {
+        return '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
+    }
+}
+
+if (!function_exists('old')) {
+    function old(string $key, mixed $default = null): mixed
+    {
+        $bag = session()?->get('_old_input');
+
+        return is_array($bag) ? ($bag[$key] ?? $default) : $default;
     }
 }
 

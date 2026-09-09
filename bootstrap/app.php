@@ -8,11 +8,14 @@ declare(strict_types=1);
  */
 
 use App\Http\Router;
+use App\Session\DatabaseSessionStore;
+use App\Session\SessionStore;
 use App\Support\Application;
 use App\Support\Config;
 use App\Support\Db;
 use App\Support\Env;
 use App\Support\Logger;
+use App\Support\Signer;
 
 require __DIR__ . '/autoload.php';
 require __DIR__ . '/../app/Support/helpers.php';
@@ -47,6 +50,15 @@ $app->singleton(Db::class, static function (Application $app): Db {
 
 $app->singleton(Router::class, static fn (Application $app): Router => new Router($app));
 $app->singleton(App\Http\Kernel::class);
+
+$app->singleton(Signer::class, static fn (Application $app): Signer => new Signer(
+    (string) $app->config()->get('app.key', ''),
+));
+
+$app->singleton(SessionStore::class, static fn (Application $app): SessionStore => new DatabaseSessionStore(
+    $app->get(Db::class),
+    (string) $app->config()->get('session.table', 'sessions'),
+));
 
 // ---- PHP runtime posture ---------------------------------------------------
 $config = $app->config();

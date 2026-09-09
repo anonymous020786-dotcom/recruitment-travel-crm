@@ -78,7 +78,11 @@ final class Handler
     {
         $status = $this->statusFor($e);
         $headers = $e instanceof HttpException ? $e->getHeaders() : [];
-        $wantsJson = $request?->wantsJson() ?? false;
+
+        // Errors thrown during routing (404/405) short-circuit before group
+        // middleware runs, so fall back to a path check for API content negotiation.
+        $wantsJson = ($request?->wantsJson() ?? false)
+            || ($request !== null && str_starts_with($request->path(), '/api/'));
 
         if ($e instanceof ValidationException) {
             return $wantsJson

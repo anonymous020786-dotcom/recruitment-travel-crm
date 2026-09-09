@@ -47,6 +47,12 @@ class Container
         return isset($this->bindings[$id]) || isset($this->instances[$id]) || class_exists($id);
     }
 
+    /** True only for an explicit binding or a registered instance (not "class_exists"). */
+    public function bound(string $id): bool
+    {
+        return isset($this->bindings[$id]) || isset($this->instances[$id]);
+    }
+
     /** @template T of object @param class-string<T>|string $id @return ($id is class-string<T> ? T : mixed) */
     public function get(string $id): mixed
     {

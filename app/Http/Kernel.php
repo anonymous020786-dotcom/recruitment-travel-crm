@@ -10,6 +10,8 @@ use App\Http\Middleware\MaintenanceGuard;
 use App\Http\Middleware\Passthrough;
 use App\Http\Middleware\RequestId;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\StartSession;
+use App\Http\Middleware\VerifyCsrf;
 
 /**
  * HTTP kernel configuration: global middleware (every request), named groups
@@ -44,12 +46,14 @@ final class Kernel
         ],
         'web.crm' => [
             SecurityHeaders::class . ':crm',
-            // StartSession, VerifyCsrf  (Step 1.5)
+            StartSession::class,
+            VerifyCsrf::class,
         ],
         'api' => [
             SecurityHeaders::class . ':api',
             ForceJson::class,
-            // StartSession, VerifyCsrf  (Step 1.5)
+            StartSession::class,
+            VerifyCsrf::class,
         ],
     ];
 
