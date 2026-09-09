@@ -1,0 +1,43 @@
+# =============================================================================
+# FALLBACK ONLY. Use this when the host will NOT let you set the document root
+# to /public. In that case the application lives under public_html/ and this
+# file (at public_html/.htaccess) routes traffic into public/ and hard-denies
+# every other directory.
+#
+# If your document root IS /public, this file is never read — leave it in place
+# anyway; it is harmless outside the web root.
+# =============================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Already inside public/ — let it through.
+    RewriteRule ^public/ - [L]
+
+    # Serve the front controller for everything else.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/index.php [L]
+
+    # Map real asset requests into public/assets.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+</IfModule>
+
+Options -Indexes -MultiViews
+
+# ---- Deny direct access to every application directory -------------------
+RewriteRule ^(app|bootstrap|config|database|cron|resources|scripts|storage|tests|docs|vendor|node_modules)/ - [F,L]
+
+<FilesMatch "(?i)(^\.|\.(env|sql|sqlite|db|log|lock|ini|sh|bak|md|dist|yml|yaml|json)$|composer\.(json|lock)|package(-lock)?\.json)">
+    Require all denied
+</FilesMatch>
+
+# .env and dotfiles, explicitly
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

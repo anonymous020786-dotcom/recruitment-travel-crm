@@ -1,0 +1,52 @@
+# =============================================================================
+# public/ is the ONLY web-exposed directory. Point the domain's document root
+# here. If the host will not let you move the docroot, see ../.htaccess.
+# =============================================================================
+
+# ---- HTTPS + HSTS handled in PHP; force here as a safety net -----------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS (skip if already terminated at a proxy that sets X-Forwarded-Proto)
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Front controller: send everything that is not a real file/dir to index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# ---- No directory listings, no dotfiles -----------------------------------
+Options -Indexes -MultiViews
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# ---- Never execute anything but index.php as PHP in this dir --------------
+<FilesMatch "\.(?i:php)$">
+    Require all denied
+</FilesMatch>
+<Files "index.php">
+    Require all granted
+</Files>
+
+# ---- Long-lived caching for versioned static assets -----------------------
+<IfModule mod_headers.c>
+    <FilesMatch "\.(?i:css|js|mjs|woff2?|png|jpe?g|webp|avif|gif|svg|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    # Baseline headers (PHP layer sets the authoritative, per-group values)
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+# ---- Block hidden/backup/source files that should never be served ---------
+<FilesMatch "(?i:\.(bak|config|sql|sqlite|db|log|ini|sh|md|lock|dist|yml|yaml))$">
+    Require all denied
+</FilesMatch>
