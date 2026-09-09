@@ -7,15 +7,22 @@ declare(strict_types=1);
  * Used by public/index.php (web) and every cron/*.php + scripts/*.php (CLI).
  */
 
+use App\Auth\Auth;
+use App\Auth\AuthService;
 use App\Http\Router;
+use App\Mail\Mailer;
+use App\Mail\QueueMailer;
 use App\Session\DatabaseSessionStore;
 use App\Session\SessionStore;
 use App\Support\Application;
 use App\Support\Config;
 use App\Support\Db;
 use App\Support\Env;
+use App\Support\Hash;
 use App\Support\Logger;
+use App\Support\RateLimiter;
 use App\Support\Signer;
+use App\View\View;
 
 require __DIR__ . '/autoload.php';
 require __DIR__ . '/../app/Support/helpers.php';
@@ -59,6 +66,28 @@ $app->singleton(SessionStore::class, static fn (Application $app): SessionStore 
     $app->get(Db::class),
     (string) $app->config()->get('session.table', 'sessions'),
 ));
+
+$app->singleton(Hash::class, static fn (Application $app): Hash => new Hash(
+    (array) $app->config()->get('security.hash', []),
+));
+
+$app->singleton(RateLimiter::class, static fn (Application $app): RateLimiter => new RateLimiter(
+    $app->get(Db::class),
+    (string) $app->config()->get('rate_limits.table', 'rate_limits'),
+));
+
+$app->singleton(Mailer::class, static fn (Application $app): Mailer => new QueueMailer(
+    $app->get(Db::class),
+    $app->get(Logger::class),
+    logBody: !$app->isProduction(),
+));
+
+$app->singleton(View::class, static fn (Application $app): View => new View(
+    $app->basePath('resources/views'),
+));
+
+$app->singleton(Auth::class);
+$app->singleton(AuthService::class);
 
 // ---- PHP runtime posture ---------------------------------------------------
 $config = $app->config();

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\EnforceHttps;
 use App\Http\Middleware\ForceJson;
 use App\Http\Middleware\MaintenanceGuard;
 use App\Http\Middleware\Passthrough;
+use App\Http\Middleware\RateLimit;
+use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\RequestId;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\StartSession;
@@ -63,12 +66,12 @@ final class Kernel
      * @var array<string,string>
      */
     public array $aliases = [
-        'headers'  => SecurityHeaders::class, // headers:crm|public|api
-        'auth'     => Passthrough::class,   // Authenticate        (Step 1.6)
-        'guest'    => Passthrough::class,   // RedirectIfAuthenticated (Step 1.6)
-        'can'      => Passthrough::class,   // Authorize:<permission> (Step 1.7)
-        'branch'   => Passthrough::class,   // BindBranchScope     (Step 1.7)
-        'throttle' => Passthrough::class,   // RateLimit:<bucket>  (Step 1.6)
+        'headers'  => SecurityHeaders::class,        // headers:crm|public|api
+        'auth'     => Authenticate::class,
+        'guest'    => RedirectIfAuthenticated::class,
+        'throttle' => RateLimit::class,              // throttle:<bucket>
+        'can'      => Passthrough::class,            // Authorize:<permission>  (Step 1.7)
+        'branch'   => Passthrough::class,            // BindBranchScope         (Step 1.7)
         'verified' => Passthrough::class,
     ];
 

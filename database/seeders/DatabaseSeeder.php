@@ -20,6 +20,7 @@ final class DatabaseSeeder extends Seeder
     /** @var list<class-string<Seeder>> */
     private const SEEDERS = [
         CountriesSeeder::class,
+        RolesSeeder::class,
     ];
 
     public function run(): void

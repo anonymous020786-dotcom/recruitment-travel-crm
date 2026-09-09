@@ -38,6 +38,9 @@ final class SecurityHeaders implements Middleware
     {
         $nonce = base64_encode(random_bytes(16));
         $request->setAttribute('csp_nonce', $nonce);
+        if ($this->app->bound(\App\View\View::class)) {
+            $this->app->get(\App\View\View::class)->share('cspNonce', $nonce);
+        }
 
         $response = $next($request);
 
