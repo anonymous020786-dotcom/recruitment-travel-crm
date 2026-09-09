@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Used by public/index.php (web) and every cron/*.php + scripts/*.php (CLI).
  */
 
+use App\Http\Router;
 use App\Support\Application;
 use App\Support\Config;
 use App\Support\Db;
@@ -14,6 +15,7 @@ use App\Support\Env;
 use App\Support\Logger;
 
 require __DIR__ . '/autoload.php';
+require __DIR__ . '/../app/Support/helpers.php';
 
 $root = dirname(__DIR__);
 
@@ -42,6 +44,9 @@ $app->singleton(Db::class, static function (Application $app): Db {
         logger: $app->get(Logger::class),
     );
 });
+
+$app->singleton(Router::class, static fn (Application $app): Router => new Router($app));
+$app->singleton(App\Http\Kernel::class);
 
 // ---- PHP runtime posture ---------------------------------------------------
 $config = $app->config();

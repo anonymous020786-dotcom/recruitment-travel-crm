@@ -5,36 +5,36 @@ declare(strict_types=1);
 /**
  * Front controller. Every web request is rewritten here by public/.htaccess.
  *
- * Step 1.1: bootstrap only, with a minimal liveness endpoint so deployment can
- * be verified. Step 1.3 inserts the Router; Step 1.4 the middleware pipeline.
+ *   bootstrap -> capture Request -> load routes -> dispatch through middleware
+ *   -> Controller -> Response -> send. Any Throwable is rendered by the
+ *   exception Handler (safe in production, detailed only outside it).
  */
 
+use App\Exceptions\Handler;
+use App\Http\Request;
+use App\Http\Router;
 use App\Support\Application;
 
 /** @var Application $app */
 $app = require dirname(__DIR__) . '/bootstrap/app.php';
 
-$path = rtrim(strtok($_SERVER['REQUEST_URI'] ?? '/', '?'), '/') ?: '/';
-$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$request = Request::capture((array) $app->config()->get('app.trusted_proxies', []));
+$app->instance(Request::class, $request);
 
-// --- Temporary liveness endpoint (replaced by the Router in Step 1.3) ---------
-if ($path === '/health' && $method === 'GET') {
-    header('Content-Type: application/json');
-    header('Cache-Control: no-store');
-    echo json_encode([
-        'status'  => 'ok',
-        'app'     => $app->config()->get('app.name'),
-        'env'     => $app->environment(),
-        'version' => Application::VERSION,
-        'time'    => gmdate('c'),
-    ], JSON_UNESCAPED_SLASHES);
-    return;
+/** @var Router $router */
+$router = $app->get(Router::class);
+
+(require $app->basePath('routes/web.php'))($router);
+(require $app->basePath('routes/api.php'))($router);
+$router->finalizeNames();
+
+try {
+    $response = $router->dispatch($request);
+} catch (Throwable $e) {
+    /** @var Handler $handler */
+    $handler = $app->get(Handler::class);
+    $handler->report($e);
+    $response = $handler->render($request, $e);
 }
 
-// --- Placeholder until the Router lands --------------------------------------
-http_response_code(200);
-header('Content-Type: text/plain; charset=UTF-8');
-header('X-Robots-Tag: noindex, nofollow');
-echo "Recruitment & Travel CRM — foundation bootstrap OK.\n";
-echo "Environment: " . $app->environment() . "\n";
-echo "The HTTP router is delivered in Phase 1, Step 1.3.\n";
+$response->send();

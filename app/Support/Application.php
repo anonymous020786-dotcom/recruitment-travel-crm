@@ -12,14 +12,26 @@ final class Application extends Container
 {
     public const VERSION = '0.1.0-phase1';
 
+    private static ?Application $instance = null;
+
     private string $basePath;
     private bool $booted = false;
 
     public function __construct(string $basePath)
     {
         $this->basePath = rtrim($basePath, '/\\');
+        self::$instance = $this;
         $this->instance(self::class, $this);
         $this->instance(Container::class, $this);
+    }
+
+    public static function getInstance(): Application
+    {
+        if (self::$instance === null) {
+            throw new \RuntimeException('Application has not been bootstrapped.');
+        }
+
+        return self::$instance;
     }
 
     public function basePath(string $path = ''): string

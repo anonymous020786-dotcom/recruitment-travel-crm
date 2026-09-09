@@ -128,13 +128,17 @@ class Container
 
         foreach ($params as $param) {
             $name = $param->getName();
+            $type = $param->getType();
 
             if (array_key_exists($name, $overrides)) {
                 $resolved[] = $overrides[$name];
                 continue;
             }
 
-            $type = $param->getType();
+            if ($type instanceof ReflectionNamedType && array_key_exists($type->getName(), $overrides)) {
+                $resolved[] = $overrides[$type->getName()];
+                continue;
+            }
 
             if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) {
                 $resolved[] = $this->make($type->getName());
