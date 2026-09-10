@@ -7,29 +7,11 @@ declare(strict_types=1);
  * Used by public/index.php (web) and every cron/*.php + scripts/*.php (CLI).
  */
 
-use App\Audit\AuditService;
-use App\Auth\Auth;
-use App\Auth\AuthService;
-use App\Auth\BranchScopeResolver;
-use App\Auth\Gate;
-use App\Auth\PermissionService;
-use App\Domain\StatusMachine;
-use App\Http\Router;
-use App\Mail\Mailer;
-use App\Mail\QueueMailer;
-use App\Session\DatabaseSessionStore;
-use App\Session\SessionStore;
 use App\Support\Application;
-use App\Support\Clock;
 use App\Support\Config;
 use App\Support\Db;
 use App\Support\Env;
-use App\Support\Hash;
 use App\Support\Logger;
-use App\Support\RateLimiter;
-use App\Support\Sequences;
-use App\Support\Signer;
-use App\View\View;
 
 require __DIR__ . '/autoload.php';
 require __DIR__ . '/../app/Support/helpers.php';
@@ -73,69 +55,8 @@ $app->singleton(Db::class, static function (Application $app): Db {
     );
 });
 
-$app->singleton(Router::class, static fn (Application $app): Router => new Router($app));
-$app->singleton(App\Http\Kernel::class);
-
-$app->singleton(Signer::class, static fn (Application $app): Signer => new Signer(
-    (string) $app->config()->get('app.key', ''),
-));
-
-$app->singleton(SessionStore::class, static fn (Application $app): SessionStore => new DatabaseSessionStore(
-    $app->get(Db::class),
-    (string) $app->config()->get('session.table', 'sessions'),
-));
-
-$app->singleton(Hash::class, static fn (Application $app): Hash => new Hash(
-    (array) $app->config()->get('security.hash', []),
-));
-
-$app->singleton(RateLimiter::class, static fn (Application $app): RateLimiter => new RateLimiter(
-    $app->get(Db::class),
-    (string) $app->config()->get('rate_limits.table', 'rate_limits'),
-));
-
-$app->singleton(Mailer::class, static fn (Application $app): Mailer => new QueueMailer(
-    $app->get(Db::class),
-    $app->get(Logger::class),
-    logBody: !$app->isProduction(),
-));
-
-$app->singleton(View::class, static fn (Application $app): View => new View(
-    $app->basePath('resources/views'),
-));
-
-$app->singleton(App\View\Assets::class, static fn (Application $app): App\View\Assets => new App\View\Assets(
-    $app->basePath('public'),
-));
-
-$app->singleton(Clock::class, static fn (Application $app): Clock => new Clock(
-    (string) $app->config()->get('app.timezone', 'UTC'),
-));
-
-$app->singleton(Sequences::class, static fn (Application $app): Sequences => new Sequences($app->get(Db::class)));
-
-$app->singleton(StatusMachine::class, static fn (Application $app): StatusMachine => new StatusMachine(
-    (array) $app->config()->get('statuses', []),
-));
-
-$app->singleton(Auth::class);
-$app->singleton(PermissionService::class);
-$app->singleton(BranchScopeResolver::class);
-$app->singleton(AuditService::class);
-$app->singleton(AuthService::class);
-
-$app->singleton(Gate::class, static function (Application $app): Gate {
-    $gate = new Gate(
-        $app,
-        $app->get(PermissionService::class),
-        $app->get(Auth::class),
-    );
-
-    // Policy registrations land with their feature phases, e.g.:
-    // $gate->policy(\App\Models\Lead::class, \App\Policies\LeadPolicy::class);
-
-    return $gate;
-});
+// ---- Service bindings (shared with the test harness) ---------------------
+(require __DIR__ . '/services.php')($app);
 
 // ---- PHP runtime posture ---------------------------------------------------
 $config = $app->config();

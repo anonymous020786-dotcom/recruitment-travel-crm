@@ -57,6 +57,9 @@ abstract class DbTestCase extends TestCase
         $this->app->instance(Logger::class, new Logger(sys_get_temp_dir() . '/crm_feat_logs'));
         $this->app->instance(Db::class, $this->db);
         $this->app->boot();
+
+        // Same container wiring as production (Gate policies, StatusMachine, services, ...).
+        (require TEST_ROOT . '/bootstrap/services.php')($this->app);
     }
 
     protected function cleanupUsers(string $emailLike): void
