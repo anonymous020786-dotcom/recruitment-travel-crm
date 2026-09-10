@@ -13,18 +13,21 @@ use App\Auth\AuthService;
 use App\Auth\BranchScopeResolver;
 use App\Auth\Gate;
 use App\Auth\PermissionService;
+use App\Domain\StatusMachine;
 use App\Http\Router;
 use App\Mail\Mailer;
 use App\Mail\QueueMailer;
 use App\Session\DatabaseSessionStore;
 use App\Session\SessionStore;
 use App\Support\Application;
+use App\Support\Clock;
 use App\Support\Config;
 use App\Support\Db;
 use App\Support\Env;
 use App\Support\Hash;
 use App\Support\Logger;
 use App\Support\RateLimiter;
+use App\Support\Sequences;
 use App\Support\Signer;
 use App\View\View;
 
@@ -103,6 +106,16 @@ $app->singleton(View::class, static fn (Application $app): View => new View(
 
 $app->singleton(App\View\Assets::class, static fn (Application $app): App\View\Assets => new App\View\Assets(
     $app->basePath('public'),
+));
+
+$app->singleton(Clock::class, static fn (Application $app): Clock => new Clock(
+    (string) $app->config()->get('app.timezone', 'UTC'),
+));
+
+$app->singleton(Sequences::class, static fn (Application $app): Sequences => new Sequences($app->get(Db::class)));
+
+$app->singleton(StatusMachine::class, static fn (Application $app): StatusMachine => new StatusMachine(
+    (array) $app->config()->get('statuses', []),
 ));
 
 $app->singleton(Auth::class);
