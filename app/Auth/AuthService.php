@@ -8,7 +8,7 @@ use App\Audit\AuditService;
 use App\Exceptions\HttpException;
 use App\Exceptions\ValidationException;
 use App\Http\Request;
-use App\Mail\Mailer;
+use App\Mail\MailComposer;
 use App\Models\User;
 use App\Repositories\LoginAttemptRepository;
 use App\Repositories\PasswordResetRepository;
@@ -34,7 +34,7 @@ final class AuthService
         private readonly LoginAttemptRepository $attempts,
         private readonly PasswordResetRepository $resets,
         private readonly Hash $hash,
-        private readonly Mailer $mailer,
+        private readonly MailComposer $mail,
         private readonly Db $db,
         private readonly Logger $logger,
         private readonly AuditService $audit,
@@ -121,13 +121,12 @@ final class AuthService
             . '/reset-password/' . $token . '?email=' . rawurlencode($email);
 
         $appName = (string) $this->app->config()->get('app.name', 'CRM');
-        $html = "<p>Hello {$this->e($user->name)},</p>"
-            . "<p>We received a request to reset your {$this->e($appName)} password. "
-            . "This link expires in {$expireMinutes} minutes and can be used once.</p>"
-            . "<p><a href=\"{$this->e($url)}\">Reset your password</a></p>"
-            . "<p>If you did not request this, no action is needed.</p>";
-
-        $this->mailer->send($email, "Reset your {$appName} password", $html, null, 'password_reset');
+        $this->mail->send($email, 'reset-password', [
+            'subject'       => "Reset your {$appName} password",
+            'name'          => $user->name,
+            'url'           => $url,
+            'expireMinutes' => $expireMinutes,
+        ]);
         $this->logger->info('password reset link issued', ['user_id' => $user->id]);
     }
 

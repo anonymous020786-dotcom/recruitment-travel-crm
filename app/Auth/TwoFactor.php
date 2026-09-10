@@ -8,7 +8,7 @@ use App\Audit\AuditService;
 use App\Exceptions\HttpException;
 use App\Exceptions\ValidationException;
 use App\Http\Request;
-use App\Mail\Mailer;
+use App\Mail\MailComposer;
 use App\Models\User;
 use App\Repositories\TwoFactorRepository;
 use App\Support\Application;
@@ -28,7 +28,7 @@ final class TwoFactor
         private readonly TwoFactorRepository $repo,
         private readonly Totp $totp,
         private readonly Encryptor $encryptor,
-        private readonly Mailer $mailer,
+        private readonly MailComposer $mail,
         private readonly AuditService $audit,
         private readonly Logger $logger,
     ) {
@@ -151,12 +151,12 @@ final class TwoFactor
         );
 
         $appName = (string) $this->app->config()->get('app.name', 'CRM');
-        $html = "<p>Hello {$this->e($user->name)},</p>"
-            . "<p>Your {$this->e($appName)} verification code is:</p>"
-            . "<p style=\"font-size:22px;letter-spacing:3px;font-weight:bold\">{$code}</p>"
-            . "<p>It expires in {$ttl} minutes. If you did not request it, change your password.</p>";
-
-        $this->mailer->send($user->email, "{$appName} verification code: {$code}", $html, "Your verification code is {$code}", 'auth_otp');
+        $this->mail->send($user->email, 'otp', [
+            'subject'    => "{$appName} verification code: {$code}",
+            'name'       => $user->name,
+            'code'       => $code,
+            'ttlMinutes' => $ttl,
+        ]);
         $this->logger->info('2fa email code issued', ['user_id' => $user->id, 'purpose' => $purpose]);
     }
 

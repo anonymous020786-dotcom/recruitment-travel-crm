@@ -67,6 +67,33 @@ return static function (Application $app): void {
         logBody: !$app->isProduction(),
     ));
 
+    $app->singleton(\App\Mail\Transport\Transport::class, static function (Application $app): \App\Mail\Transport\Transport {
+        $cfg = $app->config();
+        if ((string) $cfg->get('mail.driver', 'log') === 'smtp'
+            && (string) $cfg->get('mail.smtp.host', '') !== ''
+            && (string) $cfg->get('mail.smtp.username', '') !== '') {
+            $fromDomain = explode('@', (string) $cfg->get('mail.from.address', 'crm@localhost'))[1] ?? 'localhost';
+
+            return new \App\Mail\Transport\SmtpTransport((array) $cfg->get('mail.smtp', []), $fromDomain);
+        }
+
+        return new \App\Mail\Transport\LogTransport($app->get(Logger::class));
+    });
+
+    $app->singleton(\App\Mail\MailQueue::class, static fn (Application $app): \App\Mail\MailQueue => new \App\Mail\MailQueue(
+        $app->get(Db::class),
+        $app->get(\App\Mail\Transport\Transport::class),
+        $app->get(Logger::class),
+        [
+            'from_address' => (string) $app->config()->get('mail.from.address', 'no-reply@localhost'),
+            'from_name'    => (string) $app->config()->get('mail.from.name', 'CRM'),
+        ] + (array) $app->config()->get('mail.queue', []),
+    ));
+
+    $app->singleton(\App\Mail\MailComposer::class);
+    $app->singleton(\App\Support\CronRunner::class);
+    $app->singleton(\App\Auth\LoginAlerts::class);
+
     $app->singleton(View::class, static fn (Application $app): View => new View($app->basePath('resources/views')));
     $app->singleton(Assets::class, static fn (Application $app): Assets => new Assets($app->basePath('public')));
 

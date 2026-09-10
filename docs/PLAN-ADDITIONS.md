@@ -47,13 +47,14 @@ webauthn_credentials(id, user_id, credential_id VARBINARY UNIQUE, public_key BLO
 
 | Feature | Detail |
 |---|---|
-| Real SMTP `SmtpMailer` | Behind the existing `Mailer` interface. STARTTLS/SSL, auth, timeouts, no external lib (raw SMTP over `stream_socket_client`). |
-| `cron/process-email-queue.php` | Drains `email_log` (status `queued`), retries with backoff, caps attempts, logs. |
-| Templated emails | `resources/views/mail/*` (a plain layout + text alternative); `MailComposer` renders + queues. |
-| Notification email digest | Per-user preference (`immediate` / `daily digest` / `off`) in `settings` or a `notification_preferences` table; `cron/notification-digest.php`. |
-| Events wired | lead assigned, follow-up due, document rejected, interview tomorrow, payment overdue, passport/visa expiring, departure tomorrow, password changed, new device sign-in. |
+| Real SMTP `SmtpTransport` | ✅ Behind a `Transport` interface (`LogTransport` in dev, `SmtpTransport` in prod). Raw SMTP over `stream_socket_client`, STARTTLS/SSL, AUTH LOGIN, timeouts, no external lib. `EmailMessage` builds MIME multipart/alternative with header-injection guards + quoted-printable. |
+| `cron/process-email-queue.php` | ✅ `MailQueue` drains `email_log` (status `queued`, `next_attempt_at` due), retries with exponential backoff `[1,5,15]` min, caps at `max_attempts` → `failed`, prunes terminal rows > 30 days. Runs under `CronRunner` (table advisory lock + `cron_runs` ledger). |
+| Templated emails | ✅ `resources/views/mail/*` (`layout`, `reset-password`, `otp`, `new-device`); `MailComposer::send()` renders + queues, injecting `appName`/`appUrl`. `AuthService` + `TwoFactor` now compose via `MailComposer`. |
+| New-device sign-in alert | ✅ `LoginAlerts::afterLogin()` — fingerprints UA, records `login_history`, emails on an unrecognised device (not the first login), respects `users.notify_new_device` opt-out. Wired into `LoginController` + `TwoFactorChallengeController`. Never blocks login. |
+| Notification email digest | ⬜ Per-user preference (`immediate` / `daily digest` / `off`); `cron/notification-digest.php`. Still pending. |
+| Events wired | new device sign-in ✅, password reset ✅, email OTP ✅. Remaining (lead assigned, follow-up due, document rejected, interview tomorrow, payment overdue, passport/visa expiring, departure tomorrow) land with their owning phases. |
 
-Status: **Step 2.C** or interleaved with Phase 2.11.
+Status: **Step 2.C.1 done** (SMTP transport, queue cron, templates, new-device alerts). Digest + remaining event hooks: later.
 
 ---
 

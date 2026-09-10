@@ -37,7 +37,7 @@ final class AuthServiceTest extends DbTestCase
             new LoginAttemptRepository($this->db),
             new PasswordResetRepository($this->db),
             $this->hash,
-            new QueueMailer($this->db, $this->app->get(\App\Support\Logger::class)),
+            $this->app->get(\App\Mail\MailComposer::class),
             $this->db,
             $this->app->get(\App\Support\Logger::class),
             new \App\Audit\AuditService(

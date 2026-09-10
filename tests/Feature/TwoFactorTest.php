@@ -102,7 +102,7 @@ final class TwoFactorTest extends DbTestCase
         $request = new \App\Http\Request([], [], [], [], ['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/x', 'REMOTE_ADDR' => '127.0.0.1'], '');
 
         $this->tf->sendEmailCode($this->user, 'login_2fa', $request);
-        self::assertTrue($this->db->exists("SELECT 1 FROM email_log WHERE to_email = ? AND template = 'auth_otp'", [$this->user->email]));
+        self::assertTrue($this->db->exists("SELECT 1 FROM email_log WHERE to_email = ? AND template = 'otp'", [$this->user->email]));
 
         $hash = (string) $this->db->selectValue('SELECT code_hash FROM auth_otp_codes WHERE user_id = ? ORDER BY id DESC LIMIT 1', [$this->userId]);
 

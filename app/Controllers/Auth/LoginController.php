@@ -77,6 +77,7 @@ final class LoginController extends Controller
         }
 
         $this->auth->login($user);
+        app(\App\Auth\LoginAlerts::class)->afterLogin($user, $request, 'password');
 
         $session = $request->attribute('session');
         $intended = $session instanceof Session ? $session->pull('_intended_url') : null;

@@ -83,6 +83,7 @@ final class TwoFactorChallengeController extends Controller
         $session?->forget('_2fa_pending');
 
         $this->auth->login($user); // full password-grade auth
+        app(\App\Auth\LoginAlerts::class)->afterLogin($user, $request, 'password');
 
         $response = Response::redirect(
             is_string($intended = $session?->pull('_intended_url')) && str_starts_with($intended, '/')
