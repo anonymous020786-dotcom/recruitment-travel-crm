@@ -55,6 +55,27 @@ final class LoginController extends Controller
             return redirect_with_errors(['form' => [$e->getMessage()]], $data, '/login');
         }
 
+        $twoFactor = app(\App\Auth\TwoFactor::class);
+        $session = $request->attribute('session');
+
+        // Password verified. If the account has 2FA and this device is not
+        // trusted, hand off to the challenge instead of completing the login.
+        if ($session instanceof Session
+            && $twoFactor->enabledFor($user)
+            && !$this->trustedDevice->isTrusted($user, $request)) {
+            $session->put('_2fa_pending', [
+                'user_id' => $user->id,
+                'remember' => $request->boolean('remember'),
+                'trust' => $request->boolean('trust_device'),
+                'at' => time(),
+            ]);
+            if ($user->twoFactorMethod === 'email') {
+                $twoFactor->sendEmailCode($user, 'login_2fa', $request);
+            }
+
+            return Response::redirect('/two-factor');
+        }
+
         $this->auth->login($user);
 
         $session = $request->attribute('session');

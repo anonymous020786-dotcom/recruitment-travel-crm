@@ -85,6 +85,7 @@ $navMarkup = static function (array $nav, string $currentPath): string {
                         </div>
                         <div class="my-1 border-t border-slate-100"></div>
                         <a href="/account/profile" class="block rounded-md px-3 py-1.5 hover:bg-slate-100">Profile</a>
+                        <a href="/account/security" class="block rounded-md px-3 py-1.5 hover:bg-slate-100">Password &amp; security</a>
                         <form method="post" action="/logout" data-once>
                             <input type="hidden" name="_token" value="<?= e_attr(csrf_token()) ?>">
                             <button type="submit" class="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-red-600 hover:bg-red-50">

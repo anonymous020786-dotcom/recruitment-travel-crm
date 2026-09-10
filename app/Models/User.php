@@ -22,6 +22,8 @@ final class User
         public readonly bool $isActive,
         public readonly ?string $lockedUntil,
         public readonly bool $mustChangePassword,
+        public readonly bool $twoFactorEnabled = false,
+        public readonly string $twoFactorMethod = 'none',
     ) {
     }
 
@@ -40,6 +42,8 @@ final class User
             isActive: (bool) ($row['is_active'] ?? false),
             lockedUntil: $row['locked_until'] ?? null,
             mustChangePassword: (bool) ($row['must_change_password'] ?? false),
+            twoFactorEnabled: (bool) ($row['two_factor_enabled'] ?? false),
+            twoFactorMethod: (string) ($row['two_factor_method'] ?? 'none'),
         );
     }
 

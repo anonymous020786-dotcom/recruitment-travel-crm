@@ -90,9 +90,15 @@ return static function (Application $app): void {
         (array) $app->config()->get('statuses', []),
     ));
 
+    $app->singleton(\App\Support\Totp::class);
+    $app->singleton(\App\Support\Encryptor::class, static fn (Application $app) => new \App\Support\Encryptor(
+        (string) $app->config()->get('app.key', ''),
+    ));
+
     $app->singleton(Auth::class);
     $app->singleton(\App\Auth\RememberMe::class);
     $app->singleton(\App\Auth\TrustedDevice::class);
+    $app->singleton(\App\Auth\TwoFactor::class);
     $app->singleton(PermissionService::class);
     $app->singleton(BranchScopeResolver::class);
     $app->singleton(AuditService::class);

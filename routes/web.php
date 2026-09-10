@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Controllers\Auth\LoginController;
 use App\Controllers\Auth\PasswordResetController;
+use App\Controllers\Auth\TwoFactorChallengeController;
+use App\Controllers\Crm\AccountController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\HealthController;
 use App\Controllers\Public\ContactController;
@@ -48,11 +50,36 @@ return static function (Router $router): void {
             ->middleware(['throttle:password_reset'])->name('password.update');
     });
 
+    // ---- Two-factor challenge (post-password, pre-session) ------------
+    $router->group(['middleware' => ['web.crm']], static function (Router $r): void {
+        $r->get('/two-factor', [TwoFactorChallengeController::class, 'show'])->name('2fa.challenge');
+        $r->post('/two-factor', [TwoFactorChallengeController::class, 'verify'])
+            ->middleware(['throttle:two_factor'])->name('2fa.verify');
+        $r->post('/two-factor/email', [TwoFactorChallengeController::class, 'resendEmail'])
+            ->middleware(['throttle:two_factor'])->name('2fa.email');
+    });
+
     // ---- Authenticated CRM ------------------------------------------
     $router->group(['middleware' => ['web.crm', 'auth', 'branch']], static function (Router $r): void {
         $r->post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
         $r->get('/dashboard', static fn () => view_response('crm.dashboard'))->name('dashboard');
+
+        // ---- Account -------------------------------------------
+        $r->get('/account/profile', [AccountController::class, 'profile'])->name('account.profile');
+        $r->put('/account/profile', [AccountController::class, 'updateProfile'])->middleware(['throttle:write'])->name('account.profile.update');
+        $r->get('/account/security', [AccountController::class, 'security'])->name('account.security');
+        $r->post('/account/password', [AccountController::class, 'changePassword'])->middleware(['throttle:write'])->name('account.password');
+
+        $r->get('/account/two-factor', [AccountController::class, 'twoFactorSetup'])->name('account.2fa.setup');
+        $r->post('/account/two-factor', [AccountController::class, 'twoFactorConfirm'])->middleware(['throttle:two_factor'])->name('account.2fa.confirm');
+        $r->post('/account/two-factor/disable', [AccountController::class, 'disableTwoFactor'])->name('account.2fa.disable');
+        $r->get('/account/recovery-codes', [AccountController::class, 'recoveryCodes'])->name('account.recovery');
+        $r->post('/account/recovery-codes', [AccountController::class, 'regenerateRecoveryCodes'])->name('account.recovery.regen');
+
+        $r->post('/account/devices/revoke', [AccountController::class, 'revokeDevice'])->name('account.devices.revoke');
+        $r->post('/account/sessions/revoke', [AccountController::class, 'revokeSession'])->name('account.sessions.revoke');
+        $r->post('/account/sessions/revoke-all', [AccountController::class, 'signOutEverywhere'])->name('account.sessions.revoke_all');
 
         // ---- Leads --------------------------------------------------
         $r->get('/leads', [LeadController::class, 'index'])->middleware(['can:leads.view'])->name('leads.index');

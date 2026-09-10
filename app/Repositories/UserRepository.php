@@ -10,7 +10,8 @@ use App\Support\Db;
 final class UserRepository
 {
     private const SELECT = 'u.id, u.public_id, u.name, u.email, u.role_id, r.name AS role_name,
-        u.primary_branch_id, u.is_org_wide, u.is_active, u.locked_until, u.must_change_password';
+        u.primary_branch_id, u.is_org_wide, u.is_active, u.locked_until, u.must_change_password,
+        u.two_factor_enabled, u.two_factor_method';
 
     public function __construct(private readonly Db $db)
     {

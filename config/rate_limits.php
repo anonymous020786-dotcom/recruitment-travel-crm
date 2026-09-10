@@ -11,6 +11,7 @@ return [
 
     'buckets' => [
         'login'          => ['by' => ['ip', 'email'], 'limit' => 5,   'window_seconds' => 900],
+        'two_factor'     => ['by' => ['ip'],          'limit' => 10,  'window_seconds' => 600],
         'password_reset' => ['by' => ['ip'],          'limit' => 3,   'window_seconds' => 3600],
         'search'         => ['by' => ['user'],        'limit' => 30,  'window_seconds' => 60],
         'dashboard'      => ['by' => ['user'],        'limit' => 60,  'window_seconds' => 60],

@@ -43,4 +43,17 @@ return [
     'trusted_device' => [
         'days' => 30,
     ],
+
+    // Two-factor authentication.
+    'two_factor' => [
+        'issuer' => \App\Support\Env::get('TWO_FACTOR_ISSUER', \App\Support\Env::get('APP_NAME', 'Recruitment CRM')),
+        // Roles for which a second factor is mandatory (enforced with a grace period).
+        'required_roles' => \App\Support\Env::list('TWO_FACTOR_REQUIRED_ROLES'),
+        'grace_logins'   => 3,
+        // Email fallback code.
+        'email_ttl_minutes'    => 10,
+        'email_resend_seconds' => 60,
+        // How long a passed 2FA / password check counts as "recent" for step-up.
+        'step_up_minutes' => 15,
+    ],
 ];
