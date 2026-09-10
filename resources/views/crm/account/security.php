@@ -26,12 +26,10 @@ $ip = static fn ($bin) => $bin ? (@inet_ntop($bin) ?: '—') : '—';
             $html = '<p class="text-sm">' . component('badge', ['label' => 'Enabled', 'color' => 'emerald', 'dot' => true])
                 . ' <span class="text-slate-500">via ' . e($twoFactor['method']) . '</span></p>';
             $html .= '<p class="mt-2 text-sm text-slate-600">' . (int) $twoFactor['recovery'] . ' recovery code(s) remaining.</p>';
-            $html .= '<form method="post" action="/account/recovery-codes" class="mt-3 flex gap-2">' . csrf_field()
-                . '<input type="password" name="confirm_password" placeholder="Your password" class="form-input" required autocomplete="current-password">'
+            $html .= '<form method="post" action="/account/recovery-codes" class="mt-3">' . csrf_field()
                 . '<button class="btn btn-secondary btn-sm">Regenerate codes</button></form>';
             if (!$twoFactor['required']) {
-                $html .= '<form method="post" action="/account/two-factor/disable" class="mt-2 flex gap-2" data-confirm="Disable two-factor authentication?">' . csrf_field()
-                    . '<input type="password" name="confirm_password" placeholder="Your password" class="form-input" required autocomplete="current-password">'
+                $html .= '<form method="post" action="/account/two-factor/disable" class="mt-2" data-confirm="Disable two-factor authentication?">' . csrf_field()
                     . '<button class="btn btn-danger btn-sm">Disable</button></form>';
             } else {
                 $html .= '<p class="mt-2 text-xs text-slate-400">Required for your role — cannot be disabled.</p>';

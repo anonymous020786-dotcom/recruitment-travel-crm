@@ -67,14 +67,16 @@ class Auth
         return $this->user = $user;
     }
 
-    /** @param string $via 'password' | 'remember' — recalled logins are lower trust. */
+    /** @param string $via 'password' | 'passkey' | 'remember' — recalled logins are lower trust. */
     public function login(User $user, string $via = 'password'): void
     {
         $session = $this->requireSession();
         $session->regenerate(destroyOld: true);
         $session->put('_auth_user_id', $user->id);
         $session->put('_auth_via', $via);
-        if ($via === 'password') {
+        // A password check and a passwordless passkey (user-verified) are both
+        // full-strength auth; a remember-me recall is not.
+        if ($via === 'password' || $via === 'passkey') {
             $session->put('_authenticated_at', time());
         }
         $session->put('_auth_meta', [
@@ -99,6 +101,15 @@ class Auth
         $at = (int) ($this->session()?->get('_authenticated_at') ?? 0);
 
         return $at > 0 && (time() - $at) <= $withinMinutes * 60;
+    }
+
+    /**
+     * Record that the user just re-proved their identity (a password
+     * confirmation / step-up check). Refreshes the "recent auth" window.
+     */
+    public function recordIdentityConfirmation(): void
+    {
+        $this->session()?->put('_authenticated_at', time());
     }
 
     public function loginUsingId(int $id): ?User

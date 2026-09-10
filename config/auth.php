@@ -30,6 +30,14 @@ return [
     // Soft UA binding: if the stored UA hash stops matching, force re-auth.
     'bind_user_agent' => true,
 
+    // Step-up: sensitive actions (managing 2FA, passkeys, revoking every
+    // session) require a full password/2FA auth within this window. A session
+    // recalled from a "remember me" cookie has no fresh auth, so it is always
+    // asked to confirm. Enforced by the RequireRecentAuth middleware (`confirm`).
+    'password_confirm' => [
+        'timeout_minutes' => 15,
+    ],
+
     // Persistent login ("remember me").
     'remember' => [
         'days' => 30,

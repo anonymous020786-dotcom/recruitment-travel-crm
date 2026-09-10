@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\Auth\LoginController;
+use App\Controllers\Auth\PasswordConfirmController;
 use App\Controllers\Auth\PasswordResetController;
 use App\Controllers\Auth\TwoFactorChallengeController;
 use App\Controllers\Auth\WebAuthnLoginController;
@@ -72,36 +73,41 @@ return static function (Router $router): void {
     });
 
     // ---- Authenticated CRM ------------------------------------------
-    $router->group(['middleware' => ['web.crm', 'auth', 'branch']], static function (Router $r): void {
+    $router->group(['middleware' => ['web.crm', 'auth', 'branch', 'enforce2fa']], static function (Router $r): void {
         $r->post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
         $r->get('/dashboard', static fn () => view_response('crm.dashboard'))->name('dashboard');
 
+        // Step-up: re-enter the password before entering the secure area.
+        $r->get('/confirm-password', [PasswordConfirmController::class, 'show'])->name('password.confirm');
+        $r->post('/confirm-password', [PasswordConfirmController::class, 'store'])
+            ->middleware(['throttle:password_confirm'])->name('password.confirm.store');
+
         // ---- Account -------------------------------------------
         $r->get('/account/profile', [AccountController::class, 'profile'])->name('account.profile');
         $r->put('/account/profile', [AccountController::class, 'updateProfile'])->middleware(['throttle:write'])->name('account.profile.update');
-        $r->get('/account/security', [AccountController::class, 'security'])->name('account.security');
+        $r->get('/account/security', [AccountController::class, 'security'])->middleware(['confirm'])->name('account.security');
         $r->post('/account/password', [AccountController::class, 'changePassword'])->middleware(['throttle:write'])->name('account.password');
 
         $r->get('/account/two-factor', [AccountController::class, 'twoFactorSetup'])->name('account.2fa.setup');
         $r->post('/account/two-factor', [AccountController::class, 'twoFactorConfirm'])->middleware(['throttle:two_factor'])->name('account.2fa.confirm');
-        $r->post('/account/two-factor/disable', [AccountController::class, 'disableTwoFactor'])->name('account.2fa.disable');
+        $r->post('/account/two-factor/disable', [AccountController::class, 'disableTwoFactor'])->middleware(['confirm'])->name('account.2fa.disable');
         $r->get('/account/recovery-codes', [AccountController::class, 'recoveryCodes'])->name('account.recovery');
-        $r->post('/account/recovery-codes', [AccountController::class, 'regenerateRecoveryCodes'])->name('account.recovery.regen');
+        $r->post('/account/recovery-codes', [AccountController::class, 'regenerateRecoveryCodes'])->middleware(['confirm'])->name('account.recovery.regen');
 
         // ---- Passkeys (WebAuthn) ------------------------------
-        $r->get('/account/passkeys', [PasskeyController::class, 'index'])->name('account.passkeys');
+        $r->get('/account/passkeys', [PasskeyController::class, 'index'])->middleware(['confirm'])->name('account.passkeys');
         $r->post('/account/passkeys/options', [PasskeyController::class, 'options'])
-            ->middleware(['throttle:two_factor', 'json'])->name('account.passkeys.options');
+            ->middleware(['throttle:two_factor', 'json', 'confirm'])->name('account.passkeys.options');
         $r->post('/account/passkeys', [PasskeyController::class, 'store'])
-            ->middleware(['throttle:two_factor', 'json'])->name('account.passkeys.store');
-        $r->post('/account/passkeys/{id}/rename', [PasskeyController::class, 'rename'])->name('account.passkeys.rename');
-        $r->post('/account/passkeys/{id}/delete', [PasskeyController::class, 'destroy'])->name('account.passkeys.destroy');
-        $r->post('/account/passkeys/second-factor', [PasskeyController::class, 'toggleSecondFactor'])->name('account.passkeys.2fa');
+            ->middleware(['throttle:two_factor', 'json', 'confirm'])->name('account.passkeys.store');
+        $r->post('/account/passkeys/{id}/rename', [PasskeyController::class, 'rename'])->middleware(['confirm'])->name('account.passkeys.rename');
+        $r->post('/account/passkeys/{id}/delete', [PasskeyController::class, 'destroy'])->middleware(['confirm'])->name('account.passkeys.destroy');
+        $r->post('/account/passkeys/second-factor', [PasskeyController::class, 'toggleSecondFactor'])->middleware(['confirm'])->name('account.passkeys.2fa');
 
         $r->post('/account/devices/revoke', [AccountController::class, 'revokeDevice'])->name('account.devices.revoke');
         $r->post('/account/sessions/revoke', [AccountController::class, 'revokeSession'])->name('account.sessions.revoke');
-        $r->post('/account/sessions/revoke-all', [AccountController::class, 'signOutEverywhere'])->name('account.sessions.revoke_all');
+        $r->post('/account/sessions/revoke-all', [AccountController::class, 'signOutEverywhere'])->middleware(['confirm'])->name('account.sessions.revoke_all');
 
         // ---- Leads --------------------------------------------------
         $r->get('/leads', [LeadController::class, 'index'])->middleware(['can:leads.view'])->name('leads.index');

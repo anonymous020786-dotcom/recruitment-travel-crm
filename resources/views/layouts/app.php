@@ -100,6 +100,23 @@ $navMarkup = static function (array $nav, string $currentPath): string {
 
         <?= component('toasts') ?>
 
+        <?php
+        $graceLeft = app()->bound(App\Http\Request::class)
+            ? app(App\Http\Request::class)->attribute('twofa_grace_left')
+            : null;
+        if (is_int($graceLeft)):
+        ?>
+            <div class="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 sm:px-6">
+                <?php if ($graceLeft > 0): ?>
+                    Two-factor authentication is required for your role.
+                    <strong><?= $graceLeft ?> sign-in<?= $graceLeft === 1 ? '' : 's' ?></strong> left before it becomes mandatory.
+                <?php else: ?>
+                    Two-factor authentication is now required.
+                <?php endif ?>
+                <a href="/account/two-factor" class="font-semibold underline">Set it up now</a>.
+            </div>
+        <?php endif ?>
+
         <main id="main" class="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
             <?= $this->yield('content') ?>
         </main>

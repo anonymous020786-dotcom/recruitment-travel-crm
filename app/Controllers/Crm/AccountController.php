@@ -161,10 +161,8 @@ final class AccountController extends CrmController
 
     public function regenerateRecoveryCodes(Request $request): Response
     {
+        // Step-up is enforced by the `confirm` middleware on this route.
         $user = $this->currentUser();
-        if (!$this->confirmPassword($request, $user->id)) {
-            return redirect_with_errors(['confirm_password' => ['Enter your password to continue.']], [], '/account/security');
-        }
         $codes = $this->twoFactor->regenerateRecoveryCodes($user);
         $request->attribute('session')?->flash('_recovery_codes', $codes);
 
@@ -179,10 +177,8 @@ final class AccountController extends CrmController
 
             return Response::redirect('/account/security');
         }
-        if (!$this->confirmPassword($request, $user->id)) {
-            return redirect_with_errors(['confirm_password' => ['Enter your password to disable two-factor.']], [], '/account/security');
-        }
 
+        // Step-up is enforced by the `confirm` middleware on this route.
         $this->twoFactor->disable($user, $user);
         flash('status', 'Two-factor authentication disabled.');
 
@@ -225,14 +221,5 @@ final class AccountController extends CrmController
         flash('status', 'Signed out of all other devices.');
 
         return Response::redirect('/account/security');
-    }
-
-    // ---- internal --------------------------------------
-
-    private function confirmPassword(Request $request, int $userId): bool
-    {
-        $stored = $this->users->passwordHashFor($userId) ?? '';
-
-        return $this->hash->verify((string) $request->input('confirm_password', ''), $stored);
     }
 }

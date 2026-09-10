@@ -7,6 +7,7 @@ namespace App\Http;
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\Authorize;
 use App\Http\Middleware\BindBranchScope;
+use App\Http\Middleware\Enforce2fa;
 use App\Http\Middleware\EnforceHttps;
 use App\Http\Middleware\ForceJson;
 use App\Http\Middleware\MaintenanceGuard;
@@ -15,6 +16,7 @@ use App\Http\Middleware\RateLimit;
 use App\Http\Middleware\RecallRemember;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\RequestId;
+use App\Http\Middleware\RequireRecentAuth;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\StartSession;
 use App\Http\Middleware\VerifyCsrf;
@@ -79,6 +81,8 @@ final class Kernel
         'throttle' => RateLimit::class,              // throttle:<bucket>
         'can'      => Authorize::class,              // can:<ability>[,<ModelClass>]
         'branch'   => BindBranchScope::class,
+        'confirm'  => RequireRecentAuth::class,      // confirm[:<minutes>] — step-up
+        'enforce2fa' => Enforce2fa::class,           // mandatory-2FA grace enforcement
         'verified' => Passthrough::class,
     ];
 

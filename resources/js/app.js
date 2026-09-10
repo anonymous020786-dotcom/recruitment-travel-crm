@@ -134,7 +134,17 @@
         });
         let data = {};
         try { data = await res.json(); } catch (e) { /* non-JSON */ }
-        if (!res.ok) throw new Error(data.error || 'Request failed (' + res.status + ')');
+        if (!res.ok) {
+            if (data && data.confirm_required && data.confirm_url) {
+                window.location.assign(data.confirm_url);
+                throw new Error('Password confirmation required.');
+            }
+            if (data && data.twofa_required && data.setup_url) {
+                window.location.assign(data.setup_url);
+                throw new Error('Two-factor setup required.');
+            }
+            throw new Error(data.error || 'Request failed (' + res.status + ')');
+        }
         return data;
     }
 
