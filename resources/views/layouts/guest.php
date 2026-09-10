@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="<?= e_attr(csrf_token()) ?>">
     <title><?= e($title ?? 'Sign in') ?> &middot; <?= e((string) config('app.name')) ?></title>
     <link rel="stylesheet" href="<?= e_attr(asset('app.css')) ?>">
 </head>
@@ -34,5 +35,6 @@
         </div>
     </main>
 </div>
+<script src="<?= e_attr(asset('app.js')) ?>" nonce="<?= e_attr(nonce()) ?>" defer></script>
 </body>
 </html>

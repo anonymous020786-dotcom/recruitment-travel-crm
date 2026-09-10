@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Controllers\Auth;
 
 use App\Auth\Auth;
+use App\Auth\LoginAlerts;
 use App\Auth\RememberMe;
 use App\Auth\TrustedDevice;
 use App\Auth\TwoFactor;
+use App\Auth\WebAuthn\WebAuthnException;
+use App\Auth\WebAuthn\WebAuthnService;
 use App\Controllers\Controller;
 use App\Exceptions\HttpException;
 use App\Http\Request;
@@ -29,6 +32,8 @@ final class TwoFactorChallengeController extends Controller
         private readonly UserRepository $users,
         private readonly RememberMe $remember,
         private readonly TrustedDevice $trustedDevice,
+        private readonly WebAuthnService $webauthn,
+        private readonly LoginAlerts $loginAlerts,
     ) {
     }
 
@@ -78,27 +83,51 @@ final class TwoFactorChallengeController extends Controller
             return redirect_with_errors(['code' => ['That code is not correct.']], [], '/two-factor');
         }
 
-        // Success — complete the login.
+        return $this->complete($request, $user, $pending, Response::redirect($this->intendedTarget($request)));
+    }
+
+    // ---- passkey second factor (JSON ceremony) --------------------
+
+    public function passkeyOptions(Request $request): Response
+    {
+        $pending = $this->pending($request);
+        $user = $pending !== null ? $this->users->findActiveById($pending['user_id']) : null;
+        if ($user === null) {
+            return $this->json(['error' => 'Your sign-in has expired. Start again.'], 419);
+        }
+
         $session = $request->attribute('session');
-        $session?->forget('_2fa_pending');
-
-        $this->auth->login($user); // full password-grade auth
-        app(\App\Auth\LoginAlerts::class)->afterLogin($user, $request, 'password');
-
-        $response = Response::redirect(
-            is_string($intended = $session?->pull('_intended_url')) && str_starts_with($intended, '/')
-                ? $intended
-                : $this->router()->route((string) config('auth.home_route', 'dashboard')),
-        );
-
-        if (!empty($pending['remember'])) {
-            $c = $this->remember->issue($user, $request);
-            $response->withCookie($c['name'], $c['value'], $c['options']);
+        if (!$session instanceof Session) {
+            abort(500, 'Session unavailable.');
         }
-        if (!empty($pending['trust'])) {
-            $c = $this->trustedDevice->trust($user, $request);
-            $response->withCookie($c['name'], $c['value'], $c['options']);
+
+        try {
+            return $this->json($this->webauthn->assertionOptions($session, $user));
+        } catch (WebAuthnException $e) {
+            return $this->json(['error' => $e->getMessage()], 422);
         }
+    }
+
+    public function passkeyVerify(Request $request): Response
+    {
+        $pending = $this->pending($request);
+        $user = $pending !== null ? $this->users->findActiveById($pending['user_id']) : null;
+        if ($user === null) {
+            return $this->json(['error' => 'Your sign-in has expired. Start again.'], 419);
+        }
+
+        $session = $request->attribute('session');
+        if (!$session instanceof Session) {
+            abort(500, 'Session unavailable.');
+        }
+
+        try {
+            $this->webauthn->verifyAssertion($request->json(), $session, $user->id);
+        } catch (WebAuthnException $e) {
+            return $this->json(['error' => $e->getMessage()], 422);
+        }
+
+        $response = $this->complete($request, $user, $pending, Response::json(['ok' => true, 'redirect' => $this->intendedTarget($request)]));
 
         return $response;
     }
@@ -116,6 +145,41 @@ final class TwoFactorChallengeController extends Controller
     }
 
     // ---- internals -------------------------------------------------
+
+    /**
+     * Finish the login once the second factor is proven: full session, alert,
+     * clear the pending block, and issue any stashed remember / trust cookies.
+     *
+     * @param array{user_id:int,remember:bool,trust:bool,at:int} $pending
+     */
+    private function complete(Request $request, \App\Models\User $user, array $pending, Response $response): Response
+    {
+        $request->attribute('session')?->forget('_2fa_pending');
+
+        $this->auth->login($user); // full password-grade auth
+        $this->loginAlerts->afterLogin($user, $request, 'password');
+
+        if (!empty($pending['remember'])) {
+            $c = $this->remember->issue($user, $request);
+            $response->withCookie($c['name'], $c['value'], $c['options']);
+        }
+        if (!empty($pending['trust'])) {
+            $c = $this->trustedDevice->trust($user, $request);
+            $response->withCookie($c['name'], $c['value'], $c['options']);
+        }
+
+        return $response;
+    }
+
+    private function intendedTarget(Request $request): string
+    {
+        $session = $request->attribute('session');
+        $intended = $session instanceof Session ? $session->pull('_intended_url') : null;
+
+        return is_string($intended) && str_starts_with($intended, '/')
+            ? $intended
+            : app(\App\Http\Router::class)->route((string) config('auth.home_route', 'dashboard'));
+    }
 
     /** @return array{user_id:int,remember:bool,trust:bool,at:int}|null */
     private function pending(Request $request): ?array
@@ -143,11 +207,6 @@ final class TwoFactorChallengeController extends Controller
         $request->attribute('session')?->forget('_2fa_pending');
 
         return Response::redirect('/login');
-    }
-
-    private function router(): \App\Http\Router
-    {
-        return app(\App\Http\Router::class);
     }
 
     private function maskEmail(string $email): string

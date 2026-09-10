@@ -126,6 +126,7 @@ return static function (Application $app): void {
     $app->singleton(\App\Auth\RememberMe::class);
     $app->singleton(\App\Auth\TrustedDevice::class);
     $app->singleton(\App\Auth\TwoFactor::class);
+    $app->singleton(\App\Auth\WebAuthn\WebAuthnService::class);
     $app->singleton(PermissionService::class);
     $app->singleton(BranchScopeResolver::class);
     $app->singleton(AuditService::class);

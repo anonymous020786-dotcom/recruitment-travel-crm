@@ -34,6 +34,7 @@ $navMarkup = static function (array $nav, string $currentPath): string {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="<?= e_attr((string) config('seo.crm_robots', 'noindex, nofollow')) ?>">
+    <meta name="csrf-token" content="<?= e_attr(csrf_token()) ?>">
     <title><?= e($title) ?> &middot; <?= e((string) config('app.name')) ?></title>
     <link rel="stylesheet" href="<?= e_attr(asset('app.css')) ?>">
 </head>

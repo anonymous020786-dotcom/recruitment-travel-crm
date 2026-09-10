@@ -44,6 +44,11 @@ $ip = static fn ($bin) => $bin ? (@inet_ntop($bin) ?: '—') : '—';
             . '<a href="/account/two-factor" class="btn btn-primary btn-sm mt-3">Set up authenticator app</a>';
     })()]) ?>
 
+    <?= component('card', ['title' => 'Passkeys', 'body' =>
+        '<p class="text-sm text-slate-600">Sign in with Face ID, a fingerprint, your phone, or a hardware security key — no password to phish.</p>'
+        . '<a href="/account/passkeys" class="btn btn-secondary btn-sm mt-3">Manage passkeys</a>',
+    ]) ?>
+
     <?= component('card', ['title' => 'Trusted devices', 'body' => (function () use ($devices, $ip) {
         if ($devices === []) {
             return '<p class="text-sm text-slate-500">No trusted devices. A device is trusted when you tick "Trust this device" at sign-in.</p>';

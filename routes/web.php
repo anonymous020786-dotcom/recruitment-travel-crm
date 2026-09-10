@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Controllers\Auth\LoginController;
 use App\Controllers\Auth\PasswordResetController;
 use App\Controllers\Auth\TwoFactorChallengeController;
+use App\Controllers\Auth\WebAuthnLoginController;
 use App\Controllers\Crm\AccountController;
 use App\Controllers\Crm\LeadController;
+use App\Controllers\Crm\PasskeyController;
 use App\Controllers\HealthController;
 use App\Controllers\Public\ContactController;
 use App\Controllers\Public\PublicPageController;
@@ -48,6 +50,12 @@ return static function (Router $router): void {
         $r->get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
         $r->post('/reset-password', [PasswordResetController::class, 'reset'])
             ->middleware(['throttle:password_reset'])->name('password.update');
+
+        // Passwordless sign-in with a passkey (discoverable credential).
+        $r->post('/login/passkey/options', [WebAuthnLoginController::class, 'options'])
+            ->middleware(['throttle:login', 'json'])->name('login.passkey.options');
+        $r->post('/login/passkey', [WebAuthnLoginController::class, 'verify'])
+            ->middleware(['throttle:login', 'json'])->name('login.passkey');
     });
 
     // ---- Two-factor challenge (post-password, pre-session) ------------
@@ -57,6 +65,10 @@ return static function (Router $router): void {
             ->middleware(['throttle:two_factor'])->name('2fa.verify');
         $r->post('/two-factor/email', [TwoFactorChallengeController::class, 'resendEmail'])
             ->middleware(['throttle:two_factor'])->name('2fa.email');
+        $r->post('/two-factor/passkey/options', [TwoFactorChallengeController::class, 'passkeyOptions'])
+            ->middleware(['throttle:two_factor', 'json'])->name('2fa.passkey.options');
+        $r->post('/two-factor/passkey', [TwoFactorChallengeController::class, 'passkeyVerify'])
+            ->middleware(['throttle:two_factor', 'json'])->name('2fa.passkey');
     });
 
     // ---- Authenticated CRM ------------------------------------------
@@ -76,6 +88,16 @@ return static function (Router $router): void {
         $r->post('/account/two-factor/disable', [AccountController::class, 'disableTwoFactor'])->name('account.2fa.disable');
         $r->get('/account/recovery-codes', [AccountController::class, 'recoveryCodes'])->name('account.recovery');
         $r->post('/account/recovery-codes', [AccountController::class, 'regenerateRecoveryCodes'])->name('account.recovery.regen');
+
+        // ---- Passkeys (WebAuthn) ------------------------------
+        $r->get('/account/passkeys', [PasskeyController::class, 'index'])->name('account.passkeys');
+        $r->post('/account/passkeys/options', [PasskeyController::class, 'options'])
+            ->middleware(['throttle:two_factor', 'json'])->name('account.passkeys.options');
+        $r->post('/account/passkeys', [PasskeyController::class, 'store'])
+            ->middleware(['throttle:two_factor', 'json'])->name('account.passkeys.store');
+        $r->post('/account/passkeys/{id}/rename', [PasskeyController::class, 'rename'])->name('account.passkeys.rename');
+        $r->post('/account/passkeys/{id}/delete', [PasskeyController::class, 'destroy'])->name('account.passkeys.destroy');
+        $r->post('/account/passkeys/second-factor', [PasskeyController::class, 'toggleSecondFactor'])->name('account.passkeys.2fa');
 
         $r->post('/account/devices/revoke', [AccountController::class, 'revokeDevice'])->name('account.devices.revoke');
         $r->post('/account/sessions/revoke', [AccountController::class, 'revokeSession'])->name('account.sessions.revoke');
