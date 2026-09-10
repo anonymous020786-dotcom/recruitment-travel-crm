@@ -113,6 +113,10 @@ class Validator
                 }
             }
 
+            // min/max/between/size compare the numeric VALUE for numeric fields,
+            // and the string LENGTH otherwise.
+            $this->sizeIsValue = in_array('numeric', $rules, true) || in_array('integer', $rules, true);
+
             foreach ($rules as $rule) {
                 if (in_array($rule, ['nullable', 'sometimes'], true)) {
                     continue;
@@ -129,6 +133,7 @@ class Validator
     }
 
     private bool $validated = false;
+    private bool $sizeIsValue = false;
 
     /** @return array{0:string,1:list<string>} */
     private function parseRule(string $rule): array
@@ -187,11 +192,11 @@ class Validator
 
     private function size(mixed $value): float
     {
-        if (is_numeric($value)) {
-            return (float) $value;
-        }
         if (is_array($value)) {
             return (float) count($value);
+        }
+        if ($this->sizeIsValue && is_numeric($value)) {
+            return (float) $value;
         }
 
         return (float) mb_strlen((string) $value);

@@ -229,6 +229,81 @@ final class LeadRepository
         );
     }
 
+    /** @return list<array<string,mixed>> notes newest-first */
+    public function notes(int $leadId, int $limit = 200): array
+    {
+        $limit = max(1, min($limit, 500));
+
+        return $this->db->select(
+            "SELECT n.id, n.body, n.created_at, u.name AS user_name
+             FROM lead_notes n LEFT JOIN users u ON u.id = n.user_id
+             WHERE n.lead_id = :id ORDER BY n.id DESC LIMIT {$limit}",
+            ['id' => $leadId],
+        );
+    }
+
+    /** @return list<array<string,mixed>> lead followups newest-first */
+    public function followups(int $leadId): array
+    {
+        return $this->db->select(
+            "SELECT f.id, f.due_date, f.due_time, f.channel, f.status, f.outcome, f.completed_at, f.created_at,
+                    u.name AS assignee_name
+             FROM lead_followups f LEFT JOIN users u ON u.id = f.assigned_to
+             WHERE f.lead_id = :id ORDER BY f.due_date DESC, f.id DESC",
+            ['id' => $leadId],
+        );
+    }
+
+    /**
+     * Active users that could be assigned work in the given branches.
+     *
+     * @return list<array{id:int,name:string}>
+     */
+    public function assignableUsers(BranchScope $scope): array
+    {
+        if ($scope->orgWide) {
+            $rows = $this->db->select(
+                "SELECT id, name FROM users WHERE is_active = 1 AND deleted_at IS NULL ORDER BY name LIMIT 500",
+            );
+        } elseif ($scope->ids === []) {
+            return [];
+        } else {
+            $primary = $branch = [];
+            $bind = [];
+            foreach ($scope->ids as $i => $id) {
+                $primary[] = ":pb{$i}";
+                $branch[] = ":bb{$i}";
+                $bind["pb{$i}"] = $id;
+                $bind["bb{$i}"] = $id;
+            }
+            $rows = $this->db->select(
+                "SELECT DISTINCT u.id, u.name FROM users u
+                 LEFT JOIN user_branches ub ON ub.user_id = u.id
+                 WHERE u.is_active = 1 AND u.deleted_at IS NULL
+                   AND (u.is_org_wide = 1 OR u.primary_branch_id IN (" . implode(', ', $primary) . ")
+                        OR ub.branch_id IN (" . implode(', ', $branch) . "))
+                 ORDER BY u.name LIMIT 500",
+                $bind,
+            );
+        }
+
+        return array_map(static fn ($r) => ['id' => (int) $r['id'], 'name' => (string) $r['name']], $rows);
+    }
+
+    /** @return list<array{id:int,key_name:string,label:string,is_terminal:int}> */
+    public function statusOptions(): array
+    {
+        return $this->db->select(
+            'SELECT id, key_name, label, is_terminal FROM lead_statuses WHERE is_active = 1 ORDER BY sort_order',
+        );
+    }
+
+    /** @return list<array{id:int,name:string}> */
+    public function sourceOptions(): array
+    {
+        return $this->db->select('SELECT id, name FROM lead_sources WHERE is_active = 1 ORDER BY sort_order, name');
+    }
+
     public function defaultStatusId(): int
     {
         return (int) $this->db->selectValue(

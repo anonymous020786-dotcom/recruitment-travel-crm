@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Controllers\Auth\LoginController;
 use App\Controllers\Auth\PasswordResetController;
+use App\Controllers\Crm\LeadController;
 use App\Controllers\HealthController;
 use App\Controllers\Public\HomeController;
 use App\Controllers\Public\SeoController;
@@ -43,5 +44,20 @@ return static function (Router $router): void {
         $r->post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
         $r->get('/dashboard', static fn () => view_response('crm.dashboard'))->name('dashboard');
+
+        // ---- Leads --------------------------------------------------
+        $r->get('/leads', [LeadController::class, 'index'])->middleware(['can:leads.view'])->name('leads.index');
+        $r->get('/leads/create', [LeadController::class, 'create'])->middleware(['can:leads.create'])->name('leads.create');
+        $r->post('/leads', [LeadController::class, 'store'])->middleware(['can:leads.create', 'throttle:write'])->name('leads.store');
+        $r->post('/leads/bulk/assign', [LeadController::class, 'bulkAssign'])->middleware(['can:leads.assign'])->name('leads.bulk.assign');
+
+        $r->get('/leads/{lead}', [LeadController::class, 'show'])->middleware(['can:leads.view'])->name('leads.show');
+        $r->get('/leads/{lead}/edit', [LeadController::class, 'edit'])->middleware(['can:leads.edit'])->name('leads.edit');
+        $r->put('/leads/{lead}', [LeadController::class, 'update'])->middleware(['can:leads.edit', 'throttle:write'])->name('leads.update');
+        $r->delete('/leads/{lead}', [LeadController::class, 'destroy'])->middleware(['can:leads.delete'])->name('leads.destroy');
+
+        $r->post('/leads/{lead}/assign', [LeadController::class, 'assign'])->middleware(['can:leads.assign'])->name('leads.assign');
+        $r->post('/leads/{lead}/status', [LeadController::class, 'changeStatus'])->middleware(['can:leads.edit'])->name('leads.status');
+        $r->post('/leads/{lead}/notes', [LeadController::class, 'addNote'])->middleware(['can:leads.edit'])->name('leads.notes');
     });
 };
