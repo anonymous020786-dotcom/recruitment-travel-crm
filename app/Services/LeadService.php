@@ -15,6 +15,8 @@ use App\Exceptions\ValidationException;
 use App\Models\Lead;
 use App\Models\User;
 use App\Notifications\NotificationService;
+use App\Models\Followup;
+use App\Repositories\LeadFollowupRepository;
 use App\Repositories\LeadRepository;
 use App\Support\Db;
 use App\Support\Sequences;
@@ -29,6 +31,7 @@ final class LeadService
     public function __construct(
         private readonly Db $db,
         private readonly LeadRepository $leads,
+        private readonly LeadFollowupRepository $followups,
         private readonly Sequences $sequences,
         private readonly StatusMachine $statuses,
         private readonly Gate $gate,
@@ -320,6 +323,146 @@ final class LeadService
                 throw new StaleRecordException('lead', $lead->publicId);
             }
             $this->audit->log('deleted', 'leads', 'lead', $lead->id, $before, null, 'soft delete', $actor);
+        });
+    }
+
+    // ---- follow-ups ----------------------------------------------
+
+    /**
+     * Schedule a follow-up on a lead.
+     *
+     * @param array{due_date:string,due_time?:?string,channel:string,subject?:?string,assigned_to?:?int} $data
+     */
+    public function scheduleFollowup(Lead $lead, array $data, User $actor): Followup
+    {
+        if (!$this->gate->forUser($actor)->allows('followups.create') || !$this->gate->forUser($actor)->allows('view', $lead)) {
+            throw AuthorizationException::forPermission('followups.create');
+        }
+        if (!$lead->isEditable()) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'This lead is converted — no new follow-ups.', []);
+        }
+
+        $dueDate = (string) ($data['due_date'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDate) || $dueDate < gmdate('Y-m-d')) {
+            throw new ValidationException(['due_date' => ['Choose today or a future date.']]);
+        }
+
+        $dueTime = null;
+        if (($t = trim((string) ($data['due_time'] ?? ''))) !== '') {
+            if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t)) {
+                throw new ValidationException(['due_time' => ['Use a 24-hour time like 14:30.']]);
+            }
+            $dueTime = $t . ':00';
+        }
+
+        $channel = (string) ($data['channel'] ?? 'call');
+        if (!in_array($channel, ['call', 'whatsapp', 'sms', 'email', 'meeting', 'other'], true)) {
+            throw new ValidationException(['channel' => ['Pick a valid channel.']]);
+        }
+
+        $assigneeId = isset($data['assigned_to']) && (int) $data['assigned_to'] > 0
+            ? (int) $data['assigned_to']
+            : ($lead->assignedTo ?? $actor->id);
+        $this->assertAssigneeValid($assigneeId, $lead->branchId);
+
+        $subject = trim((string) ($data['subject'] ?? ''));
+        $subject = $subject !== '' ? mb_substr($subject, 0, 200) : null;
+
+        $id = $this->db->transaction(function () use ($lead, $actor, $assigneeId, $dueDate, $dueTime, $channel, $subject): int {
+            $newId = $this->followups->create([
+                'lead_id'     => $lead->id,
+                'assigned_to' => $assigneeId,
+                'branch_id'   => $lead->branchId,
+                'due_date'    => $dueDate,
+                'due_time'    => $dueTime,
+                'channel'     => $channel,
+                'subject'     => $subject,
+                'created_by'  => $actor->id,
+            ]);
+            $this->audit->log('followup_scheduled', 'leads', 'lead', $lead->id, null, [
+                'followup_id' => $newId, 'due_date' => $dueDate, 'channel' => $channel, 'assigned_to' => $assigneeId,
+            ], null, $actor);
+
+            return $newId;
+        });
+
+        if ($assigneeId !== $actor->id) {
+            $this->notify->leadFollowupDue($assigneeId, $lead, $dueDate);
+        }
+
+        $scope = $this->scopes->resolve($actor);
+
+        return $this->followups->findInScope($id, $scope)
+            ?? throw new \RuntimeException('Follow-up vanished after creation.');
+    }
+
+    /**
+     * Complete a follow-up. Optionally records the outcome as a lead note and
+     * schedules the next follow-up in one step.
+     *
+     * @param array{due_date:string,due_time?:?string,channel:string,subject?:?string,assigned_to?:?int}|null $next
+     */
+    public function completeFollowup(int $followupId, User $actor, string $outcome, bool $logAsNote = false, ?array $next = null): ?Followup
+    {
+        $scope = $this->scopes->resolve($actor);
+        $followup = $this->followups->findInScope($followupId, $scope);
+        if ($followup === null) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Follow-up not found.', [], 404);
+        }
+        $lead = $this->leads->findById($followup->leadId, $scope);
+        if ($lead === null || !$this->gate->forUser($actor)->allows('view', $lead)) {
+            throw AuthorizationException::forPermission('followups.complete');
+        }
+        if (!$this->gate->forUser($actor)->allows('followups.complete')) {
+            throw AuthorizationException::forPermission('followups.complete');
+        }
+        if (!$followup->isPending()) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'That follow-up is already closed.', []);
+        }
+
+        $outcome = trim($outcome);
+        if ($outcome === '') {
+            throw new ValidationException(['outcome' => ['Say what happened.']]);
+        }
+
+        $this->db->transaction(function () use ($followup, $lead, $actor, $outcome, $logAsNote): void {
+            if ($this->followups->markCompleted($followup->id, $outcome) === 0) {
+                throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'That follow-up is already closed.', []);
+            }
+            if ($logAsNote) {
+                $this->db->insertRow('lead_notes', [
+                    'lead_id' => $lead->id,
+                    'user_id' => $actor->id,
+                    'body'    => mb_substr("Follow-up ({$followup->channelLabel()}): {$outcome}", 0, 5000),
+                ]);
+            }
+            $this->audit->log('followup_completed', 'leads', 'lead', $lead->id, null, [
+                'followup_id' => $followup->id, 'outcome' => mb_substr($outcome, 0, 255),
+            ], null, $actor);
+        });
+
+        return $next !== null ? $this->scheduleFollowup($lead, $next, $actor) : null;
+    }
+
+    public function cancelFollowup(int $followupId, User $actor): void
+    {
+        $scope = $this->scopes->resolve($actor);
+        $followup = $this->followups->findInScope($followupId, $scope);
+        if ($followup === null) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Follow-up not found.', [], 404);
+        }
+        $lead = $this->leads->findById($followup->leadId, $scope);
+        if ($lead === null
+            || !$this->gate->forUser($actor)->allows('view', $lead)
+            || !$this->gate->forUser($actor)->allows('followups.edit')) {
+            throw AuthorizationException::forPermission('followups.edit');
+        }
+
+        $this->db->transaction(function () use ($followup, $lead, $actor): void {
+            if ($this->followups->markCancelled($followup->id) === 0) {
+                throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'That follow-up is already closed.', []);
+            }
+            $this->audit->log('followup_cancelled', 'leads', 'lead', $lead->id, null, ['followup_id' => $followup->id], null, $actor);
         });
     }
 

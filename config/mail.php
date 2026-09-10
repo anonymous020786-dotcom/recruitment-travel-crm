@@ -28,4 +28,8 @@ return [
         'max_attempts'  => 5,
         'retry_backoff_minutes' => [1, 5, 15, 60, 240],
     ],
+
+    // Daily "your follow-ups" digest email (cron/followups.php). The in-app
+    // reminder notification is always created regardless of this flag.
+    'followup_reminders' => Env::bool('MAIL_FOLLOWUP_REMINDERS', true),
 ];

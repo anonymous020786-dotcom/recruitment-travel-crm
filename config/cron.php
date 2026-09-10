@@ -15,6 +15,9 @@ return [
 
     'runs_table' => 'cron_runs',
 
+    // Hour (UTC) at which cron/followups.php sends its daily digest email.
+    'followup_digest_hour' => Env::int('FOLLOWUP_DIGEST_HOUR', 8),
+
     // Job registry. `schedule` is advisory metadata for docs + the single-entry
     // dispatcher fallback (cron/dispatch.php) on plans with only one cron slot.
     'jobs' => [

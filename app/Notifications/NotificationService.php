@@ -61,15 +61,25 @@ final class NotificationService
 
     public function leadFollowupDue(int $assigneeUserId, Lead $lead, string $dueDate): void
     {
+        $this->followupReminder($assigneeUserId, $lead->id, $lead->name, $lead->leadNumber, $dueDate);
+    }
+
+    /** Scalar variant used by the cron reminder, which works from raw rows. */
+    public function followupReminder(int $assigneeUserId, int $leadId, string $leadName, string $leadNumber, string $dueDate): void
+    {
+        if ($assigneeUserId <= 0) {
+            return;
+        }
+
         $this->notify(
             userId: $assigneeUserId,
             type: 'lead_followup_due',
-            title: "Follow-up due: {$lead->name}",
-            body: "{$lead->leadNumber} · due {$dueDate}",
+            title: "Follow-up due: {$leadName}",
+            body: "{$leadNumber} · due {$dueDate}",
             linkType: 'lead',
-            linkId: $lead->id,
+            linkId: $leadId,
             linkFragment: 'followups',
-            dedupeKey: "lead_followup:{$lead->id}:{$dueDate}",
+            dedupeKey: "lead_followup:{$leadId}:{$dueDate}",
         );
     }
 }

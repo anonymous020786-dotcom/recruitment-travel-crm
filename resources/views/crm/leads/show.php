@@ -1,11 +1,14 @@
 <?php
 /**
  * @var \App\Models\Lead $lead
- * @var list<array> $timeline @var list<array> $followups @var list $assignees @var list<string> $nextStatuses
+ * @var list<array> $timeline @var list<\App\Models\Followup> $followups @var list $assignees
+ * @var list<string> $nextStatuses @var bool $canFollowup
  */
 $this->layout('layouts.app', ['title' => $lead->name, 'currentPath' => '/leads']);
 $this->start('content');
 
+$canFollowup = $canFollowup ?? false;
+$channels = ['call' => 'Call', 'whatsapp' => 'WhatsApp', 'sms' => 'SMS', 'email' => 'Email', 'meeting' => 'Meeting', 'other' => 'Other'];
 $wa = 'https://wa.me/' . preg_replace('/\D/', '', $lead->phone);
 $statusLabels = [];
 foreach (($nextStatuses ?? []) as $s) {
@@ -80,6 +83,73 @@ foreach (($nextStatuses ?? []) as $s) {
             }
             return $html;
         })()]) ?>
+
+        <div id="followups">
+            <?= component('card', ['title' => 'Follow-ups', 'body' => (function () use ($followups, $lead, $assignees, $canFollowup, $channels) {
+                $today = gmdate('Y-m-d');
+                $html = '';
+
+                if ($canFollowup) {
+                    $opts = '';
+                    foreach ($assignees as $u) {
+                        $sel = (int) $u['id'] === $lead->assignedTo ? ' selected' : '';
+                        $opts .= '<option value="' . (int) $u['id'] . '"' . $sel . '>' . e($u['name']) . '</option>';
+                    }
+                    $chOpts = '';
+                    foreach ($channels as $key => $label) {
+                        $chOpts .= '<option value="' . e_attr($key) . '">' . e($label) . '</option>';
+                    }
+                    $html .= '<form method="post" action="/leads/' . e_attr($lead->publicId) . '/followups" class="mb-4 grid gap-2 sm:grid-cols-2" data-once>'
+                        . csrf_field()
+                        . '<input type="date" name="due_date" required min="' . e_attr($today) . '" value="' . e_attr($today) . '" class="form-input">'
+                        . '<input type="time" name="due_time" class="form-input">'
+                        . '<select name="channel" class="form-select">' . $chOpts . '</select>'
+                        . '<select name="assigned_to" class="form-select">' . $opts . '</select>'
+                        . '<input type="text" name="subject" maxlength="200" placeholder="What is it about? (optional)" class="form-input sm:col-span-2">'
+                        . '<div class="sm:col-span-2"><button class="btn btn-secondary btn-sm">Schedule follow-up</button></div>'
+                        . '</form>';
+                }
+
+                if ($followups === []) {
+                    $html .= '<p class="text-sm text-slate-500">No follow-ups scheduled.</p>';
+                    return $html;
+                }
+
+                $html .= '<ul class="divide-y divide-slate-100">';
+                foreach ($followups as $f) {
+                    $overdue = $f->isOverdue($today);
+                    $meta = e($f->channelLabel()) . ' · due ' . e($f->dueLabel())
+                        . ($f->assigneeName ? ' · ' . e($f->assigneeName) : '');
+                    $badge = match ($f->status) {
+                        'completed' => component('badge', ['label' => 'Done', 'color' => 'emerald']),
+                        'cancelled' => component('badge', ['label' => 'Cancelled', 'color' => 'slate']),
+                        default     => component('badge', ['label' => $overdue ? 'Overdue' : 'Pending', 'color' => $overdue ? 'rose' : 'amber', 'dot' => true]),
+                    };
+                    $html .= '<li class="py-2.5 text-sm">'
+                        . '<div class="flex items-start justify-between gap-2">'
+                        . '<div><p class="font-medium text-slate-900">' . e($f->subject ?: $f->channelLabel() . ' follow-up') . '</p>'
+                        . '<p class="text-xs text-slate-500">' . $meta . '</p>'
+                        . ($f->outcome ? '<p class="mt-1 text-slate-600">' . e($f->outcome) . '</p>' : '')
+                        . '</div>' . $badge . '</div>';
+
+                    if ($f->isPending() && $canFollowup) {
+                        $html .= '<div class="mt-2 flex flex-wrap items-center gap-2">'
+                            . '<form method="post" action="/followups/' . (int) $f->id . '/complete" class="flex flex-1 gap-2" data-once>'
+                            . csrf_field()
+                            . '<input type="text" name="outcome" required maxlength="255" placeholder="Outcome…" class="form-input">'
+                            . '<label class="flex items-center gap-1 whitespace-nowrap text-xs text-slate-500"><input type="checkbox" name="log_as_note" value="1"> note</label>'
+                            . '<button class="btn btn-primary btn-sm">Done</button></form>'
+                            . '<form method="post" action="/followups/' . (int) $f->id . '/cancel" data-confirm="Cancel this follow-up?">'
+                            . csrf_field()
+                            . '<button class="btn btn-ghost btn-sm text-red-600">Cancel</button></form>'
+                            . '</div>';
+                    }
+                    $html .= '</li>';
+                }
+                $html .= '</ul>';
+                return $html;
+            })()]) ?>
+        </div>
 
         <div id="timeline">
             <?= component('card', ['title' => 'Timeline', 'body' => (function () use ($timeline, $lead) {

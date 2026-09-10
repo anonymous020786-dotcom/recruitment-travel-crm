@@ -8,6 +8,8 @@ use App\Controllers\Auth\PasswordResetController;
 use App\Controllers\Auth\TwoFactorChallengeController;
 use App\Controllers\Auth\WebAuthnLoginController;
 use App\Controllers\Crm\AccountController;
+use App\Controllers\Crm\DashboardController;
+use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\PasskeyController;
 use App\Controllers\HealthController;
@@ -76,7 +78,15 @@ return static function (Router $router): void {
     $router->group(['middleware' => ['web.crm', 'auth', 'branch', 'enforce2fa']], static function (Router $r): void {
         $r->post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
-        $r->get('/dashboard', static fn () => view_response('crm.dashboard'))->name('dashboard');
+        $r->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        // ---- Follow-ups (personal queue + close-out actions) --
+        $r->get('/followups', [FollowupController::class, 'index'])
+            ->middleware(['can:followups.view'])->name('followups.index');
+        $r->post('/followups/{id}/complete', [FollowupController::class, 'complete'])
+            ->middleware(['can:followups.complete', 'throttle:write'])->name('followups.complete');
+        $r->post('/followups/{id}/cancel', [FollowupController::class, 'cancel'])
+            ->middleware(['can:followups.edit', 'throttle:write'])->name('followups.cancel');
 
         // Step-up: re-enter the password before entering the secure area.
         $r->get('/confirm-password', [PasswordConfirmController::class, 'show'])->name('password.confirm');
@@ -123,5 +133,7 @@ return static function (Router $router): void {
         $r->post('/leads/{lead}/assign', [LeadController::class, 'assign'])->middleware(['can:leads.assign'])->name('leads.assign');
         $r->post('/leads/{lead}/status', [LeadController::class, 'changeStatus'])->middleware(['can:leads.edit'])->name('leads.status');
         $r->post('/leads/{lead}/notes', [LeadController::class, 'addNote'])->middleware(['can:leads.edit'])->name('leads.notes');
+        $r->post('/leads/{lead}/followups', [LeadController::class, 'scheduleFollowup'])
+            ->middleware(['can:followups.create', 'throttle:write'])->name('leads.followups.store');
     });
 };

@@ -303,6 +303,7 @@ CREATE TABLE lead_followups (
     due_date        DATE            NOT NULL,
     due_time        TIME            NULL,
     channel         ENUM('call','whatsapp','sms','email','meeting','other') NOT NULL DEFAULT 'call',
+    subject         VARCHAR(200)    NULL,
     status          ENUM('pending','completed','cancelled') NOT NULL DEFAULT 'pending',
     outcome         VARCHAR(255)    NULL,
     completed_at    DATETIME        NULL,

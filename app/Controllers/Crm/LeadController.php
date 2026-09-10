@@ -10,6 +10,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Models\Lead;
 use App\Repositories\ActivityLogRepository;
+use App\Repositories\LeadFollowupRepository;
 use App\Repositories\LeadRepository;
 use App\Services\LeadService;
 use App\Support\ListQuery;
@@ -19,6 +20,7 @@ final class LeadController extends CrmController
 {
     public function __construct(
         private readonly LeadRepository $leads,
+        private readonly LeadFollowupRepository $followups,
         private readonly LeadService $service,
         private readonly ActivityLogRepository $activity,
     ) {
@@ -84,14 +86,14 @@ final class LeadController extends CrmController
 
         $notes = $this->leads->notes($model->id);
         $logs = $this->activity->forRecord('lead', $model->id, 100);
-        $followups = $this->leads->followups($model->id);
 
         return view_response('crm.leads.show', [
             'lead'      => $model,
             'timeline'  => $this->buildTimeline($notes, $logs),
-            'followups' => $followups,
+            'followups' => $this->followups->forLead($model->id),
             'assignees' => $this->leads->assignableUsers($this->scope()),
             'nextStatuses' => $this->nextStatuses($model),
+            'canFollowup' => can('followups.create') && $model->isEditable(),
         ]);
     }
 
@@ -198,6 +200,28 @@ final class LeadController extends CrmController
         }
 
         return Response::redirect('/leads/' . $model->publicId . '#timeline');
+    }
+
+    public function scheduleFollowup(Request $request, string $lead): Response
+    {
+        $model = $this->find($lead);
+
+        try {
+            $this->service->scheduleFollowup($model, [
+                'due_date'    => (string) $request->input('due_date', ''),
+                'due_time'    => $request->input('due_time'),
+                'channel'     => (string) $request->input('channel', 'call'),
+                'subject'     => $request->input('subject'),
+                'assigned_to' => $request->input('assigned_to'),
+            ], $this->currentUser());
+            flash('status', 'Follow-up scheduled.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not schedule the follow-up.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/leads/' . $model->publicId . '#followups');
     }
 
     // ---- internals -------------------------------------------------

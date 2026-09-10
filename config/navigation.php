@@ -10,6 +10,7 @@ declare(strict_types=1);
 return [
     ['label' => 'Dashboard',    'icon' => 'dashboard',    'path' => '/dashboard',      'permission' => 'dashboard.view'],
     ['label' => 'Leads',        'icon' => 'leads',        'path' => '/leads',          'permission' => 'leads.view'],
+    ['label' => 'Follow-ups',   'icon' => 'followups',    'path' => '/followups',      'permission' => 'followups.view'],
     ['label' => 'Candidates',   'icon' => 'candidates',   'path' => '/candidates',     'permission' => 'candidates.view'],
     ['label' => 'Employers',    'icon' => 'employers',    'path' => '/employers',      'permission' => 'employers.view'],
     ['label' => 'Jobs',         'icon' => 'jobs',         'path' => '/jobs',           'permission' => 'jobs.view'],
