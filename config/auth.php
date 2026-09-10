@@ -29,4 +29,18 @@ return [
 
     // Soft UA binding: if the stored UA hash stops matching, force re-auth.
     'bind_user_agent' => true,
+
+    // Persistent login ("remember me").
+    'remember' => [
+        'days' => 30,
+        // Actions considered "sensitive" require a fresh full auth (password/2FA)
+        // even inside a session recalled from the remember cookie. Enforced by
+        // the RequireRecentAuth middleware (added with the 2FA step).
+        'step_up_after_minutes' => 30,
+    ],
+
+    // "Trust this device" — skips the 2FA prompt on this device.
+    'trusted_device' => [
+        'days' => 30,
+    ],
 ];

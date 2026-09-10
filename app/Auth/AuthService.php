@@ -151,11 +151,12 @@ final class AuthService
             $this->resets->markUsed($record['id']);
             $this->resets->deleteForUser($user->id);
             $this->users->resetFailedLogins($user->id);
-            // Invalidate every existing session for this user.
-            $this->db->affectingStatement(
-                'DELETE FROM ' . (string) $this->app->config()->get('session.table', 'sessions') . ' WHERE user_id = :uid',
-                ['uid' => $user->id],
-            );
+            // Cut every existing credential for this user: sessions, remember-me
+            // tokens and trusted devices.
+            $sessionTable = (string) $this->app->config()->get('session.table', 'sessions');
+            $this->db->affectingStatement("DELETE FROM `{$sessionTable}` WHERE user_id = :uid", ['uid' => $user->id]);
+            $this->db->affectingStatement('DELETE FROM auth_tokens WHERE user_id = :uid', ['uid' => $user->id]);
+            $this->db->affectingStatement('DELETE FROM trusted_devices WHERE user_id = :uid', ['uid' => $user->id]);
         });
 
         $this->audit->log('password_reset', 'auth', 'user', $user->id, null, null, 'via reset link', $user);

@@ -15,6 +15,13 @@ $this->start('content');
         'autocomplete' => 'current-password', 'required' => true,
     ]) ?>
 
+    <label class="mb-2 flex items-center gap-2 text-sm text-slate-600">
+        <input type="checkbox" name="remember" value="1"> Keep me signed in
+    </label>
+    <label class="mb-4 flex items-center gap-2 text-sm text-slate-600">
+        <input type="checkbox" name="trust_device" value="1"> Trust this device
+    </label>
+
     <button type="submit" class="btn btn-primary w-full">Sign in</button>
 
     <p class="mt-4 text-center text-sm">

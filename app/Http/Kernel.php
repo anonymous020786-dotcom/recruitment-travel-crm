@@ -12,6 +12,7 @@ use App\Http\Middleware\ForceJson;
 use App\Http\Middleware\MaintenanceGuard;
 use App\Http\Middleware\Passthrough;
 use App\Http\Middleware\RateLimit;
+use App\Http\Middleware\RecallRemember;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\RequestId;
 use App\Http\Middleware\SecurityHeaders;
@@ -52,6 +53,7 @@ final class Kernel
         'web.crm' => [
             SecurityHeaders::class . ':crm',
             StartSession::class,
+            RecallRemember::class,
             VerifyCsrf::class,
         ],
         'api' => [

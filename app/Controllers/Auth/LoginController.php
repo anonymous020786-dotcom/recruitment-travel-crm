@@ -6,6 +6,8 @@ namespace App\Controllers\Auth;
 
 use App\Auth\Auth;
 use App\Auth\AuthService;
+use App\Auth\RememberMe;
+use App\Auth\TrustedDevice;
 use App\Controllers\Controller;
 use App\Exceptions\HttpException;
 use App\Exceptions\ValidationException;
@@ -21,6 +23,8 @@ final class LoginController extends Controller
         private readonly Auth $auth,
         private readonly AuthService $authService,
         private readonly Router $router,
+        private readonly RememberMe $remember,
+        private readonly TrustedDevice $trustedDevice,
     ) {
     }
 
@@ -59,13 +63,26 @@ final class LoginController extends Controller
             ? $intended
             : $this->router->route((string) config('auth.home_route', 'dashboard'));
 
-        return Response::redirect($target);
+        $response = Response::redirect($target);
+
+        if ($request->boolean('remember')) {
+            $c = $this->remember->issue($user, $request);
+            $response->withCookie($c['name'], $c['value'], $c['options']);
+        }
+        if ($request->boolean('trust_device')) {
+            $c = $this->trustedDevice->trust($user, $request);
+            $response->withCookie($c['name'], $c['value'], $c['options']);
+        }
+
+        return $response;
     }
 
-    public function destroy(): Response
+    public function destroy(Request $request): Response
     {
+        $this->remember->forget($request);
         $this->auth->logout();
 
-        return Response::redirect($this->router->route((string) config('auth.login_route', 'login')));
+        return Response::redirect($this->router->route((string) config('auth.login_route', 'login')))
+            ->withCookie(...array_values($this->remember->forgetSpec($request)));
     }
 }

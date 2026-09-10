@@ -67,11 +67,16 @@ class Auth
         return $this->user = $user;
     }
 
-    public function login(User $user): void
+    /** @param string $via 'password' | 'remember' — recalled logins are lower trust. */
+    public function login(User $user, string $via = 'password'): void
     {
         $session = $this->requireSession();
         $session->regenerate(destroyOld: true);
         $session->put('_auth_user_id', $user->id);
+        $session->put('_auth_via', $via);
+        if ($via === 'password') {
+            $session->put('_authenticated_at', time());
+        }
         $session->put('_auth_meta', [
             'ua'  => $this->userAgentHash(),
             'ip'  => $this->app->bound(Request::class) ? $this->app->get(Request::class)->ip() : null,
@@ -81,6 +86,19 @@ class Auth
 
         $this->user = $user;
         $this->resolved = true;
+    }
+
+    public function loggedInVia(): string
+    {
+        return (string) ($this->session()?->get('_auth_via') ?? 'password');
+    }
+
+    /** True if a fresh password/2FA auth happened within the given window. */
+    public function authenticatedRecently(int $withinMinutes = 30): bool
+    {
+        $at = (int) ($this->session()?->get('_authenticated_at') ?? 0);
+
+        return $at > 0 && (time() - $at) <= $withinMinutes * 60;
     }
 
     public function loginUsingId(int $id): ?User
