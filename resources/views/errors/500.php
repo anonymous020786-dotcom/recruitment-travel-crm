@@ -1,0 +1,1 @@
+<?php $this->layout('layouts.error', ['status' => 500, 'title' => 'Something went wrong', 'body' => 'An unexpected error occurred on our side. It has been logged. If it keeps happening, contact an administrator with the reference below.', 'ref' => $ref ?? '']); ?>

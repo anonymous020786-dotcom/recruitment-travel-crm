@@ -11,6 +11,9 @@ declare(strict_types=1);
  *   php scripts/migrate.php --step=1        apply only the next N migrations
  *   php scripts/migrate.php --fresh         DROP every table, then migrate  (non-prod, or --force)
  *   php scripts/migrate.php --force         allow running in APP_ENV=production
+ *   php scripts/migrate.php --baseline      mark ALL current migrations as applied
+ *                                           WITHOUT running them (use after importing
+ *                                           schema.sql via phpMyAdmin on an SSH-less host)
  *
  * Migrations are ordered *.sql files in database/migrations/. Filename (minus
  * .sql) is the version. Each file is recorded in schema_migrations with a
@@ -131,6 +134,26 @@ if ($opt('status')) {
     out('  ' . str_repeat('-', 64));
     out('  ' . count($applied) . ' applied, ' . count($pending) . ' pending');
     out();
+    exit(0);
+}
+
+// ---- --baseline -----------------------------------------------------
+if ($opt('baseline')) {
+    $marked = 0;
+    foreach ($migrations as $version => $m) {
+        if (isset($applied[$version])) {
+            continue;
+        }
+        $db->insertRow($table, [
+            'version'  => $version,
+            'filename' => basename($m['path']),
+            'checksum' => $m['checksum'],
+            'batch'    => 0,
+        ]);
+        out("  baselined {$version} (marked applied, not executed)");
+        $marked++;
+    }
+    out($marked === 0 ? '  Nothing to baseline.' : "  Baselined {$marked} migration(s).");
     exit(0);
 }
 

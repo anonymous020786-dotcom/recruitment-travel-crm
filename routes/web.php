@@ -6,7 +6,7 @@ use App\Controllers\Auth\LoginController;
 use App\Controllers\Auth\PasswordResetController;
 use App\Controllers\HealthController;
 use App\Controllers\Public\HomeController;
-use App\Http\Response;
+use App\Controllers\Public\SeoController;
 use App\Http\Router;
 
 return static function (Router $router): void {
@@ -14,6 +14,8 @@ return static function (Router $router): void {
     // ---- Public site (indexable, cacheable, session-free) ---------------
     $router->group(['middleware' => ['web.public'], 'name' => 'public.'], static function (Router $r): void {
         $r->get('/', [HomeController::class, 'index'])->name('home');
+        $r->get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
+        $r->get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
     });
 
     // ---- Health / readiness -------------------------------------------

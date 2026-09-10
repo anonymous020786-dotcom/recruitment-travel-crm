@@ -39,7 +39,18 @@ Env::load($root . '/.env');
 // ---- Application container ---------------------------------------------------
 $app = new Application($root);
 
-$app->singleton(Config::class, static fn () => new Config($root . '/config'));
+$app->singleton(Config::class, static function () use ($root): Config {
+    $cache = $root . '/bootstrap/cache/config.php';
+    if (is_file($cache)) {
+        /** @psalm-suppress UnresolvableInclude */
+        $cached = require $cache;
+        if (is_array($cached)) {
+            return new Config($cached);
+        }
+    }
+
+    return new Config($root . '/config');
+});
 
 $app->singleton(Logger::class, static function (Application $app): Logger {
     $cfg = $app->config();

@@ -170,15 +170,18 @@ final class Handler
         $body = $message ?? $body;
         $ref = substr(bin2hex(random_bytes(6)), 0, 12);
 
-        $viewFile = $this->app->basePath("resources/views/errors/{$status}.php");
-        if (is_file($viewFile)) {
-            $html = (static function () use ($viewFile, $title, $body, $status, $ref): string {
-                ob_start();
-                require $viewFile;
-                return (string) ob_get_clean();
-            })();
-
-            return Response::html($html, $status)->withHeaders($headers);
+        // Prefer a proper view (styled, uses the layout) when the app is far
+        // enough along to render one; fall back to a self-contained inline page.
+        try {
+            if ($this->app->bound(\App\View\View::class)) {
+                $view = $this->app->get(\App\View\View::class);
+                if ($view->exists("errors.{$status}")) {
+                    return Response::html($view->render("errors.{$status}", compact('title', 'body', 'status', 'ref')), $status)
+                        ->withHeaders($headers);
+                }
+            }
+        } catch (Throwable) {
+            // fall through to the inline page
         }
 
         $html = '<!doctype html><html lang="en"><head><meta charset="utf-8">'

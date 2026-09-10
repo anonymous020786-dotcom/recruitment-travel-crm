@@ -34,3 +34,5 @@ desktop.ini
 *.swp
 .idea/
 .vscode/
+bootstrap/cache/*
+!bootstrap/cache/.gitkeep
