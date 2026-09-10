@@ -18,6 +18,9 @@ use App\Auth\PermissionService;
 use App\Domain\StatusMachine;
 use App\Http\Kernel;
 use App\Http\Router;
+use App\Integrations\IntegrationsService;
+use App\Integrations\Turnstile;
+use App\Support\HttpClient;
 use App\Mail\Mailer;
 use App\Mail\QueueMailer;
 use App\Notifications\NotificationService;
@@ -66,6 +69,18 @@ return static function (Application $app): void {
 
     $app->singleton(View::class, static fn (Application $app): View => new View($app->basePath('resources/views')));
     $app->singleton(Assets::class, static fn (Application $app): Assets => new Assets($app->basePath('public')));
+
+    $app->singleton(HttpClient::class, static fn (Application $app): HttpClient => new HttpClient(
+        logger: $app->get(Logger::class),
+    ));
+    $app->singleton(IntegrationsService::class, static fn (Application $app): IntegrationsService => new IntegrationsService(
+        (array) $app->config()->get('integrations', []),
+    ));
+    $app->singleton(Turnstile::class, static fn (Application $app): Turnstile => new Turnstile(
+        (array) $app->config()->get('integrations.turnstile', []),
+        $app->get(HttpClient::class),
+        $app->get(Logger::class),
+    ));
 
     $app->singleton(Clock::class, static fn (Application $app): Clock => new Clock(
         (string) $app->config()->get('app.timezone', 'UTC'),

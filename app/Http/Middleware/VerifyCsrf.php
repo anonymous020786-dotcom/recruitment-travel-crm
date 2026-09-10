@@ -35,11 +35,7 @@ final class VerifyCsrf implements Middleware
         }
 
         $session = $request->attribute('session');
-        if (!$session instanceof Session) {
-            throw HttpException::pageExpired('Your session could not be verified. Please refresh and try again.');
-        }
-
-        $this->assertToken($request, $session);
+        $this->assertToken($request, $session instanceof Session ? $session : null);
 
         if ((bool) $this->app->config()->get('security.csrf.check_origin', true)) {
             $this->assertSameOrigin($request);
@@ -48,14 +44,26 @@ final class VerifyCsrf implements Middleware
         return $next($request);
     }
 
-    private function assertToken(Request $request, Session $session): void
+    private function assertToken(Request $request, ?Session $session): void
     {
         $field = (string) $this->app->config()->get('security.csrf.field', '_token');
         $header = (string) $this->app->config()->get('security.csrf.header', 'X-CSRF-Token');
 
         $provided = (string) ($request->input($field) ?? $request->header($header) ?? '');
+        if ($provided === '') {
+            throw HttpException::pageExpired('The form has expired. Please refresh the page and try again.');
+        }
 
-        if ($provided === '' || !hash_equals($session->token(), $provided)) {
+        // Stateless signed token (public / session-free pages): "s:<token>".
+        if (str_starts_with($provided, 's:')) {
+            if (!$this->app->get(\App\Support\Signer::class)->verifyTimedToken(substr($provided, 2))) {
+                throw HttpException::pageExpired('The form has expired. Please refresh the page and try again.');
+            }
+
+            return;
+        }
+
+        if ($session === null || !hash_equals($session->token(), $provided)) {
             throw HttpException::pageExpired('The form has expired. Please refresh the page and try again.');
         }
     }

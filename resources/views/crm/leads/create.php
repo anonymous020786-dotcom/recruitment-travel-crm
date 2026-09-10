@@ -33,7 +33,7 @@ $duplicates = $duplicates ?: (session()?->get('_duplicates') ?? []);
     <?= csrf_field() ?>
 
     <div class="card card-body">
-        <?php $this->partial('crm.leads._form', compact('sources', 'assignees', 'countries')); ?>
+        <?= $this->partial('crm.leads._form', compact('sources', 'assignees', 'countries')) ?>
 
         <?php if ($duplicates): ?>
             <label class="mt-2 flex items-center gap-2 text-sm">

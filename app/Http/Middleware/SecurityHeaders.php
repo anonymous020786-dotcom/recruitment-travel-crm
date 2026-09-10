@@ -96,8 +96,17 @@ final class SecurityHeaders implements Middleware
     private function csp(string $key, string $nonce): string
     {
         $directives = (array) $this->app->config()->get("security.csp.{$key}", []);
-        $parts = [];
 
+        // Merge enabled public-site integration hosts (GA / Turnstile / Tawk).
+        if ($key === 'public' && $this->app->bound(\App\Integrations\IntegrationsService::class)) {
+            foreach ($this->app->get(\App\Integrations\IntegrationsService::class)->publicCspAdditions() as $directive => $sources) {
+                $directives[$directive] = array_values(array_unique(
+                    array_merge((array) ($directives[$directive] ?? []), $sources),
+                ));
+            }
+        }
+
+        $parts = [];
         foreach ($directives as $directive => $sources) {
             $rendered = array_map(
                 static fn (string $s) => str_replace('{nonce}', $nonce, $s),

@@ -139,7 +139,18 @@ if (!function_exists('session')) {
 if (!function_exists('csrf_token')) {
     function csrf_token(): string
     {
-        return session()?->token() ?? '';
+        $session = session();
+        if ($session !== null) {
+            return $session->token();
+        }
+
+        // Public (session-free) pages: a short-lived signed token, verified
+        // statelessly by VerifyCsrf.
+        try {
+            return 's:' . app(\App\Support\Signer::class)->timedToken(3600);
+        } catch (\Throwable) {
+            return '';
+        }
     }
 }
 
@@ -212,6 +223,13 @@ if (!function_exists('nonce')) {
         $r = app()->bound(\App\Http\Request::class) ? app(\App\Http\Request::class) : null;
 
         return (string) ($r?->attribute('csp_nonce') ?? '');
+    }
+}
+
+if (!function_exists('integrations')) {
+    function integrations(): \App\Integrations\IntegrationsService
+    {
+        return app(\App\Integrations\IntegrationsService::class);
     }
 }
 

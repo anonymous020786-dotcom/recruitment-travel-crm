@@ -67,6 +67,7 @@ return [
             "base-uri"    => ["'self'"],
             "object-src"  => ["'none'"],
             "frame-ancestors" => ["'self'"],
+            "frame-src"   => ["'self'"],
             "img-src"     => ["'self'", "data:", "https:"],
             "font-src"    => ["'self'", "https://fonts.gstatic.com"],
             "style-src"   => ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],

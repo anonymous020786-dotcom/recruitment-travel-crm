@@ -6,7 +6,8 @@ use App\Controllers\Auth\LoginController;
 use App\Controllers\Auth\PasswordResetController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\HealthController;
-use App\Controllers\Public\HomeController;
+use App\Controllers\Public\ContactController;
+use App\Controllers\Public\PublicPageController;
 use App\Controllers\Public\SeoController;
 use App\Http\Router;
 
@@ -14,9 +15,17 @@ return static function (Router $router): void {
 
     // ---- Public site (indexable, cacheable, session-free) ---------------
     $router->group(['middleware' => ['web.public'], 'name' => 'public.'], static function (Router $r): void {
-        $r->get('/', [HomeController::class, 'index'])->name('home');
+        $r->get('/', [PublicPageController::class, 'home'])->name('home');
+        $r->get('/about', [PublicPageController::class, 'about'])->name('about');
         $r->get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
         $r->get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
+    });
+
+    // ---- Public forms (session for flash/CSRF, not shared-cached) -------
+    $router->group(['middleware' => ['web.public', 'session'], 'name' => 'public.'], static function (Router $r): void {
+        $r->get('/contact', [PublicPageController::class, 'contact'])->name('contact');
+        $r->post('/contact', [ContactController::class, 'submit'])
+            ->middleware(['csrf', 'throttle:public_form'])->name('contact.submit');
     });
 
     // ---- Health / readiness -------------------------------------------

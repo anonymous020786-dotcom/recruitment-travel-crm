@@ -18,7 +18,7 @@ $this->start('content');
     <input type="hidden" name="record_version" value="<?= (int) $lead->recordVersion ?>">
 
     <div class="card card-body">
-        <?php $this->partial('crm.leads._form', compact('lead', 'sources', 'assignees', 'countries')); ?>
+        <?= $this->partial('crm.leads._form', compact('lead', 'sources', 'assignees', 'countries')) ?>
     </div>
 
     <div class="mt-4 flex items-center gap-2">
