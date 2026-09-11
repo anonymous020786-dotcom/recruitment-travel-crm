@@ -128,7 +128,7 @@ $hasFilters = $query->hasSearch() || $query->filters !== [];
         <?php if (can('leads.assign')): ?>
             <div class="mt-3 flex flex-wrap items-center gap-2 text-sm" data-bulk-bar hidden>
                 <span class="text-slate-500"><span data-bulk-count>0</span> selected</span>
-                <select name="assigned_to" class="form-select max-w-[16rem]">
+                <select name="assigned_to" aria-label="Reassign selected leads to" class="form-select max-w-[16rem]">
                     <option value="0">Unassign</option>
                     <?php foreach ($assignees as $u): ?>
                         <option value="<?= (int) $u['id'] ?>"><?= e($u['name']) ?></option>

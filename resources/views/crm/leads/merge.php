@@ -80,6 +80,7 @@ $val = static fn ($v): string => ($v === null || $v === '') ? '—' : (string) $
                                     <td class="py-1.5">
                                         <?php if (!$same && !$loserEmpty): ?>
                                             <input type="checkbox" name="take[]" value="<?= e_attr($f) ?>"
+                                                   aria-label="Take <?= e_attr($labels[$f] ?? $f) ?> from the merged lead"
                                                    <?= ($sv === null || $sv === '') ? 'checked' : '' ?>>
                                         <?php elseif (!$same && $loserEmpty): ?>
                                             <span class="text-xs text-slate-300">n/a</span>

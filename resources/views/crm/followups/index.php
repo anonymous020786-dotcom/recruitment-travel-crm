@@ -20,11 +20,11 @@ $row = function (\App\Models\Followup $f): string {
         . '</div>'
         . '<div class="flex shrink-0 gap-1">'
         . ($f->leadPhone ? '<a href="tel:' . e_attr((string) $f->leadPhone) . '" class="btn btn-ghost btn-sm">Call</a>'
-            . '<a href="' . e_attr($wa) . '" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">WA</a>' : '')
+            . '<a href="' . e_attr($wa) . '" target="_blank" rel="noopener" aria-label="WhatsApp ' . e_attr((string) $f->leadName) . '" class="btn btn-ghost btn-sm">WA</a>' : '')
         . '</div></div>'
         . '<form method="post" action="/followups/' . (int) $f->id . '/complete" class="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]" data-once>'
         . csrf_field()
-        . '<input type="text" name="outcome" required maxlength="255" placeholder="What happened?" class="form-input">'
+        . '<input type="text" name="outcome" required maxlength="255" placeholder="What happened?" aria-label="Outcome for ' . e_attr((string) $f->leadName) . '" class="form-input">'
         . '<div class="flex items-center gap-2">'
         . '<label class="flex items-center gap-1 whitespace-nowrap text-xs text-slate-500"><input type="checkbox" name="log_as_note" value="1"> note</label>'
         . '<button class="btn btn-primary btn-sm">Done</button>'

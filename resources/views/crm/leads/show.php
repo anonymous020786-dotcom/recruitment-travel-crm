@@ -66,7 +66,7 @@ foreach (($nextStatuses ?? []) as $s) {
                     <input type="hidden" name="status" value="<?= e_attr($key) ?>">
                     <input type="hidden" name="record_version" value="<?= (int) $lead->recordVersion ?>">
                     <?php if ($needsReason): ?>
-                        <input type="text" name="reason" required placeholder="Reason…"
+                        <input type="text" name="reason" required placeholder="Reason…" aria-label="Reason for <?= e_attr($label) ?>"
                                class="form-input inline-block w-40 py-1 text-xs align-middle">
                     <?php endif ?>
                     <button type="submit" class="btn btn-secondary btn-sm"><?= e($label) ?></button>
@@ -122,11 +122,11 @@ foreach (($nextStatuses ?? []) as $s) {
                     }
                     $html .= '<form method="post" action="/leads/' . e_attr($lead->publicId) . '/followups" class="mb-4 grid gap-2 sm:grid-cols-2" data-once>'
                         . csrf_field()
-                        . '<input type="date" name="due_date" required min="' . e_attr($today) . '" value="' . e_attr($today) . '" class="form-input">'
-                        . '<input type="time" name="due_time" class="form-input">'
-                        . '<select name="channel" class="form-select">' . $chOpts . '</select>'
-                        . '<select name="assigned_to" class="form-select">' . $opts . '</select>'
-                        . '<input type="text" name="subject" maxlength="200" placeholder="What is it about? (optional)" class="form-input sm:col-span-2">'
+                        . '<input type="date" name="due_date" required min="' . e_attr($today) . '" value="' . e_attr($today) . '" aria-label="Due date" class="form-input">'
+                        . '<input type="time" name="due_time" aria-label="Due time" class="form-input">'
+                        . '<select name="channel" aria-label="Channel" class="form-select">' . $chOpts . '</select>'
+                        . '<select name="assigned_to" aria-label="Assignee" class="form-select">' . $opts . '</select>'
+                        . '<input type="text" name="subject" maxlength="200" placeholder="What is it about? (optional)" aria-label="Subject" class="form-input sm:col-span-2">'
                         . '<div class="sm:col-span-2"><button class="btn btn-secondary btn-sm">Schedule follow-up</button></div>'
                         . '</form>';
                 }
@@ -157,7 +157,7 @@ foreach (($nextStatuses ?? []) as $s) {
                         $html .= '<div class="mt-2 flex flex-wrap items-center gap-2">'
                             . '<form method="post" action="/followups/' . (int) $f->id . '/complete" class="flex flex-1 gap-2" data-once>'
                             . csrf_field()
-                            . '<input type="text" name="outcome" required maxlength="255" placeholder="Outcome…" class="form-input">'
+                            . '<input type="text" name="outcome" required maxlength="255" placeholder="Outcome…" aria-label="Outcome" class="form-input">'
                             . '<label class="flex items-center gap-1 whitespace-nowrap text-xs text-slate-500"><input type="checkbox" name="log_as_note" value="1"> note</label>'
                             . '<button class="btn btn-primary btn-sm">Done</button></form>'
                             . '<form method="post" action="/followups/' . (int) $f->id . '/cancel" data-confirm="Cancel this follow-up?">'
@@ -178,7 +178,7 @@ foreach (($nextStatuses ?? []) as $s) {
                 if (can('addNote', $lead)) {
                     $html .= '<form method="post" action="/leads/' . e_attr($lead->publicId) . '/notes" class="mb-2 flex gap-2">'
                         . csrf_field()
-                        . '<input type="text" name="body" required maxlength="5000" placeholder="Add a note…" class="form-input">'
+                        . '<input type="text" name="body" required maxlength="5000" placeholder="Add a note…" aria-label="Note" class="form-input">'
                         . '<button class="btn btn-secondary">Add</button></form>';
                 }
                 if ($canLogCommunication) {
@@ -192,9 +192,9 @@ foreach (($nextStatuses ?? []) as $s) {
                     }
                     $html .= '<form method="post" action="/leads/' . e_attr($lead->publicId) . '/communications" class="mb-4 grid gap-2 sm:grid-cols-[7rem_7rem_1fr_auto]" data-once>'
                         . csrf_field()
-                        . '<select name="channel" class="form-select">' . $chOpts . '</select>'
-                        . '<select name="direction" class="form-select">' . $dirOpts . '</select>'
-                        . '<input type="text" name="summary" required maxlength="500" placeholder="Log a call/message — what happened?" class="form-input">'
+                        . '<select name="channel" aria-label="Channel" class="form-select">' . $chOpts . '</select>'
+                        . '<select name="direction" aria-label="Direction" class="form-select">' . $dirOpts . '</select>'
+                        . '<input type="text" name="summary" required maxlength="500" placeholder="Log a call/message — what happened?" aria-label="Summary" class="form-input">'
                         . '<button class="btn btn-secondary">Log</button></form>';
                 }
                 if ($timeline === []) {
@@ -208,7 +208,7 @@ foreach (($nextStatuses ?? []) as $s) {
                             default => '•',
                         };
                         $html .= '<li class="flex gap-3 text-sm">'
-                            . '<span class="mt-0.5 text-slate-400">' . $icon . '</span>'
+                            . '<span class="mt-0.5 text-slate-400" aria-hidden="true">' . $icon . '</span>'
                             . '<div><p class="text-slate-800">' . e($item['text']) . '</p>'
                             . '<p class="text-xs text-slate-400">'
                             . ($item['actor'] ? e($item['actor']) . ' · ' : '')
@@ -234,7 +234,7 @@ foreach (($nextStatuses ?? []) as $s) {
                 $html .= '<form method="post" action="/leads/' . e_attr($lead->publicId) . '/assign" class="flex gap-2">'
                     . csrf_field()
                     . '<input type="hidden" name="record_version" value="' . (int) $lead->recordVersion . '">'
-                    . '<select name="assigned_to" class="form-select">' . $opts . '</select>'
+                    . '<select name="assigned_to" aria-label="Assignee" class="form-select">' . $opts . '</select>'
                     . '<button class="btn btn-secondary btn-sm">Save</button></form>';
             }
             return $html;

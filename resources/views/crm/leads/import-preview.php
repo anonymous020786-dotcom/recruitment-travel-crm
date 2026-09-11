@@ -43,7 +43,7 @@ $headers = $batch->headers !== [] ? $batch->headers : array_fill(0, 20, '');
                     <tr>
                         <td class="font-medium text-slate-900"><?= e($header !== '' ? $header : 'Column ' . ((int) $i + 1)) ?></td>
                         <td>
-                            <select name="field[<?= (int) $i ?>]" class="form-select">
+                            <select name="field[<?= (int) $i ?>]" aria-label="Maps to, for column <?= e_attr($header !== '' ? $header : (string) ((int) $i + 1)) ?>" class="form-select">
                                 <option value="">— Ignore —</option>
                                 <?php foreach ($fields as $key => $label): ?>
                                     <option value="<?= e_attr($key) ?>" <?= $selected === $key ? 'selected' : '' ?>><?= e($label) ?></option>

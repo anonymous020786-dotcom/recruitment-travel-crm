@@ -89,8 +89,16 @@ final class LeadRepository
         $limit = $q->perPage;
         $offset = $q->offset();
 
+        // STRAIGHT_JOIN pins the join order to leads-first: with a LIMIT this
+        // lets the optimizer walk an index that already matches ORDER BY (e.g.
+        // idx_leads_created) and stop at the page size, instead of driving from
+        // the tiny lead_statuses table and sorting/filtering the whole matching
+        // set afterwards. Verified with EXPLAIN against a 20k-row table — see
+        // docs/phase-2/STEP-2.9-hardening.md. Only safe here because a LIMIT is
+        // present; the unbounded COUNT() above and cursorForExport() below are
+        // deliberately left for the optimizer to choose its own join order.
         $rows = $this->db->select(
-            "SELECT " . self::LIST_COLUMNS . " " . self::JOINS
+            "SELECT STRAIGHT_JOIN " . self::LIST_COLUMNS . " " . self::JOINS
             . " WHERE {$where} ORDER BY {$order}, l.id DESC LIMIT {$limit} OFFSET {$offset}",
             $bind,
         );
