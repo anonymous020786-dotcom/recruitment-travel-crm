@@ -8,6 +8,7 @@ use App\Controllers\Auth\PasswordResetController;
 use App\Controllers\Auth\TwoFactorChallengeController;
 use App\Controllers\Auth\WebAuthnLoginController;
 use App\Controllers\Crm\AccountController;
+use App\Controllers\Crm\CandidateController;
 use App\Controllers\Crm\DashboardController;
 use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\LeadController;
@@ -137,5 +138,11 @@ return static function (Router $router): void {
         $r->post('/leads/{lead}/notes', [LeadController::class, 'addNote'])->middleware(['can:leads.edit'])->name('leads.notes');
         $r->post('/leads/{lead}/followups', [LeadController::class, 'scheduleFollowup'])
             ->middleware(['can:followups.create', 'throttle:write'])->name('leads.followups.store');
+        $r->post('/leads/{lead}/convert', [LeadController::class, 'convert'])
+            ->middleware(['can:leads.convert', 'throttle:write'])->name('leads.convert');
+
+        // ---- Candidates (minimal — created only via lead conversion for now) --
+        $r->get('/candidates', [CandidateController::class, 'index'])->middleware(['can:candidates.view'])->name('candidates.index');
+        $r->get('/candidates/{candidate}', [CandidateController::class, 'show'])->middleware(['can:candidates.view'])->name('candidates.show');
     });
 };

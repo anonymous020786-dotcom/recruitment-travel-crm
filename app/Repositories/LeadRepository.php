@@ -259,6 +259,25 @@ final class LeadRepository
         );
     }
 
+    /**
+     * Mark a lead converted: moves it to the given (terminal, "won") status and
+     * points it at the new candidate. Optimistic on record_version; refuses a
+     * lead that is already converted or merged away.
+     */
+    public function markConverted(int $leadId, int $candidateId, int $convertedStatusId, int $expectedVersion, BranchScope $scope): int
+    {
+        [$branchSql, $branchBind] = $scope->whereClause('branch_id');
+
+        return $this->db->affectingStatement(
+            "UPDATE leads
+                SET status_id = :status, converted_at = UTC_TIMESTAMP(), converted_candidate_id = :cand,
+                    record_version = record_version + 1
+             WHERE id = :id AND record_version = :ver AND deleted_at IS NULL
+               AND merged_into_id IS NULL AND converted_candidate_id IS NULL AND {$branchSql}",
+            ['id' => $leadId, 'cand' => $candidateId, 'status' => $convertedStatusId, 'ver' => $expectedVersion] + $branchBind,
+        );
+    }
+
     /** @param list<int> $ids @return int number updated */
     public function bulkAssign(array $ids, ?int $assigneeId, BranchScope $scope): int
     {

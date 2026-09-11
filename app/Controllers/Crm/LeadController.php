@@ -10,6 +10,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Models\Lead;
 use App\Repositories\ActivityLogRepository;
+use App\Repositories\CandidateRepository;
 use App\Repositories\LeadFollowupRepository;
 use App\Repositories\LeadRepository;
 use App\Services\LeadService;
@@ -21,6 +22,7 @@ final class LeadController extends CrmController
     public function __construct(
         private readonly LeadRepository $leads,
         private readonly LeadFollowupRepository $followups,
+        private readonly CandidateRepository $candidates,
         private readonly LeadService $service,
         private readonly ActivityLogRepository $activity,
     ) {
@@ -94,6 +96,9 @@ final class LeadController extends CrmController
 
         $notes = $this->leads->notes($model->id);
         $logs = $this->activity->forRecord('lead', $model->id, 100);
+        $convertedCandidate = $model->convertedCandidateId !== null
+            ? $this->candidates->findById($model->convertedCandidateId, $this->scope())
+            : null;
 
         return view_response('crm.leads.show', [
             'lead'      => $model,
@@ -103,7 +108,34 @@ final class LeadController extends CrmController
             'nextStatuses' => $this->nextStatuses($model),
             'canFollowup' => can('followups.create') && $model->isEditable(),
             'canMerge'    => can('merge', $model),
+            'canConvert'  => can('convert', $model),
+            'convertedCandidate' => $convertedCandidate,
         ]);
+    }
+
+    public function convert(Request $request, string $lead): Response
+    {
+        $model = $this->find($lead);
+
+        try {
+            $candidate = $this->service->convert(
+                $model,
+                $this->currentUser(),
+                (int) $request->input('record_version', $model->recordVersion),
+            );
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+
+            return Response::redirect('/leads/' . $model->publicId);
+        } catch (\App\Exceptions\StaleRecordException) {
+            session()?->flash('error_toast', 'This lead changed just now. Please try again.');
+
+            return Response::redirect('/leads/' . $model->publicId);
+        }
+
+        flash('status', "Converted to candidate {$candidate->candidateNumber}.");
+
+        return Response::redirect('/candidates/' . $candidate->publicId);
     }
 
     public function mergeForm(Request $request, string $lead): Response
@@ -372,6 +404,7 @@ final class LeadController extends CrmController
             'followup_scheduled' => 'scheduled a follow-up',
             'followup_completed' => 'completed a follow-up',
             'followup_cancelled' => 'cancelled a follow-up',
+            'converted' => 'converted this lead to a candidate',
         ];
 
         foreach ($logs as $l) {
@@ -387,6 +420,9 @@ final class LeadController extends CrmController
                 if (!empty($l['context'])) {
                     $text .= ' (' . $l['context'] . ')';
                 }
+            }
+            if ($action === 'converted' && !empty($l['context'])) {
+                $text .= ' (' . $l['context'] . ')';
             }
             $items[] = [
                 'type' => 'event',

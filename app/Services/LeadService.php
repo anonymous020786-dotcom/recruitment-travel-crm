@@ -15,9 +15,12 @@ use App\Exceptions\ValidationException;
 use App\Models\Lead;
 use App\Models\User;
 use App\Notifications\NotificationService;
+use App\Models\Candidate;
 use App\Models\Followup;
+use App\Repositories\CandidateRepository;
 use App\Repositories\LeadFollowupRepository;
 use App\Repositories\LeadRepository;
+use App\Repositories\PersonRepository;
 use App\Support\Db;
 use App\Support\Sequences;
 use App\Support\Ulid;
@@ -32,6 +35,8 @@ final class LeadService
         private readonly Db $db,
         private readonly LeadRepository $leads,
         private readonly LeadFollowupRepository $followups,
+        private readonly CandidateRepository $candidates,
+        private readonly PersonRepository $persons,
         private readonly Sequences $sequences,
         private readonly StatusMachine $statuses,
         private readonly Gate $gate,
@@ -470,6 +475,87 @@ final class LeadService
             fn (array $r): array => ['summary' => $r, 'full' => $this->leads->findById((int) $r['id'], $scope)],
             $rows,
         );
+    }
+
+    // ---- conversion -----------------------------------------------
+
+    /**
+     * Convert a lead to a candidate. Transactional: finds-or-creates the
+     * person identity (matched by phone/email so the same individual never
+     * gets a second one), creates the candidate (or, if that person already
+     * has one — a repeat lead for someone already in the pipeline — links to
+     * the existing candidate instead of erroring on the person/candidate
+     * uniqueness constraint), moves the lead to `converted`, and audits both
+     * sides. This creates only the minimal candidate record; the full profile
+     * (education, experience, skills, documents) is a later phase.
+     */
+    public function convert(Lead $lead, User $actor, int $expectedVersion): Candidate
+    {
+        if (!$this->gate->forUser($actor)->allows('convert', $lead)) {
+            throw AuthorizationException::forPermission('leads.convert');
+        }
+
+        $convertedStatusId = $this->leads->statusIdByKey('converted')
+            ?? throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'The "converted" status is not configured.', []);
+
+        $scope = $this->scopes->resolve($actor);
+        $before = $this->snapshot($lead);
+
+        $candidate = $this->db->transaction(function () use ($lead, $actor, $expectedVersion, $convertedStatusId, $scope, $before): Candidate {
+            $person = $this->persons->findOrCreate([
+                'full_name' => $lead->name,
+                'gender' => $lead->gender,
+                'date_of_birth' => $lead->dateOfBirth,
+                'primary_phone' => $lead->phone,
+                'alternate_phone' => $lead->alternatePhone,
+                'email' => $lead->email,
+                'city' => $lead->city,
+                'state' => $lead->state,
+            ]);
+
+            $existingCandidateId = $this->candidates->findIdByPersonId($person['id']);
+            $linkedExisting = $existingCandidateId !== null;
+
+            $candidateId = $existingCandidateId ?? $this->candidates->create([
+                'public_id' => Ulid::generate(),
+                'candidate_number' => $this->sequences->next('candidate', 'CAND', 6),
+                'person_id' => $person['id'],
+                'branch_id' => $lead->branchId,
+                'origin_lead_id' => $lead->id,
+                'assigned_counselor' => $lead->assignedTo,
+                'highest_qualification' => $lead->qualification,
+                'total_experience_years' => $lead->experienceYears,
+                'created_by' => $actor->id,
+            ]);
+
+            if ($this->leads->markConverted($lead->id, $candidateId, $convertedStatusId, $expectedVersion, $scope) === 0) {
+                throw new StaleRecordException('lead', $lead->publicId);
+            }
+
+            if ($linkedExisting) {
+                $this->db->insertRow('lead_notes', [
+                    'lead_id' => $lead->id,
+                    'user_id' => $actor->id,
+                    'body' => mb_substr('Converted — matched an existing candidate record for this person.', 0, 5000),
+                ]);
+            }
+
+            $freshLead = $this->leads->findById($lead->id, $scope);
+            $this->audit->log('converted', 'leads', 'lead', $lead->id, $before, $this->snapshot($freshLead),
+                $linkedExisting ? 'linked to existing candidate' : null, $actor);
+
+            $candidate = $this->candidates->findById($candidateId, $scope)
+                ?? throw new \RuntimeException('Candidate vanished after creation.');
+
+            if (!$linkedExisting) {
+                $this->audit->log('created', 'candidates', 'candidate', $candidate->id, null,
+                    ['candidate_number' => $candidate->candidateNumber, 'origin_lead_id' => $lead->id], null, $actor);
+            }
+
+            return $candidate;
+        });
+
+        return $candidate;
     }
 
     // ---- follow-ups ----------------------------------------------

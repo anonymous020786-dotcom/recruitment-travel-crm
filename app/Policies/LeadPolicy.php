@@ -64,7 +64,7 @@ final class LeadPolicy extends Policy
     {
         return $this->can($user, 'leads.convert')
             && $this->inBranchScope($user, $lead->branchId)
-            && !$lead->isConverted()
+            && $lead->isEditable()
             && !$lead->statusIsWon;
     }
 

@@ -2,7 +2,8 @@
 /**
  * @var \App\Models\Lead $lead
  * @var list<array> $timeline @var list<\App\Models\Followup> $followups @var list $assignees
- * @var list<string> $nextStatuses @var bool $canFollowup
+ * @var list<string> $nextStatuses @var bool $canFollowup @var bool $canConvert
+ * @var \App\Models\Candidate|null $convertedCandidate
  */
 $this->layout('layouts.app', ['title' => $lead->name, 'currentPath' => '/leads']);
 $this->start('content');
@@ -32,8 +33,25 @@ foreach (($nextStatuses ?? []) as $s) {
     <?= component('badge', ['label' => ucfirst($lead->priority) . ' priority', 'color' => $lead->priorityColor()]) ?>
     <?php if ($lead->isConverted()): ?>
         <?= component('badge', ['label' => 'Converted', 'color' => 'emerald', 'dot' => true]) ?>
+        <?php if ($convertedCandidate !== null): ?>
+            <a href="/candidates/<?= e_attr($convertedCandidate->publicId) ?>" class="text-sm text-brand-600 hover:underline">
+                View candidate <?= e($convertedCandidate->candidateNumber) ?>
+            </a>
+        <?php endif ?>
     <?php endif ?>
 </div>
+
+<?php if (!empty($canConvert)): ?>
+    <div class="card card-body mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm text-slate-600">Ready to move forward? Converting creates a candidate record and closes this lead as won.</p>
+        <form method="post" action="/leads/<?= e_attr($lead->publicId) ?>/convert"
+              data-confirm="Convert this lead to a candidate? This can't be undone from here.">
+            <?= csrf_field() ?>
+            <input type="hidden" name="record_version" value="<?= (int) $lead->recordVersion ?>">
+            <button type="submit" class="btn btn-primary btn-sm">Convert to candidate</button>
+        </form>
+    </div>
+<?php endif ?>
 
 <?php if ($lead->isEditable() && can('changeStatus', $lead) && $statusLabels !== []): ?>
     <div class="card card-body mb-4">
