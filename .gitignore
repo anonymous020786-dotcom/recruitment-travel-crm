@@ -15,7 +15,7 @@
 # without Node can deploy. The intermediate un-hashed app.css is not.
 /public/assets/build/app.css
 
-# Runtime storage (keep the directories, ignore the contents)
+# Runtime storage (keep the directories + their .htaccess guards, ignore the contents)
 /storage/logs/*
 /storage/cache/*
 /storage/exports/*
@@ -23,6 +23,7 @@
 /storage/private/*
 /storage/framework/*
 !/storage/**/.gitkeep
+!/storage/**/.htaccess
 
 # Local backups
 /storage/private/backups/*

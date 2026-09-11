@@ -12,6 +12,8 @@ use App\Controllers\Crm\CandidateController;
 use App\Controllers\Crm\DashboardController;
 use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\LeadController;
+use App\Controllers\Crm\LeadExportController;
+use App\Controllers\Crm\LeadImportController;
 use App\Controllers\Crm\PasskeyController;
 use App\Controllers\HealthController;
 use App\Controllers\Public\ContactController;
@@ -126,6 +128,25 @@ return static function (Router $router): void {
         $r->post('/leads', [LeadController::class, 'store'])->middleware(['can:leads.create', 'throttle:write'])->name('leads.store');
         $r->post('/leads/bulk/assign', [LeadController::class, 'bulkAssign'])->middleware(['can:leads.assign'])->name('leads.bulk.assign');
 
+        // Import/export — literal paths, must be declared before /leads/{lead}
+        // (a two-segment wildcard route) or "import"/"export" would be parsed
+        // as a lead's public id instead.
+        $r->get('/leads/import', [LeadImportController::class, 'create'])
+            ->middleware(['can:leads.import', 'can:imports.run'])->name('leads.import.create');
+        $r->post('/leads/import', [LeadImportController::class, 'store'])
+            ->middleware(['can:leads.import', 'can:imports.run', 'throttle:import'])->name('leads.import.store');
+        $r->get('/leads/import/{batch}', [LeadImportController::class, 'preview'])
+            ->middleware(['can:leads.import', 'can:imports.run'])->name('leads.import.preview');
+        $r->post('/leads/import/{batch}/confirm', [LeadImportController::class, 'confirm'])
+            ->middleware(['can:leads.import', 'can:imports.run', 'throttle:write'])->name('leads.import.confirm');
+        $r->get('/leads/import/{batch}/report', [LeadImportController::class, 'report'])
+            ->middleware(['can:leads.import', 'can:imports.run'])->name('leads.import.report');
+        $r->get('/leads/import/{batch}/report/download', [LeadImportController::class, 'downloadReport'])
+            ->middleware(['can:leads.import', 'can:imports.run'])->name('leads.import.report.download');
+
+        $r->post('/leads/export', [LeadExportController::class, 'store'])
+            ->middleware(['can:leads.export', 'can:exports.run', 'throttle:export'])->name('leads.export.store');
+
         $r->get('/leads/{lead}', [LeadController::class, 'show'])->middleware(['can:leads.view'])->name('leads.show');
         $r->get('/leads/{lead}/edit', [LeadController::class, 'edit'])->middleware(['can:leads.edit'])->name('leads.edit');
         $r->get('/leads/{lead}/merge', [LeadController::class, 'mergeForm'])->middleware(['can:leads.merge'])->name('leads.merge');
@@ -140,6 +161,10 @@ return static function (Router $router): void {
             ->middleware(['can:followups.create', 'throttle:write'])->name('leads.followups.store');
         $r->post('/leads/{lead}/convert', [LeadController::class, 'convert'])
             ->middleware(['can:leads.convert', 'throttle:write'])->name('leads.convert');
+
+        // ---- My exports (any queued report, not just leads) ---------
+        $r->get('/exports', [LeadExportController::class, 'index'])->middleware(['can:exports.run'])->name('exports.index');
+        $r->get('/exports/{job}/download', [LeadExportController::class, 'download'])->middleware(['can:exports.run'])->name('exports.download');
 
         // ---- Candidates (minimal — created only via lead conversion for now) --
         $r->get('/candidates', [CandidateController::class, 'index'])->middleware(['can:candidates.view'])->name('candidates.index');

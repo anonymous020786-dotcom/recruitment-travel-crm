@@ -1282,6 +1282,7 @@ CREATE TABLE import_batches (
     storage_path    VARCHAR(255)    NOT NULL,
     total_rows      INT UNSIGNED    NOT NULL DEFAULT 0,
     imported_rows   INT UNSIGNED    NOT NULL DEFAULT 0,
+    skipped_rows    INT UNSIGNED    NOT NULL DEFAULT 0,  -- likely duplicates, not imported by choice
     failed_rows     INT UNSIGNED    NOT NULL DEFAULT 0,
     status          ENUM('uploaded','previewed','processing','completed','failed') NOT NULL DEFAULT 'uploaded',
     mapping_json    JSON            NULL,

@@ -9,9 +9,15 @@ $hasFilters = $query->hasSearch() || $query->filters !== [];
 <?= component('page-header', [
     'title' => 'Leads',
     'subtitle' => number_format($page->total) . ' total',
-    'actions' => can('leads.create')
-        ? '<a href="/leads/create" class="btn btn-primary">New lead</a>'
-        : '',
+    'actions' => implode(' ', array_filter([
+        can('leads.import') && can('imports.run') ? '<a href="/leads/import" class="btn btn-secondary">Import</a>' : '',
+        (can('leads.export') && can('exports.run'))
+            ? '<form method="post" action="/leads/export?' . e_attr(http_build_query($query->toQueryArray())) . '" class="inline">'
+                . csrf_field() . '<button type="submit" class="btn btn-secondary">Export' . ($hasFilters ? ' (filtered)' : '') . '</button></form>'
+            : '',
+        can('exports.run') ? '<a href="/exports" class="btn btn-ghost">My exports</a>' : '',
+        can('leads.create') ? '<a href="/leads/create" class="btn btn-primary">New lead</a>' : '',
+    ])),
 ]) ?>
 
 <form method="get" action="/leads" class="card card-body mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">

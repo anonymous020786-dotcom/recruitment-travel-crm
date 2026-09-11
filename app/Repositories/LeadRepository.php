@@ -98,6 +98,35 @@ final class LeadRepository
         return new Page(array_map([Lead::class, 'fromRow'], $rows), $total, $q->page, $q->perPage);
     }
 
+    public function countForExport(ListQuery $q, BranchScope $scope): int
+    {
+        [$where, $bind] = $this->buildWhere($q, $scope);
+
+        return (int) $this->db->selectValue(
+            "SELECT COUNT(*) FROM leads l JOIN lead_statuses st ON st.id = l.status_id"
+            . " LEFT JOIN lead_sources src ON src.id = l.source_id WHERE {$where}",
+            $bind,
+        );
+    }
+
+    /**
+     * Every lead matching the same filters as paginate(), unpaged — for a CSV
+     * export. A generator over Db::cursor() so a large result set never has to
+     * live in memory at once.
+     *
+     * @return \Generator<array<string,mixed>>
+     */
+    public function cursorForExport(ListQuery $q, BranchScope $scope): \Generator
+    {
+        [$where, $bind] = $this->buildWhere($q, $scope);
+        $order = (self::SORT[$q->sort] ?? 'l.created_at') . ' ' . ($q->direction === 'asc' ? 'ASC' : 'DESC');
+
+        yield from $this->db->cursor(
+            "SELECT " . self::DETAIL_COLUMNS . " " . self::JOINS . " WHERE {$where} ORDER BY {$order}, l.id DESC",
+            $bind,
+        );
+    }
+
     /** @return array<string,int> status key => count, within scope, excluding soft-deleted */
     public function statusCounts(BranchScope $scope): array
     {

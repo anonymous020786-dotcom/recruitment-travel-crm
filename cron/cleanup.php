@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 use App\Mail\MailQueue;
 use App\Repositories\AuthTokenRepository;
+use App\Repositories\ExportRepository;
+use App\Repositories\ImportRepository;
 use App\Repositories\LoginAttemptRepository;
 use App\Repositories\PasswordResetRepository;
 use App\Repositories\TrustedDeviceRepository;
@@ -51,4 +53,15 @@ exit($app->get(CronRunner::class)->run('cleanup', 600, function (callable $progr
     $progress($db->affectingStatement(
         "DELETE FROM notifications WHERE read_at IS NOT NULL AND read_at < (UTC_TIMESTAMP() - INTERVAL 60 DAY)",
     ));
+
+    // Import batches (with their staged/uploaded CSV + any error report) older
+    // than 30 days; export files past their retention window.
+    foreach ($app->get(ImportRepository::class)->pruneOlderThan(30) as $path) {
+        @unlink($app->basePath($path));
+        $progress(1);
+    }
+    foreach ($app->get(ExportRepository::class)->pruneExpired() as $path) {
+        @unlink($app->basePath($path));
+        $progress(1);
+    }
 }));

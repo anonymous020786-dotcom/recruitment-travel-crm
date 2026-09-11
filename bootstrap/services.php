@@ -133,6 +133,8 @@ return static function (Application $app): void {
     $app->singleton(AuthService::class);
     $app->singleton(NotificationService::class);
     $app->singleton(LeadService::class);
+    $app->singleton(\App\Services\LeadImportService::class);
+    $app->singleton(\App\Services\LeadExportService::class);
 
     $app->singleton(Gate::class, static function (Application $app): Gate {
         $gate = new Gate($app, $app->get(PermissionService::class), $app->get(Auth::class));
