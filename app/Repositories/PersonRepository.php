@@ -25,6 +25,21 @@ final class PersonRepository
     }
 
     /**
+     * Update identity fields. Not optimistically locked here — the owning
+     * aggregate (e.g. a candidate) versions the combined write via its own
+     * record_version; a person row has no version of its own.
+     *
+     * @param array<string,mixed> $data
+     */
+    public function update(int $id, array $data): void
+    {
+        if ($data === []) {
+            return;
+        }
+        $this->db->updateRow('persons', $data, ['id' => $id]);
+    }
+
+    /**
      * Match an existing person by phone or email before creating a new one, so
      * the same individual does not accumulate duplicate identities.
      *

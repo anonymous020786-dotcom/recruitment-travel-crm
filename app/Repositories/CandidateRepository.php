@@ -78,6 +78,30 @@ final class CandidateRepository
         return (int) $this->db->insertRow('candidates', $data);
     }
 
+    /**
+     * Optimistic update: only writes when record_version matches; bumps it.
+     *
+     * @param array<string,mixed> $changes
+     * @return int rows affected (0 => stale or not found within scope)
+     */
+    public function updateFields(int $id, array $changes, int $expectedVersion, BranchScope $scope): int
+    {
+        [$branchSql, $branchBind] = $scope->whereClause('branch_id');
+
+        $set = ['record_version = record_version + 1', 'updated_at = UTC_TIMESTAMP()'];
+        $bind = ['id' => $id, 'ver' => $expectedVersion] + $branchBind;
+        foreach ($changes as $col => $val) {
+            $set[] = "`{$col}` = :c_{$col}";
+            $bind["c_{$col}"] = $val;
+        }
+
+        return $this->db->affectingStatement(
+            'UPDATE candidates SET ' . implode(', ', $set)
+            . " WHERE id = :id AND record_version = :ver AND deleted_at IS NULL AND {$branchSql}",
+            $bind,
+        );
+    }
+
     /** @return Page<Candidate> */
     public function paginate(ListQuery $q, BranchScope $scope): Page
     {
@@ -98,6 +122,43 @@ final class CandidateRepository
         );
 
         return new Page(array_map([Candidate::class, 'fromRow'], $rows), $total, $q->page, $q->perPage);
+    }
+
+    /**
+     * Active users that could be assigned as a candidate's counselor in the
+     * given branches.
+     *
+     * @return list<array{id:int,name:string}>
+     */
+    public function assignableCounselors(BranchScope $scope): array
+    {
+        if ($scope->orgWide) {
+            $rows = $this->db->select(
+                'SELECT id, name FROM users WHERE is_active = 1 AND deleted_at IS NULL ORDER BY name LIMIT 500',
+            );
+        } elseif ($scope->ids === []) {
+            return [];
+        } else {
+            $primary = $branch = [];
+            $bind = [];
+            foreach ($scope->ids as $i => $id) {
+                $primary[] = ":pb{$i}";
+                $branch[] = ":bb{$i}";
+                $bind["pb{$i}"] = $id;
+                $bind["bb{$i}"] = $id;
+            }
+            $rows = $this->db->select(
+                'SELECT DISTINCT u.id, u.name FROM users u
+                 LEFT JOIN user_branches ub ON ub.user_id = u.id
+                 WHERE u.is_active = 1 AND u.deleted_at IS NULL
+                   AND (u.is_org_wide = 1 OR u.primary_branch_id IN (' . implode(', ', $primary) . ')
+                        OR ub.branch_id IN (' . implode(', ', $branch) . '))
+                 ORDER BY u.name LIMIT 500',
+                $bind,
+            );
+        }
+
+        return array_map(static fn (array $r): array => ['id' => (int) $r['id'], 'name' => (string) $r['name']], $rows);
     }
 
     /** @return list<array{key:string,label:string}> distinct stages in use, for the filter dropdown */

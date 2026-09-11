@@ -168,8 +168,12 @@ return static function (Router $router): void {
         $r->get('/exports', [LeadExportController::class, 'index'])->middleware(['can:exports.run'])->name('exports.index');
         $r->get('/exports/{job}/download', [LeadExportController::class, 'download'])->middleware(['can:exports.run'])->name('exports.download');
 
-        // ---- Candidates (minimal — created only via lead conversion for now) --
+        // ---- Candidates (created only via lead conversion for now) ---
         $r->get('/candidates', [CandidateController::class, 'index'])->middleware(['can:candidates.view'])->name('candidates.index');
         $r->get('/candidates/{candidate}', [CandidateController::class, 'show'])->middleware(['can:candidates.view'])->name('candidates.show');
+        $r->get('/candidates/{candidate}/edit', [CandidateController::class, 'edit'])->middleware(['can:candidates.edit'])->name('candidates.edit');
+        $r->put('/candidates/{candidate}', [CandidateController::class, 'update'])->middleware(['can:candidates.edit', 'throttle:write'])->name('candidates.update');
+        $r->post('/candidates/{candidate}/counselor', [CandidateController::class, 'reassignCounselor'])
+            ->middleware(['can:candidates.edit', 'throttle:write'])->name('candidates.counselor');
     });
 };

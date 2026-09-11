@@ -1,5 +1,8 @@
 <?php
-/** @var \App\Models\Candidate $candidate */
+/**
+ * @var \App\Models\Candidate $candidate
+ * @var list<array{id:int,name:string}> $counselors @var bool $canEdit
+ */
 $this->layout('layouts.app', ['title' => $candidate->fullName, 'currentPath' => '/candidates']);
 $this->start('content');
 ?>
@@ -7,6 +10,9 @@ $this->start('content');
     'title' => $candidate->fullName,
     'subtitle' => $candidate->candidateNumber,
     'breadcrumbs' => [['label' => 'Candidates', 'href' => '/candidates'], ['label' => $candidate->candidateNumber]],
+    'actions' => !empty($canEdit)
+        ? '<a href="/candidates/' . e_attr($candidate->publicId) . '/edit" class="btn btn-primary btn-sm">Edit</a>'
+        : '',
 ]) ?>
 
 <div class="mb-4 flex flex-wrap items-center gap-2">
@@ -31,7 +37,6 @@ $this->start('content');
                 'Marital status' => $candidate->maritalStatus ? e(ucfirst($candidate->maritalStatus)) : '—',
                 'Highest qualification' => e($candidate->highestQualification ?? '—'),
                 'Experience' => $candidate->totalExperienceYears !== null ? e((string) $candidate->totalExperienceYears) . ' yrs' : '—',
-                'Counselor' => e($candidate->counselorName ?? 'Unassigned'),
                 'Created' => e(substr($candidate->createdAt, 0, 16)),
             ];
             $html = '<dl class="grid gap-x-4 gap-y-2 sm:grid-cols-2 text-sm">';
@@ -43,16 +48,34 @@ $this->start('content');
 
         <div class="mt-4">
             <?= component('card', [
-                'title' => 'Profile & pipeline',
+                'title' => 'Education, experience & more',
                 'body' => component('empty-state', [
-                    'title' => 'Full candidate module coming in a later phase',
-                    'message' => 'Education, experience, skills, passport details, documents, job applications and interview scheduling are built out next.',
+                    'title' => 'Coming next',
+                    'message' => 'Education, experience, skills, preferences, passport details, documents, job applications and interview scheduling are built out in follow-up steps.',
                 ]),
             ]) ?>
         </div>
     </div>
 
     <div class="space-y-4">
+        <?= component('card', ['title' => 'Counselor', 'body' => (function () use ($candidate, $counselors, $canEdit) {
+            $html = '<p class="text-sm text-slate-600 mb-2">Currently: <span class="font-medium text-slate-900">'
+                . e($candidate->counselorName ?? 'Unassigned') . '</span></p>';
+            if (!empty($canEdit)) {
+                $opts = '<option value="0">Unassigned</option>';
+                foreach ($counselors as $u) {
+                    $sel = (int) $u['id'] === $candidate->assignedCounselor ? ' selected' : '';
+                    $opts .= '<option value="' . (int) $u['id'] . '"' . $sel . '>' . e($u['name']) . '</option>';
+                }
+                $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/counselor" class="flex gap-2">'
+                    . csrf_field()
+                    . '<input type="hidden" name="record_version" value="' . (int) $candidate->recordVersion . '">'
+                    . '<select name="assigned_counselor" aria-label="Counselor" class="form-select">' . $opts . '</select>'
+                    . '<button class="btn btn-secondary btn-sm">Save</button></form>';
+            }
+            return $html;
+        })()]) ?>
+
         <?= component('card', ['title' => 'Origin', 'body' =>
             $candidate->originLeadPublicId
                 ? '<p class="text-sm text-slate-600">Converted from lead</p>'

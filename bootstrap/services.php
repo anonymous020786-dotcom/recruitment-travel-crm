@@ -135,12 +135,14 @@ return static function (Application $app): void {
     $app->singleton(LeadService::class);
     $app->singleton(\App\Services\LeadImportService::class);
     $app->singleton(\App\Services\LeadExportService::class);
+    $app->singleton(\App\Services\CandidateService::class);
 
     $app->singleton(Gate::class, static function (Application $app): Gate {
         $gate = new Gate($app, $app->get(PermissionService::class), $app->get(Auth::class));
 
         // model class => policy class. One line per feature phase.
         $gate->policy(\App\Models\Lead::class, \App\Policies\LeadPolicy::class);
+        $gate->policy(\App\Models\Candidate::class, \App\Policies\CandidatePolicy::class);
 
         return $gate;
     });
