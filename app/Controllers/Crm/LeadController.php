@@ -11,6 +11,7 @@ use App\Http\Response;
 use App\Models\Lead;
 use App\Repositories\ActivityLogRepository;
 use App\Repositories\CandidateRepository;
+use App\Repositories\CommunicationLogRepository;
 use App\Repositories\LeadFollowupRepository;
 use App\Repositories\LeadRepository;
 use App\Services\LeadService;
@@ -23,6 +24,7 @@ final class LeadController extends CrmController
         private readonly LeadRepository $leads,
         private readonly LeadFollowupRepository $followups,
         private readonly CandidateRepository $candidates,
+        private readonly CommunicationLogRepository $communications,
         private readonly LeadService $service,
         private readonly ActivityLogRepository $activity,
     ) {
@@ -96,19 +98,22 @@ final class LeadController extends CrmController
 
         $notes = $this->leads->notes($model->id);
         $logs = $this->activity->forRecord('lead', $model->id, 100);
+        $comms = $this->communications->forRecord('lead', $model->id, 100);
         $convertedCandidate = $model->convertedCandidateId !== null
             ? $this->candidates->findById($model->convertedCandidateId, $this->scope())
             : null;
 
         return view_response('crm.leads.show', [
             'lead'      => $model,
-            'timeline'  => $this->buildTimeline($notes, $logs),
+            'timeline'  => $this->buildTimeline($notes, $logs, $comms),
             'followups' => $this->followups->forLead($model->id),
+            'communications' => $comms,
             'assignees' => $this->leads->assignableUsers($this->scope()),
             'nextStatuses' => $this->nextStatuses($model),
             'canFollowup' => can('followups.create') && $model->isEditable(),
             'canMerge'    => can('merge', $model),
             'canConvert'  => can('convert', $model),
+            'canLogCommunication' => can('communication.log'),
             'convertedCandidate' => $convertedCandidate,
         ]);
     }
@@ -287,6 +292,25 @@ final class LeadController extends CrmController
         return Response::redirect('/leads/' . $model->publicId . '#timeline');
     }
 
+    public function logCommunication(Request $request, string $lead): Response
+    {
+        $model = $this->find($lead);
+
+        try {
+            $this->service->logCommunication($model, [
+                'channel'     => (string) $request->input('channel', 'call'),
+                'direction'   => (string) $request->input('direction', 'outbound'),
+                'summary'     => (string) $request->input('summary', ''),
+                'occurred_at' => $request->input('occurred_at'),
+            ], $this->currentUser());
+            flash('status', 'Communication logged.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not log this communication.');
+        }
+
+        return Response::redirect('/leads/' . $model->publicId . '#timeline');
+    }
+
     public function scheduleFollowup(Request $request, string $lead): Response
     {
         $model = $this->find($lead);
@@ -378,9 +402,10 @@ final class LeadController extends CrmController
     /**
      * @param list<array<string,mixed>> $notes
      * @param list<array<string,mixed>> $logs
+     * @param list<\App\Models\CommunicationLog> $comms
      * @return list<array{type:string,at:string,actor:?string,text:string}>
      */
-    private function buildTimeline(array $notes, array $logs): array
+    private function buildTimeline(array $notes, array $logs, array $comms = []): array
     {
         $items = [];
 
@@ -390,6 +415,15 @@ final class LeadController extends CrmController
                 'at' => (string) $n['created_at'],
                 'actor' => $n['user_name'] ?? null,
                 'text' => (string) $n['body'],
+            ];
+        }
+
+        foreach ($comms as $c) {
+            $items[] = [
+                'type' => 'communication',
+                'at' => $c->occurredAt,
+                'actor' => $c->userName,
+                'text' => $c->directionLabel() . ' ' . strtolower($c->channelLabel()) . ': ' . $c->summary,
             ];
         }
 
@@ -409,8 +443,8 @@ final class LeadController extends CrmController
 
         foreach ($logs as $l) {
             $action = (string) $l['action'];
-            if ($action === 'note_added') {
-                continue; // already shown as the note itself
+            if ($action === 'note_added' || $action === 'communication_logged') {
+                continue; // already shown as the note / communication itself
             }
             $text = $labels[$action] ?? $action;
             if ($action === 'status_changed') {

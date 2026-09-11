@@ -12,12 +12,14 @@ use App\Exceptions\AuthorizationException;
 use App\Exceptions\DomainRuleException;
 use App\Exceptions\StaleRecordException;
 use App\Exceptions\ValidationException;
+use App\Models\CommunicationLog;
 use App\Models\Lead;
 use App\Models\User;
 use App\Notifications\NotificationService;
 use App\Models\Candidate;
 use App\Models\Followup;
 use App\Repositories\CandidateRepository;
+use App\Repositories\CommunicationLogRepository;
 use App\Repositories\LeadFollowupRepository;
 use App\Repositories\LeadRepository;
 use App\Repositories\PersonRepository;
@@ -37,6 +39,7 @@ final class LeadService
         private readonly LeadFollowupRepository $followups,
         private readonly CandidateRepository $candidates,
         private readonly PersonRepository $persons,
+        private readonly CommunicationLogRepository $communications,
         private readonly Sequences $sequences,
         private readonly StatusMachine $statuses,
         private readonly Gate $gate,
@@ -304,6 +307,71 @@ final class LeadService
             ]);
             $this->audit->log('note_added', 'leads', 'lead', $lead->id, null, ['note_id' => $noteId], null, $actor);
         });
+    }
+
+    /**
+     * Log a contact touchpoint (call / WhatsApp / SMS / email / meeting / note)
+     * against a lead. A record of what happened, not an editable note — there
+     * is no update/delete, matching activity_logs.
+     *
+     * @param array{channel:string,direction?:?string,summary:string,occurred_at?:?string} $data
+     */
+    public function logCommunication(Lead $lead, array $data, User $actor): CommunicationLog
+    {
+        if (!$this->gate->forUser($actor)->allows('view', $lead) || !$this->gate->forUser($actor)->allows('communication.log')) {
+            throw AuthorizationException::forPermission('communication.log');
+        }
+
+        $channel = (string) ($data['channel'] ?? '');
+        if (!in_array($channel, ['call', 'whatsapp', 'sms', 'email', 'meeting', 'note'], true)) {
+            throw new ValidationException(['channel' => ['Pick a valid channel.']]);
+        }
+
+        $direction = (string) ($data['direction'] ?? 'outbound');
+        if (!in_array($direction, ['inbound', 'outbound', 'internal'], true)) {
+            throw new ValidationException(['direction' => ['Pick a valid direction.']]);
+        }
+
+        $summary = trim((string) ($data['summary'] ?? ''));
+        if ($summary === '') {
+            throw new ValidationException(['summary' => ['Say what happened.']]);
+        }
+
+        $row = [
+            'related_type' => 'lead',
+            'related_id'   => $lead->id,
+            'user_id'      => $actor->id,
+            'channel'      => $channel,
+            'direction'    => $direction,
+            'summary'      => mb_substr($summary, 0, 500),
+        ];
+
+        $occurredAtRaw = trim((string) ($data['occurred_at'] ?? ''));
+        if ($occurredAtRaw !== '') {
+            $occurredAt = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $occurredAtRaw)
+                ?: \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $occurredAtRaw)
+                ?: \DateTimeImmutable::createFromFormat('Y-m-d H:i', $occurredAtRaw);
+            if ($occurredAt === false) {
+                throw new ValidationException(['occurred_at' => ['That is not a valid date/time.']]);
+            }
+            if ($occurredAt->getTimestamp() > time() + 60) {
+                throw new ValidationException(['occurred_at' => ['This cannot be in the future.']]);
+            }
+            $row['occurred_at'] = $occurredAt->format('Y-m-d H:i:s');
+        }
+        // else: leave unset — the column defaults to CURRENT_TIMESTAMP (UTC session).
+
+        $id = $this->db->transaction(function () use ($row, $lead, $actor): int {
+            $newId = $this->communications->create($row);
+            $this->audit->log('communication_logged', 'leads', 'lead', $lead->id, null, [
+                'communication_id' => $newId, 'channel' => $row['channel'], 'direction' => $row['direction'],
+            ], null, $actor);
+
+            return $newId;
+        });
+
+        return $this->communications->findById($id)
+            ?? throw new \RuntimeException('Communication log vanished after creation.');
     }
 
     public function delete(Lead $lead, User $actor, int $expectedVersion): void

@@ -157,6 +157,8 @@ return static function (Router $router): void {
         $r->post('/leads/{lead}/assign', [LeadController::class, 'assign'])->middleware(['can:leads.assign'])->name('leads.assign');
         $r->post('/leads/{lead}/status', [LeadController::class, 'changeStatus'])->middleware(['can:leads.edit'])->name('leads.status');
         $r->post('/leads/{lead}/notes', [LeadController::class, 'addNote'])->middleware(['can:leads.edit'])->name('leads.notes');
+        $r->post('/leads/{lead}/communications', [LeadController::class, 'logCommunication'])
+            ->middleware(['can:communication.log', 'throttle:write'])->name('leads.communications.store');
         $r->post('/leads/{lead}/followups', [LeadController::class, 'scheduleFollowup'])
             ->middleware(['can:followups.create', 'throttle:write'])->name('leads.followups.store');
         $r->post('/leads/{lead}/convert', [LeadController::class, 'convert'])

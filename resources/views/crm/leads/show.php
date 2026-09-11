@@ -3,12 +3,14 @@
  * @var \App\Models\Lead $lead
  * @var list<array> $timeline @var list<\App\Models\Followup> $followups @var list $assignees
  * @var list<string> $nextStatuses @var bool $canFollowup @var bool $canConvert
+ * @var bool $canLogCommunication @var list<\App\Models\CommunicationLog> $communications
  * @var \App\Models\Candidate|null $convertedCandidate
  */
 $this->layout('layouts.app', ['title' => $lead->name, 'currentPath' => '/leads']);
 $this->start('content');
 
 $canFollowup = $canFollowup ?? false;
+$canLogCommunication = $canLogCommunication ?? false;
 $channels = ['call' => 'Call', 'whatsapp' => 'WhatsApp', 'sms' => 'SMS', 'email' => 'Email', 'meeting' => 'Meeting', 'other' => 'Other'];
 $wa = 'https://wa.me/' . preg_replace('/\D/', '', $lead->phone);
 $statusLabels = [];
@@ -171,20 +173,40 @@ foreach (($nextStatuses ?? []) as $s) {
         </div>
 
         <div id="timeline">
-            <?= component('card', ['title' => 'Timeline', 'body' => (function () use ($timeline, $lead) {
+            <?= component('card', ['title' => 'Timeline', 'body' => (function () use ($timeline, $lead, $canLogCommunication) {
                 $html = '';
                 if (can('addNote', $lead)) {
-                    $html .= '<form method="post" action="/leads/' . e_attr($lead->publicId) . '/notes" class="mb-4 flex gap-2">'
+                    $html .= '<form method="post" action="/leads/' . e_attr($lead->publicId) . '/notes" class="mb-2 flex gap-2">'
                         . csrf_field()
                         . '<input type="text" name="body" required maxlength="5000" placeholder="Add a note…" class="form-input">'
                         . '<button class="btn btn-secondary">Add</button></form>';
+                }
+                if ($canLogCommunication) {
+                    $chOpts = '';
+                    foreach (['call' => 'Call', 'whatsapp' => 'WhatsApp', 'sms' => 'SMS', 'email' => 'Email', 'meeting' => 'Meeting', 'note' => 'Other'] as $key => $label) {
+                        $chOpts .= '<option value="' . e_attr($key) . '">' . e($label) . '</option>';
+                    }
+                    $dirOpts = '';
+                    foreach (['outbound' => 'Outbound', 'inbound' => 'Inbound', 'internal' => 'Internal'] as $key => $label) {
+                        $dirOpts .= '<option value="' . e_attr($key) . '">' . e($label) . '</option>';
+                    }
+                    $html .= '<form method="post" action="/leads/' . e_attr($lead->publicId) . '/communications" class="mb-4 grid gap-2 sm:grid-cols-[7rem_7rem_1fr_auto]" data-once>'
+                        . csrf_field()
+                        . '<select name="channel" class="form-select">' . $chOpts . '</select>'
+                        . '<select name="direction" class="form-select">' . $dirOpts . '</select>'
+                        . '<input type="text" name="summary" required maxlength="500" placeholder="Log a call/message — what happened?" class="form-input">'
+                        . '<button class="btn btn-secondary">Log</button></form>';
                 }
                 if ($timeline === []) {
                     $html .= '<p class="text-sm text-slate-500">No activity yet.</p>';
                 } else {
                     $html .= '<ol class="space-y-3">';
                     foreach ($timeline as $item) {
-                        $icon = $item['type'] === 'note' ? '📝' : '•';
+                        $icon = match ($item['type']) {
+                            'note' => '📝',
+                            'communication' => '📞',
+                            default => '•',
+                        };
                         $html .= '<li class="flex gap-3 text-sm">'
                             . '<span class="mt-0.5 text-slate-400">' . $icon . '</span>'
                             . '<div><p class="text-slate-800">' . e($item['text']) . '</p>'
