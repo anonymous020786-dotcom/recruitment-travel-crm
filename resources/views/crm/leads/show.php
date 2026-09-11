@@ -22,6 +22,7 @@ foreach (($nextStatuses ?? []) as $s) {
     'actions' => implode(' ', array_filter([
         '<a href="tel:' . e_attr($lead->phone) . '" class="btn btn-secondary btn-sm">Call</a>',
         '<a href="' . e_attr($wa) . '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">WhatsApp</a>',
+        (!empty($canMerge) && $lead->isEditable()) ? '<a href="/leads/' . e_attr($lead->publicId) . '/merge" class="btn btn-secondary btn-sm">Merge</a>' : '',
         ($lead->isEditable() && can('update', $lead)) ? '<a href="/leads/' . e_attr($lead->publicId) . '/edit" class="btn btn-primary btn-sm">Edit</a>' : '',
     ])),
 ]) ?>

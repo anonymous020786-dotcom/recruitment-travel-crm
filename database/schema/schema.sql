@@ -257,6 +257,7 @@ CREATE TABLE leads (
     assigned_to         BIGINT UNSIGNED NULL,
     converted_at        DATETIME        NULL,
     converted_candidate_id BIGINT UNSIGNED NULL,
+    merged_into_id      BIGINT UNSIGNED NULL,          -- set when this lead was merged into another
     lost_reason         VARCHAR(255)    NULL,
     notes               TEXT            NULL,
     record_version      INT UNSIGNED    NOT NULL DEFAULT 1,
@@ -275,12 +276,14 @@ CREATE TABLE leads (
     KEY idx_leads_created (created_at),
     KEY idx_leads_person (person_id),
     KEY idx_leads_country (interested_country),
+    KEY idx_leads_merged_into (merged_into_id),
     CONSTRAINT fk_leads_branch   FOREIGN KEY (branch_id)  REFERENCES branches (id),
     CONSTRAINT fk_leads_source   FOREIGN KEY (source_id)  REFERENCES lead_sources (id),
     CONSTRAINT fk_leads_status   FOREIGN KEY (status_id)  REFERENCES lead_statuses (id),
     CONSTRAINT fk_leads_assignee FOREIGN KEY (assigned_to) REFERENCES users (id),
     CONSTRAINT fk_leads_person   FOREIGN KEY (person_id)   REFERENCES persons (id),
-    CONSTRAINT fk_leads_creator  FOREIGN KEY (created_by)  REFERENCES users (id)
+    CONSTRAINT fk_leads_creator  FOREIGN KEY (created_by)  REFERENCES users (id),
+    CONSTRAINT fk_leads_merged_into FOREIGN KEY (merged_into_id) REFERENCES leads (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE lead_notes (

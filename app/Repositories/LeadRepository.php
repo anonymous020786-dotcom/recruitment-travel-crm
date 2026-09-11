@@ -37,7 +37,7 @@ final class LeadRepository
 
     private const DETAIL_COLUMNS = self::LIST_COLUMNS . ", l.gender, l.date_of_birth, l.city, l.state, l.source_id,
         l.experience_years, l.qualification, l.salary_expectation, l.salary_currency, l.converted_at,
-        l.lost_reason, l.notes, l.created_by";
+        l.merged_into_id, l.lost_reason, l.notes, l.created_by";
 
     private const JOINS = "FROM leads l
         JOIN lead_statuses st ON st.id = l.status_id
@@ -205,6 +205,57 @@ final class LeadRepository
             "UPDATE leads SET deleted_at = UTC_TIMESTAMP(), record_version = record_version + 1
              WHERE id = :id AND record_version = :ver AND deleted_at IS NULL AND {$branchSql}",
             ['id' => $id, 'ver' => $expectedVersion] + $branchBind,
+        );
+    }
+
+    // ---- merge ----------------------------------------------------
+
+    /**
+     * The public id of the lead this (soft-deleted) lead was merged into, if
+     * any — used to redirect stale links. Follows one hop only.
+     */
+    public function mergeTargetPublicId(string $mergedPublicId, BranchScope $scope): ?string
+    {
+        [$branchSql, $bind] = $scope->whereClause('surv.branch_id');
+        $v = $this->db->selectValue(
+            "SELECT surv.public_id
+             FROM leads loser JOIN leads surv ON surv.id = loser.merged_into_id
+             WHERE loser.public_id = :pid AND {$branchSql}",
+            ['pid' => $mergedPublicId] + $bind,
+        );
+
+        return $v !== null ? (string) $v : null;
+    }
+
+    /** Move child rows (notes, follow-ups) from one lead onto another. */
+    public function reassignChildren(int $fromLeadId, int $toLeadId): array
+    {
+        $notes = $this->db->affectingStatement(
+            'UPDATE lead_notes SET lead_id = :to WHERE lead_id = :from',
+            ['to' => $toLeadId, 'from' => $fromLeadId],
+        );
+        $followups = $this->db->affectingStatement(
+            'UPDATE lead_followups SET lead_id = :to WHERE lead_id = :from',
+            ['to' => $toLeadId, 'from' => $fromLeadId],
+        );
+
+        return ['notes' => $notes, 'followups' => $followups];
+    }
+
+    /**
+     * Mark the loser as merged into the survivor and soft-delete it. Optimistic
+     * on record_version; refuses a loser that is converted or already merged.
+     */
+    public function markMerged(int $loserId, int $survivorId, int $expectedVersion, BranchScope $scope): int
+    {
+        [$branchSql, $branchBind] = $scope->whereClause('branch_id');
+
+        return $this->db->affectingStatement(
+            "UPDATE leads
+                SET merged_into_id = :surv, deleted_at = UTC_TIMESTAMP(), record_version = record_version + 1
+             WHERE id = :id AND record_version = :ver AND deleted_at IS NULL
+               AND merged_into_id IS NULL AND converted_candidate_id IS NULL AND {$branchSql}",
+            ['id' => $loserId, 'surv' => $survivorId, 'ver' => $expectedVersion] + $branchBind,
         );
     }
 

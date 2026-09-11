@@ -81,7 +81,15 @@ final class LeadController extends CrmController
 
     public function show(Request $request, string $lead): Response
     {
-        $model = $this->find($lead);
+        $model = $this->leads->findByPublicId($lead, $this->scope());
+        if ($model === null) {
+            // Stale link to a lead that was merged away → follow it to the survivor.
+            $target = $this->leads->mergeTargetPublicId($lead, $this->scope());
+            if ($target !== null) {
+                return Response::redirect('/leads/' . $target);
+            }
+            abort(404, 'Lead not found.');
+        }
         authorize('view', $model);
 
         $notes = $this->leads->notes($model->id);
@@ -94,7 +102,52 @@ final class LeadController extends CrmController
             'assignees' => $this->leads->assignableUsers($this->scope()),
             'nextStatuses' => $this->nextStatuses($model),
             'canFollowup' => can('followups.create') && $model->isEditable(),
+            'canMerge'    => can('merge', $model),
         ]);
+    }
+
+    public function mergeForm(Request $request, string $lead): Response
+    {
+        $model = $this->find($lead);
+        authorize('merge', $model);
+
+        return view_response('crm.leads.merge', [
+            'lead'       => $model,
+            'duplicates' => $this->service->duplicatesFor($model, $this->currentUser()),
+            'preselect'  => (string) ($request->query('with') ?? ''),
+            'mergeFields' => \App\Services\LeadService::mergeableFields(),
+        ]);
+    }
+
+    public function merge(Request $request, string $lead): Response
+    {
+        $model = $this->find($lead);
+
+        try {
+            $survivor = $this->service->mergeLeads(
+                $model,
+                (string) $request->input('loser', ''),
+                array_values(array_filter((array) $request->input('take', []), 'is_string')),
+                $this->currentUser(),
+                (int) $request->input('record_version', $model->recordVersion),
+            );
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not merge.');
+
+            return Response::redirect('/leads/' . $model->publicId . '/merge');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+
+            return Response::redirect('/leads/' . $model->publicId . '/merge');
+        } catch (\App\Exceptions\StaleRecordException) {
+            session()?->flash('error_toast', 'One of the leads changed while you were merging. Please try again.');
+
+            return Response::redirect('/leads/' . $model->publicId . '/merge');
+        }
+
+        flash('status', 'Leads merged.');
+
+        return Response::redirect('/leads/' . $survivor->publicId);
     }
 
     public function edit(Request $request, string $lead): Response
@@ -315,6 +368,10 @@ final class LeadController extends CrmController
             'status_changed' => 'changed the status',
             'note_added' => 'added a note',
             'deleted' => 'deleted the lead',
+            'merged' => 'merged another lead into this one',
+            'followup_scheduled' => 'scheduled a follow-up',
+            'followup_completed' => 'completed a follow-up',
+            'followup_cancelled' => 'cancelled a follow-up',
         ];
 
         foreach ($logs as $l) {

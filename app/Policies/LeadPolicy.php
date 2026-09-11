@@ -78,8 +78,13 @@ final class LeadPolicy extends Policy
         return $this->can($user, 'leads.export') && $this->can($user, 'exports.run');
     }
 
-    public function merge(User $user): bool
+    public function merge(User $user, ?Lead $survivor = null): bool
     {
-        return $this->can($user, 'leads.merge');
+        if (!$this->can($user, 'leads.merge')) {
+            return false;
+        }
+
+        return $survivor === null
+            || ($this->inBranchScope($user, $survivor->branchId) && $survivor->isEditable());
     }
 }

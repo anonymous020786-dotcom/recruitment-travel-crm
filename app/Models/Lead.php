@@ -44,6 +44,7 @@ final class Lead
         public readonly ?string $assignedToName,
         public readonly ?string $convertedAt,
         public readonly ?int $convertedCandidateId,
+        public readonly ?int $mergedIntoId,
         public readonly ?string $lostReason,
         public readonly ?string $notes,
         public readonly int $recordVersion,
@@ -90,6 +91,7 @@ final class Lead
             assignedToName: $r['assigned_to_name'] ?? null,
             convertedAt: $r['converted_at'] ?? null,
             convertedCandidateId: isset($r['converted_candidate_id']) ? (int) $r['converted_candidate_id'] : null,
+            mergedIntoId: isset($r['merged_into_id']) ? (int) $r['merged_into_id'] : null,
             lostReason: $r['lost_reason'] ?? null,
             notes: $r['notes'] ?? null,
             recordVersion: (int) ($r['record_version'] ?? 1),
@@ -105,9 +107,14 @@ final class Lead
         return $this->convertedCandidateId !== null;
     }
 
+    public function isMerged(): bool
+    {
+        return $this->mergedIntoId !== null;
+    }
+
     public function isEditable(): bool
     {
-        return $this->convertedCandidateId === null;
+        return $this->convertedCandidateId === null && $this->mergedIntoId === null;
     }
 
     /** Colour token for the status pill component. */

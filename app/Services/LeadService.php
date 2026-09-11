@@ -326,6 +326,152 @@ final class LeadService
         });
     }
 
+    // ---- merge --------------------------------------------------
+
+    /** Contact / qualification fields the user may pick from the loser. */
+    private const MERGE_FIELDS = [
+        'name', 'phone', 'alternate_phone', 'email', 'priority', 'assigned_to', 'source_id',
+        'campaign', 'interested_country', 'interested_job', 'experience_years', 'qualification',
+        'salary_expectation', 'salary_currency', 'city', 'state', 'gender', 'date_of_birth',
+    ];
+
+    /** @return list<string> */
+    public static function mergeableFields(): array
+    {
+        return self::MERGE_FIELDS;
+    }
+
+    /**
+     * Fold $loserPublicId into $survivor. Fields named in $take are copied from
+     * the loser; other fields keep the survivor's value, except an empty
+     * survivor field is backfilled from the loser. Notes and follow-ups move to
+     * the survivor, a summary note is written, both leads are audited, and the
+     * loser is soft-deleted pointing at the survivor.
+     *
+     * @param list<string> $take
+     */
+    public function mergeLeads(Lead $survivor, string $loserPublicId, array $take, User $actor, int $expectedVersion): Lead
+    {
+        if (!$this->gate->forUser($actor)->allows('merge', $survivor)) {
+            throw AuthorizationException::forPermission('leads.merge');
+        }
+
+        $scope = $this->scopes->resolve($actor);
+        $loser = $this->leads->findByPublicId($loserPublicId, $scope);
+
+        if ($loser === null) {
+            throw new ValidationException(['loser' => ['Pick a lead you can see to merge in.']]);
+        }
+        if ($loser->id === $survivor->id) {
+            throw new ValidationException(['loser' => ['A lead cannot be merged into itself.']]);
+        }
+        if (!$survivor->isEditable() || !$loser->isEditable()) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Converted or already-merged leads cannot be merged.', []);
+        }
+        if ($survivor->branchId !== $loser->branchId) {
+            throw new ValidationException(['loser' => ['Both leads must be in the same branch to merge.']]);
+        }
+
+        $take = array_values(array_intersect($take, self::MERGE_FIELDS));
+        $changes = $this->mergeFieldChanges($survivor, $loser, $take);
+
+        if (array_key_exists('assigned_to', $changes) && $changes['assigned_to'] !== null) {
+            $this->assertAssigneeValid((int) $changes['assigned_to'], $survivor->branchId);
+        }
+
+        $before = $this->snapshot($survivor);
+
+        $fresh = $this->db->transaction(function () use ($survivor, $loser, $changes, $take, $expectedVersion, $scope, $actor, $before): Lead {
+            if ($this->leads->update($survivor->id, $changes, $expectedVersion, $scope) === 0) {
+                throw new StaleRecordException('lead', $survivor->publicId);
+            }
+
+            $moved = $this->leads->reassignChildren($loser->id, $survivor->id);
+
+            if ($this->leads->markMerged($loser->id, $survivor->id, $loser->recordVersion, $scope) === 0) {
+                throw new StaleRecordException('lead', $loser->publicId);
+            }
+
+            $summary = "Merged in {$loser->leadNumber} — {$loser->name} · {$loser->phone}"
+                . ". Moved {$moved['notes']} note(s), {$moved['followups']} follow-up(s)."
+                . ($take !== [] ? ' Took from merged lead: ' . implode(', ', $take) . '.' : '');
+            $this->db->insertRow('lead_notes', [
+                'lead_id' => $survivor->id,
+                'user_id' => $actor->id,
+                'body'    => mb_substr($summary, 0, 5000),
+            ]);
+
+            $fresh = $this->leads->findById($survivor->id, $scope);
+            $this->audit->log('merged', 'leads', 'lead', $survivor->id, $before, $this->snapshot($fresh),
+                "merged in {$loser->leadNumber}", $actor);
+            $this->audit->log('merged_into', 'leads', 'lead', $loser->id,
+                ['status' => $loser->statusKey], ['merged_into' => $survivor->id],
+                "merged into {$survivor->leadNumber}", $actor);
+
+            return $fresh;
+        });
+
+        if ($fresh->assignedTo !== null && $fresh->assignedTo !== $survivor->assignedTo && $fresh->assignedTo !== $actor->id) {
+            $this->notify->leadAssigned($fresh, $fresh->assignedTo, $actor->name);
+        }
+
+        return $fresh;
+    }
+
+    /**
+     * @param list<string> $take
+     * @return array<string,mixed>
+     */
+    private function mergeFieldChanges(Lead $survivor, Lead $loser, array $take): array
+    {
+        $s = $survivor->raw;
+        $l = $loser->raw;
+        $changes = [];
+
+        foreach (self::MERGE_FIELDS as $field) {
+            $sv = $s[$field] ?? null;
+            $lv = $l[$field] ?? null;
+            $survivorEmpty = $sv === null || $sv === '';
+
+            if (in_array($field, $take, true)) {
+                if ((string) $lv !== (string) $sv) {
+                    $changes[$field] = $lv;
+                }
+            } elseif ($survivorEmpty && $lv !== null && $lv !== '') {
+                $changes[$field] = $lv;
+            }
+        }
+
+        $survNotes = trim((string) $survivor->notes);
+        $loserNotes = trim((string) $loser->notes);
+        if ($loserNotes !== '' && $loserNotes !== $survNotes) {
+            $changes['notes'] = mb_substr(
+                trim($survNotes . "\n\n--- from {$loser->leadNumber} ---\n" . $loserNotes),
+                0,
+                60000,
+            );
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Likely duplicates of a lead, each enriched with the full record so the
+     * merge picker can show a field-by-field comparison.
+     *
+     * @return list<array{summary:array<string,mixed>,full:?Lead}>
+     */
+    public function duplicatesFor(Lead $lead, User $actor): array
+    {
+        $scope = $this->scopes->resolve($actor);
+        $rows = $this->leads->findLikelyDuplicates($scope, $lead->phone, $lead->alternatePhone, $lead->email, $lead->id);
+
+        return array_map(
+            fn (array $r): array => ['summary' => $r, 'full' => $this->leads->findById((int) $r['id'], $scope)],
+            $rows,
+        );
+    }
+
     // ---- follow-ups ----------------------------------------------
 
     /**

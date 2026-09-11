@@ -127,6 +127,8 @@ return static function (Router $router): void {
 
         $r->get('/leads/{lead}', [LeadController::class, 'show'])->middleware(['can:leads.view'])->name('leads.show');
         $r->get('/leads/{lead}/edit', [LeadController::class, 'edit'])->middleware(['can:leads.edit'])->name('leads.edit');
+        $r->get('/leads/{lead}/merge', [LeadController::class, 'mergeForm'])->middleware(['can:leads.merge'])->name('leads.merge');
+        $r->post('/leads/{lead}/merge', [LeadController::class, 'merge'])->middleware(['can:leads.merge', 'throttle:write'])->name('leads.merge.do');
         $r->put('/leads/{lead}', [LeadController::class, 'update'])->middleware(['can:leads.edit', 'throttle:write'])->name('leads.update');
         $r->delete('/leads/{lead}', [LeadController::class, 'destroy'])->middleware(['can:leads.delete'])->name('leads.destroy');
 
