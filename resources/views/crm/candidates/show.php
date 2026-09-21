@@ -6,6 +6,7 @@
  * @var bool $canEducation @var bool $canExperience @var array<string,string> $countries
  * @var list<\App\Models\CandidateSkill> $skills @var bool $canSkills
  * @var \App\Models\CandidatePreferences|null $preferences @var bool $canPreferences
+ * @var list<\App\Models\Passport> $passports @var bool $canPassport
  */
 $this->layout('layouts.app', ['title' => $candidate->fullName, 'currentPath' => '/candidates']);
 $this->start('content');
@@ -221,6 +222,91 @@ $this->start('content');
                             . ' data-confirm="Remove this skill?" class="inline">'
                             . csrf_field() . '<input type="hidden" name="_method" value="DELETE">'
                             . '<button class="text-slate-400 hover:text-red-600" aria-label="Remove ' . e($s->name) . '">&times;</button></form>';
+                    }
+                    $html .= '</li>';
+                }
+                $html .= '</ul>';
+                return $html;
+            })()]) ?>
+        </div>
+
+        <div id="passports" class="mt-4">
+            <?= component('card', ['title' => 'Passports', 'body' => (function () use ($candidate, $passports, $canPassport) {
+                $html = '';
+
+                if ($canPassport) {
+                    $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/passports" class="mb-4 grid gap-2 sm:grid-cols-3" data-once>'
+                        . csrf_field()
+                        . '<input type="text" name="passport_number" required maxlength="30" placeholder="Passport number" aria-label="Passport number" class="form-input">'
+                        . '<input type="text" name="place_of_issue" maxlength="120" placeholder="Place of issue" aria-label="Place of issue" class="form-input">'
+                        . '<input type="text" name="nationality" maxlength="2" placeholder="Nationality (e.g. IN)" aria-label="Nationality" class="form-input">'
+                        . '<input type="date" name="issue_date" aria-label="Issue date" class="form-input">'
+                        . '<input type="date" name="expiry_date" aria-label="Expiry date" class="form-input">'
+                        . '<select name="held_by" aria-label="Held by" class="form-select">'
+                        . '<option value="candidate">Held by candidate</option><option value="agency">Held by agency</option>'
+                        . '<option value="employer">Held by employer</option><option value="embassy">Held by embassy</option>'
+                        . '</select>'
+                        . '<label class="flex items-center gap-1.5 text-xs text-slate-600 sm:col-span-3"><input type="hidden" name="is_primary" value="0"><input type="checkbox" name="is_primary" value="1"> Make this the primary passport</label>'
+                        . '<div><button class="btn btn-secondary btn-sm">Add passport</button></div>'
+                        . '</form>';
+                }
+
+                if ($passports === []) {
+                    $html .= '<p class="text-sm text-slate-500">No passports on file.</p>';
+                    return $html;
+                }
+
+                $html .= '<ul class="divide-y divide-slate-100">';
+                foreach ($passports as $p) {
+                    $badge = '';
+                    if ($p->isExpired()) {
+                        $badge = component('badge', ['label' => 'Expired', 'color' => 'red', 'dot' => true]);
+                    } elseif ($p->isExpiringSoon()) {
+                        $badge = component('badge', ['label' => 'Expiring soon', 'color' => 'amber', 'dot' => true]);
+                    } elseif ($p->expiryDate !== null) {
+                        $badge = component('badge', ['label' => 'Valid', 'color' => 'green']);
+                    }
+                    $meta = implode(' · ', array_filter([
+                        $p->nationality, $p->placeOfIssue,
+                        $p->expiryDate ? 'Expires ' . $p->expiryDate : null,
+                        $p->heldBy !== 'candidate' ? 'Held by ' . $p->heldByLabel() : null,
+                    ]));
+                    $html .= '<li class="py-2.5 text-sm">'
+                        . '<div class="flex items-start justify-between gap-2">'
+                        . '<div><p class="font-medium text-slate-900">' . e($p->passportNumber)
+                        . ($p->isPrimary ? ' ' . component('badge', ['label' => 'Primary', 'color' => 'indigo']) : '')
+                        . ($badge !== '' ? ' ' . $badge : '') . '</p>'
+                        . ($meta !== '' ? '<p class="text-xs text-slate-500">' . e($meta) . '</p>' : '')
+                        . '</div>';
+
+                    if ($canPassport) {
+                        $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/passports/' . $p->id . '"'
+                            . ' data-confirm="Remove this passport record?">'
+                            . csrf_field() . '<input type="hidden" name="_method" value="DELETE">'
+                            . '<button class="btn btn-ghost btn-sm text-red-600">Delete</button></form>';
+                    }
+                    $html .= '</div>';
+
+                    if ($canPassport) {
+                        $html .= '<details class="mt-1.5"><summary class="cursor-pointer text-xs text-brand-600">Edit</summary>'
+                            . '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/passports/' . $p->id . '"'
+                            . ' class="mt-2 grid gap-2 sm:grid-cols-3">'
+                            . csrf_field() . '<input type="hidden" name="_method" value="PUT">'
+                            . '<input type="text" name="passport_number" required maxlength="30" value="' . e_attr($p->passportNumber) . '" aria-label="Passport number" class="form-input">'
+                            . '<input type="text" name="place_of_issue" maxlength="120" value="' . e_attr($p->placeOfIssue ?? '') . '" aria-label="Place of issue" class="form-input">'
+                            . '<input type="text" name="nationality" maxlength="2" value="' . e_attr($p->nationality ?? '') . '" aria-label="Nationality" class="form-input">'
+                            . '<input type="date" name="issue_date" value="' . e_attr($p->issueDate ?? '') . '" aria-label="Issue date" class="form-input">'
+                            . '<input type="date" name="expiry_date" value="' . e_attr($p->expiryDate ?? '') . '" aria-label="Expiry date" class="form-input">'
+                            . '<select name="held_by" aria-label="Held by" class="form-select">'
+                            . implode('', array_map(
+                                static fn (string $v, string $l): string => '<option value="' . $v . '"' . ($p->heldBy === $v ? ' selected' : '') . '>' . $l . '</option>',
+                                ['candidate', 'agency', 'employer', 'embassy'],
+                                ['Held by candidate', 'Held by agency', 'Held by employer', 'Held by embassy'],
+                            ))
+                            . '</select>'
+                            . '<label class="flex items-center gap-1.5 text-xs text-slate-600 sm:col-span-3"><input type="hidden" name="is_primary" value="0"><input type="checkbox" name="is_primary" value="1"' . ($p->isPrimary ? ' checked' : '') . '> Primary passport</label>'
+                            . '<div><button class="btn btn-secondary btn-sm">Save</button></div>'
+                            . '</form></details>';
                     }
                     $html .= '</li>';
                 }

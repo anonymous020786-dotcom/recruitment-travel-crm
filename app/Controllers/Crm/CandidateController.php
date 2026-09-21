@@ -15,6 +15,7 @@ use App\Repositories\CandidateExperienceRepository;
 use App\Repositories\CandidatePreferencesRepository;
 use App\Repositories\CandidateRepository;
 use App\Repositories\CandidateSkillRepository;
+use App\Repositories\PassportRepository;
 use App\Services\CandidateService;
 use App\Support\Db;
 use App\Support\ListQuery;
@@ -23,6 +24,7 @@ use App\Validators\CandidateExperienceValidator;
 use App\Validators\CandidatePreferencesValidator;
 use App\Validators\CandidateSkillValidator;
 use App\Validators\CandidateValidator;
+use App\Validators\PassportValidator;
 
 /**
  * Candidate screens. Candidates are created only via lead conversion (see
@@ -39,6 +41,7 @@ final class CandidateController extends CrmController
         private readonly CandidateExperienceRepository $experience,
         private readonly CandidateSkillRepository $skills,
         private readonly CandidatePreferencesRepository $preferences,
+        private readonly PassportRepository $passports,
     ) {
     }
 
@@ -72,6 +75,8 @@ final class CandidateController extends CrmController
             'canSkills'   => can('manageSkills', $model),
             'preferences' => $this->preferences->find($model->id),
             'canPreferences' => can('managePreferences', $model),
+            'passports'   => $this->passports->forCandidate($model->id),
+            'canPassport' => can('managePassport', $model),
         ]);
     }
 
@@ -280,6 +285,52 @@ final class CandidateController extends CrmController
         return Response::redirect('/candidates/' . $model->publicId . '#preferences');
     }
 
+    public function storePassport(Request $request, string $candidate): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new PassportValidator())->validate($request->only($this->passportFieldKeys()));
+            $this->service->addPassport($model, $data, $this->currentUser());
+            flash('status', 'Passport added.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not add that passport.');
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#passports');
+    }
+
+    public function updatePassport(Request $request, string $candidate, string $passport): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new PassportValidator())->validate($request->only($this->passportFieldKeys()));
+            $this->service->updatePassport($model, (int) $passport, $data, $this->currentUser());
+            flash('status', 'Passport updated.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not update that passport.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#passports');
+    }
+
+    public function destroyPassport(string $candidate, string $passport): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $this->service->removePassport($model, (int) $passport, $this->currentUser());
+            flash('status', 'Passport removed.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#passports');
+    }
+
     // ---- internals -------------------------------------------------
 
     private function find(string $publicId): Candidate
@@ -312,6 +363,12 @@ final class CandidateController extends CrmController
     private function experienceFieldKeys(): array
     {
         return ['employer_name', 'job_title', 'country', 'start_date', 'end_date', 'is_current', 'responsibilities'];
+    }
+
+    /** @return list<string> */
+    private function passportFieldKeys(): array
+    {
+        return ['passport_number', 'issue_date', 'expiry_date', 'place_of_issue', 'nationality', 'is_primary', 'held_by'];
     }
 
     /** @return array<string,string> */

@@ -447,4 +447,83 @@ final class CandidateServiceTest extends DbTestCase
         $this->expectException(AuthorizationException::class);
         $this->service->savePreferences($candidate, ['preferred_countries' => [], 'preferred_job_titles' => []], $documentation);
     }
+
+    public function test_add_passport_persists_and_audits(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $row = $this->service->addPassport($candidate, [
+            'passport_number' => 'CX' . bin2hex(random_bytes(4)), 'expiry_date' => '2030-01-01', 'is_primary' => true,
+        ], $actor);
+
+        self::assertTrue($row->isPrimary);
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='passport_added' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_add_second_primary_passport_demotes_the_first(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $first = $this->service->addPassport($candidate, ['passport_number' => 'CX' . bin2hex(random_bytes(4)), 'is_primary' => true], $actor);
+        $this->service->addPassport($candidate, ['passport_number' => 'CX' . bin2hex(random_bytes(4)), 'is_primary' => true], $actor);
+
+        $refreshed = $this->passportRow($candidate->id, $first->id);
+        self::assertFalse($refreshed->isPrimary);
+        self::assertSame(1, (int) $this->db->selectValue(
+            'SELECT COUNT(*) FROM passports WHERE candidate_id = ? AND is_primary = 1',
+            [$candidate->id],
+        ));
+    }
+
+    public function test_add_passport_rejects_duplicate_number_across_candidates(): void
+    {
+        $actor = $this->actor('manager');
+        $candidateOne = $this->candidate($actor, ['phone' => '97' . random_int(10000000, 99999999)]);
+        $candidateTwo = $this->candidate($actor, ['phone' => '97' . random_int(10000000, 99999999)]);
+        $number = 'CX' . bin2hex(random_bytes(4));
+        $this->service->addPassport($candidateOne, ['passport_number' => $number], $actor);
+
+        $this->expectException(ValidationException::class);
+        $this->service->addPassport($candidateTwo, ['passport_number' => $number], $actor);
+    }
+
+    public function test_update_passport_rejects_unknown_id(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $this->expectException(\App\Exceptions\DomainRuleException::class);
+        $this->service->updatePassport($candidate, 999999, ['passport_number' => 'CX' . bin2hex(random_bytes(4))], $actor);
+    }
+
+    public function test_remove_passport_deletes_row(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $row = $this->service->addPassport($candidate, ['passport_number' => 'CX' . bin2hex(random_bytes(4))], $actor);
+
+        $this->service->removePassport($candidate, $row->id, $actor);
+
+        self::assertFalse($this->db->exists('SELECT 1 FROM passports WHERE id = ?', [$row->id]));
+    }
+
+    public function test_add_passport_denies_agent_without_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $documentation = $this->actor('documentation'); // no candidates.passport.manage
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->addPassport($candidate, ['passport_number' => 'CX' . bin2hex(random_bytes(4))], $documentation);
+    }
+
+    private function passportRow(int $candidateId, int $passportId): \App\Models\Passport
+    {
+        return $this->app->get(\App\Repositories\PassportRepository::class)->findInCandidate($passportId, $candidateId);
+    }
 }

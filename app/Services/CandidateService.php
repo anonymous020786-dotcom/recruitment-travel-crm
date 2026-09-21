@@ -16,12 +16,14 @@ use App\Models\CandidateEducation;
 use App\Models\CandidateExperience;
 use App\Models\CandidatePreferences;
 use App\Models\CandidateSkill;
+use App\Models\Passport;
 use App\Models\User;
 use App\Repositories\CandidateEducationRepository;
 use App\Repositories\CandidateExperienceRepository;
 use App\Repositories\CandidatePreferencesRepository;
 use App\Repositories\CandidateRepository;
 use App\Repositories\CandidateSkillRepository;
+use App\Repositories\PassportRepository;
 use App\Repositories\PersonRepository;
 use App\Repositories\SkillRepository;
 use App\Support\Db;
@@ -47,6 +49,7 @@ final class CandidateService
         private readonly SkillRepository $skills,
         private readonly CandidateSkillRepository $candidateSkills,
         private readonly CandidatePreferencesRepository $preferences,
+        private readonly PassportRepository $passports,
         private readonly Gate $gate,
         private readonly AuditService $audit,
         private readonly BranchScopeResolver $scopes,
@@ -267,7 +270,73 @@ final class CandidateService
         return $fresh;
     }
 
+    /** @param array<string,mixed> $data */
+    public function addPassport(Candidate $candidate, array $data, User $actor): Passport
+    {
+        $this->authorize('managePassport', $candidate, $actor, 'candidates.passport.manage');
+        $this->assertPassportNumberFree((string) $data['passport_number'], null);
+
+        return $this->db->transaction(function () use ($candidate, $data, $actor): Passport {
+            if ($data['is_primary'] ?? false) {
+                $this->passports->clearPrimaryExcept($candidate->id, null);
+            }
+            $id = $this->passports->create($data + ['candidate_id' => $candidate->id]);
+            $this->audit->log('passport_added', 'candidates', 'candidate', $candidate->id, null, ['passport_id' => $id] + $data, null, $actor);
+
+            $row = $this->passports->findInCandidate($id, $candidate->id);
+            if ($row === null) {
+                throw new \RuntimeException('Passport row vanished immediately after insert.');
+            }
+
+            return $row;
+        });
+    }
+
+    /** @param array<string,mixed> $data */
+    public function updatePassport(Candidate $candidate, int $passportId, array $data, User $actor): Passport
+    {
+        $this->authorize('managePassport', $candidate, $actor, 'candidates.passport.manage');
+
+        $existing = $this->passports->findInCandidate($passportId, $candidate->id);
+        if ($existing === null) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Passport record not found.', [], 404);
+        }
+        $this->assertPassportNumberFree((string) $data['passport_number'], $passportId);
+
+        return $this->db->transaction(function () use ($candidate, $passportId, $data, $actor): Passport {
+            if ($data['is_primary'] ?? false) {
+                $this->passports->clearPrimaryExcept($candidate->id, $passportId);
+            }
+            $this->passports->update($passportId, $candidate->id, $data);
+            $this->audit->log('passport_updated', 'candidates', 'candidate', $candidate->id, null, $data, null, $actor);
+
+            $row = $this->passports->findInCandidate($passportId, $candidate->id);
+            if ($row === null) {
+                throw new \RuntimeException('Passport row vanished immediately after update.');
+            }
+
+            return $row;
+        });
+    }
+
+    public function removePassport(Candidate $candidate, int $passportId, User $actor): void
+    {
+        $this->authorize('managePassport', $candidate, $actor, 'candidates.passport.manage');
+
+        if ($this->passports->delete($passportId, $candidate->id) === 0) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Passport record not found.', [], 404);
+        }
+        $this->audit->log('passport_removed', 'candidates', 'candidate', $candidate->id, ['passport_id' => $passportId], null, null, $actor);
+    }
+
     // ---- internals -------------------------------------------------
+
+    private function assertPassportNumberFree(string $number, ?int $excludeId): void
+    {
+        if ($this->passports->numberTaken($number, $excludeId)) {
+            throw new ValidationException(['passport_number' => ['This passport number is already on file for another candidate.']]);
+        }
+    }
 
     private function authorize(string $ability, Candidate $candidate, User $actor, string $permission): void
     {

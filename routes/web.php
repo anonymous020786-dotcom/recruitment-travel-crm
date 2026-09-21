@@ -197,5 +197,12 @@ return static function (Router $router): void {
 
         $r->put('/candidates/{candidate}/preferences', [CandidateController::class, 'savePreferences'])
             ->middleware(['can:candidates.preferences.manage', 'throttle:write'])->name('candidates.preferences.update');
+
+        $r->post('/candidates/{candidate}/passports', [CandidateController::class, 'storePassport'])
+            ->middleware(['can:candidates.passport.manage', 'throttle:write'])->name('candidates.passports.store');
+        $r->put('/candidates/{candidate}/passports/{passport}', [CandidateController::class, 'updatePassport'])
+            ->middleware(['can:candidates.passport.manage', 'throttle:write'])->name('candidates.passports.update');
+        $r->delete('/candidates/{candidate}/passports/{passport}', [CandidateController::class, 'destroyPassport'])
+            ->middleware(['can:candidates.passport.manage', 'throttle:write'])->name('candidates.passports.destroy');
     });
 };
