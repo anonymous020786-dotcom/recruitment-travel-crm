@@ -17,6 +17,7 @@ use App\Models\CandidateExperience;
 use App\Models\CandidatePreferences;
 use App\Models\CandidateSkill;
 use App\Models\Passport;
+use App\Models\Task;
 use App\Models\User;
 use App\Repositories\CandidateEducationRepository;
 use App\Repositories\CandidateExperienceRepository;
@@ -26,7 +27,9 @@ use App\Repositories\CandidateSkillRepository;
 use App\Repositories\PassportRepository;
 use App\Repositories\PersonRepository;
 use App\Repositories\SkillRepository;
+use App\Repositories\TaskRepository;
 use App\Support\Db;
+use App\Support\Ulid;
 
 /**
  * Candidate business workflows. Controllers call exactly one method here; all
@@ -50,6 +53,7 @@ final class CandidateService
         private readonly CandidateSkillRepository $candidateSkills,
         private readonly CandidatePreferencesRepository $preferences,
         private readonly PassportRepository $passports,
+        private readonly TaskRepository $tasks,
         private readonly Gate $gate,
         private readonly AuditService $audit,
         private readonly BranchScopeResolver $scopes,
@@ -329,7 +333,90 @@ final class CandidateService
         $this->audit->log('passport_removed', 'candidates', 'candidate', $candidate->id, ['passport_id' => $passportId], null, null, $actor);
     }
 
+    public function addNote(Candidate $candidate, string $body, User $actor): void
+    {
+        $this->authorize('addNote', $candidate, $actor, 'candidates.edit');
+
+        $body = trim($body);
+        if ($body === '') {
+            throw new ValidationException(['body' => ['The note cannot be empty.']]);
+        }
+
+        $this->db->transaction(function () use ($candidate, $body, $actor): void {
+            $noteId = $this->db->insertRow('candidate_notes', [
+                'candidate_id' => $candidate->id,
+                'user_id'      => $actor->id,
+                'body'         => mb_substr($body, 0, 5000),
+            ]);
+            $this->audit->log('note_added', 'candidates', 'candidate', $candidate->id, null, ['note_id' => $noteId], null, $actor);
+        });
+    }
+
+    /** @param array<string,mixed> $data title/description/priority/due_date/due_time/assigned_to */
+    public function addTask(Candidate $candidate, array $data, User $actor): Task
+    {
+        $this->authorize('manageTasks', $candidate, $actor, 'tasks.create');
+        $this->assertUserInBranch((int) $data['assigned_to'], $candidate->branchId, 'assigned_to', 'That person cannot be assigned tasks in this branch.');
+
+        $id = $this->tasks->create($data + [
+            'public_id'    => Ulid::generate(),
+            'related_type' => 'candidate',
+            'related_id'   => $candidate->id,
+            'branch_id'    => $candidate->branchId,
+            'created_by'   => $actor->id,
+        ]);
+        $this->audit->log('task_added', 'candidates', 'candidate', $candidate->id, null, ['task_id' => $id] + $data, null, $actor);
+
+        $scope = $this->scopes->resolve($actor);
+        $row = $this->tasks->findInScope($id, $scope);
+        if ($row === null) {
+            throw new \RuntimeException('Task row vanished immediately after insert.');
+        }
+
+        return $row;
+    }
+
+    public function completeTask(Candidate $candidate, int $taskId, User $actor): void
+    {
+        $this->authorize('manageTasks', $candidate, $actor, 'tasks.complete');
+
+        if ($this->tasks->markCompleted($taskId) === 0) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'That task is already closed.', [], 404);
+        }
+        $this->audit->log('task_completed', 'candidates', 'candidate', $candidate->id, null, ['task_id' => $taskId], null, $actor);
+    }
+
+    public function cancelTask(Candidate $candidate, int $taskId, User $actor): void
+    {
+        $this->authorize('manageTasks', $candidate, $actor, 'tasks.edit');
+
+        if ($this->tasks->markCancelled($taskId) === 0) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'That task is already closed.', [], 404);
+        }
+        $this->audit->log('task_cancelled', 'candidates', 'candidate', $candidate->id, null, ['task_id' => $taskId], null, $actor);
+    }
+
     // ---- internals -------------------------------------------------
+
+    private function assertUserInBranch(int $userId, int $branchId, string $field, string $message): void
+    {
+        $row = $this->db->selectOne(
+            'SELECT u.id, u.is_active, u.is_org_wide, u.primary_branch_id,
+                    EXISTS(SELECT 1 FROM user_branches ub WHERE ub.user_id = u.id AND ub.branch_id = :b) AS in_branch
+             FROM users u WHERE u.id = :id AND u.deleted_at IS NULL',
+            ['id' => $userId, 'b' => $branchId],
+        );
+
+        $ok = $row !== null
+            && (bool) $row['is_active']
+            && ((bool) $row['is_org_wide']
+                || (int) ($row['primary_branch_id'] ?? 0) === $branchId
+                || (bool) $row['in_branch']);
+
+        if (!$ok) {
+            throw new ValidationException([$field => [$message]]);
+        }
+    }
 
     private function assertPassportNumberFree(string $number, ?int $excludeId): void
     {
@@ -347,22 +434,7 @@ final class CandidateService
 
     private function assertCounselorValid(int $userId, int $branchId): void
     {
-        $row = $this->db->selectOne(
-            'SELECT u.id, u.is_active, u.is_org_wide, u.primary_branch_id,
-                    EXISTS(SELECT 1 FROM user_branches ub WHERE ub.user_id = u.id AND ub.branch_id = :b) AS in_branch
-             FROM users u WHERE u.id = :id AND u.deleted_at IS NULL',
-            ['id' => $userId, 'b' => $branchId],
-        );
-
-        $ok = $row !== null
-            && (bool) $row['is_active']
-            && ((bool) $row['is_org_wide']
-                || (int) ($row['primary_branch_id'] ?? 0) === $branchId
-                || (bool) $row['in_branch']);
-
-        if (!$ok) {
-            throw new ValidationException(['assigned_counselor' => ['That person cannot be assigned candidates in this branch.']]);
-        }
+        $this->assertUserInBranch($userId, $branchId, 'assigned_counselor', 'That person cannot be assigned candidates in this branch.');
     }
 
     /** @param array<string,mixed> $data @return array<string,mixed> only real persons columns */

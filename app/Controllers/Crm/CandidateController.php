@@ -10,12 +10,14 @@ use App\Exceptions\ValidationException;
 use App\Http\Request;
 use App\Http\Response;
 use App\Models\Candidate;
+use App\Repositories\ActivityLogRepository;
 use App\Repositories\CandidateEducationRepository;
 use App\Repositories\CandidateExperienceRepository;
 use App\Repositories\CandidatePreferencesRepository;
 use App\Repositories\CandidateRepository;
 use App\Repositories\CandidateSkillRepository;
 use App\Repositories\PassportRepository;
+use App\Repositories\TaskRepository;
 use App\Services\CandidateService;
 use App\Support\Db;
 use App\Support\ListQuery;
@@ -25,12 +27,14 @@ use App\Validators\CandidatePreferencesValidator;
 use App\Validators\CandidateSkillValidator;
 use App\Validators\CandidateValidator;
 use App\Validators\PassportValidator;
+use App\Validators\TaskValidator;
 
 /**
  * Candidate screens. Candidates are created only via lead conversion (see
  * LeadService::convert()); this controller covers viewing and editing the
- * profile. Education, experience, skills, preferences, passport and
- * documents tabs land in follow-up steps.
+ * 360° profile (identity, education, experience, skills, preferences,
+ * passports, timeline, tasks). Documents and job-application tabs land in
+ * later phases.
  */
 final class CandidateController extends CrmController
 {
@@ -42,6 +46,8 @@ final class CandidateController extends CrmController
         private readonly CandidateSkillRepository $skills,
         private readonly CandidatePreferencesRepository $preferences,
         private readonly PassportRepository $passports,
+        private readonly TaskRepository $tasks,
+        private readonly ActivityLogRepository $activity,
     ) {
     }
 
@@ -77,6 +83,11 @@ final class CandidateController extends CrmController
             'canPreferences' => can('managePreferences', $model),
             'passports'   => $this->passports->forCandidate($model->id),
             'canPassport' => can('managePassport', $model),
+            'timeline'    => $this->buildTimeline($this->candidates->notes($model->id), $this->activity->forRecord('candidate', $model->id, 100)),
+            'canAddNote'  => can('addNote', $model),
+            'tasks'       => $this->tasks->forRelated('candidate', $model->id),
+            'canTasks'    => can('manageTasks', $model),
+            'taskAssignees' => $this->candidates->assignableCounselors($this->scope()),
         ]);
     }
 
@@ -331,6 +342,62 @@ final class CandidateController extends CrmController
         return Response::redirect('/candidates/' . $model->publicId . '#passports');
     }
 
+    public function addNote(Request $request, string $candidate): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $this->service->addNote($model, (string) $request->input('body', ''), $this->currentUser());
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not add note.');
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#timeline');
+    }
+
+    public function storeTask(Request $request, string $candidate): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new TaskValidator())->validate($request->only(['title', 'description', 'priority', 'due_date', 'due_time', 'assigned_to']));
+            $this->service->addTask($model, $data, $this->currentUser());
+            flash('status', 'Task added.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not add that task.');
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#tasks');
+    }
+
+    public function completeTask(string $candidate, string $task): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $this->service->completeTask($model, (int) $task, $this->currentUser());
+            flash('status', 'Task completed.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#tasks');
+    }
+
+    public function cancelTask(string $candidate, string $task): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $this->service->cancelTask($model, (int) $task, $this->currentUser());
+            flash('status', 'Task cancelled.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#tasks');
+    }
+
     // ---- internals -------------------------------------------------
 
     private function find(string $publicId): Candidate
@@ -369,6 +436,60 @@ final class CandidateController extends CrmController
     private function passportFieldKeys(): array
     {
         return ['passport_number', 'issue_date', 'expiry_date', 'place_of_issue', 'nationality', 'is_primary', 'held_by'];
+    }
+
+    /** @param list<array<string,mixed>> $notes @param list<array<string,mixed>> $logs @return list<array{type:string,at:string,actor:?string,text:string}> */
+    private function buildTimeline(array $notes, array $logs): array
+    {
+        $items = [];
+
+        foreach ($notes as $n) {
+            $items[] = [
+                'type' => 'note',
+                'at' => (string) $n['created_at'],
+                'actor' => $n['user_name'] ?? null,
+                'text' => (string) $n['body'],
+            ];
+        }
+
+        $labels = [
+            'created' => 'created the candidate',
+            'updated' => 'updated the profile',
+            'counselor_assigned' => 'changed the counselor',
+            'note_added' => 'added a note',
+            'education_added' => 'added an education record',
+            'education_updated' => 'updated an education record',
+            'education_removed' => 'removed an education record',
+            'experience_added' => 'added an experience record',
+            'experience_updated' => 'updated an experience record',
+            'experience_removed' => 'removed an experience record',
+            'skill_added' => 'added or updated a skill',
+            'skill_removed' => 'removed a skill',
+            'preferences_saved' => 'saved preferences',
+            'passport_added' => 'added a passport',
+            'passport_updated' => 'updated a passport',
+            'passport_removed' => 'removed a passport',
+            'task_added' => 'added a task',
+            'task_completed' => 'completed a task',
+            'task_cancelled' => 'cancelled a task',
+        ];
+
+        foreach ($logs as $l) {
+            $action = (string) $l['action'];
+            if ($action === 'note_added') {
+                continue; // already shown as the note itself
+            }
+            $items[] = [
+                'type' => 'event',
+                'at' => (string) $l['created_at'],
+                'actor' => null,
+                'text' => $labels[$action] ?? $action,
+            ];
+        }
+
+        usort($items, static fn (array $a, array $b): int => strcmp($b['at'], $a['at']));
+
+        return $items;
     }
 
     /** @return array<string,string> */

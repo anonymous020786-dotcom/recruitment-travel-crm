@@ -53,6 +53,7 @@ final class CandidateServiceTest extends DbTestCase
     protected function tearDown(): void
     {
         $like = "branch_id IN (SELECT id FROM branches WHERE code LIKE 'CX-%')";
+        $this->db->affectingStatement("DELETE FROM tasks WHERE {$like}");
         $this->db->affectingStatement("DELETE FROM candidates WHERE {$like}");
         $this->db->affectingStatement("DELETE FROM activity_logs WHERE module IN ('leads', 'candidates')");
         $this->db->affectingStatement("DELETE FROM lead_notes WHERE lead_id IN (SELECT id FROM leads WHERE {$like})");
@@ -525,5 +526,109 @@ final class CandidateServiceTest extends DbTestCase
     private function passportRow(int $candidateId, int $passportId): \App\Models\Passport
     {
         return $this->app->get(\App\Repositories\PassportRepository::class)->findInCandidate($passportId, $candidateId);
+    }
+
+    public function test_add_note_persists_and_audits(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $this->service->addNote($candidate, '  Called, no answer.  ', $actor);
+
+        self::assertTrue($this->db->exists('SELECT 1 FROM candidate_notes WHERE candidate_id = ? AND body = ?', [$candidate->id, 'Called, no answer.']));
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='note_added' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_add_note_rejects_empty_body(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $this->expectException(ValidationException::class);
+        $this->service->addNote($candidate, '   ', $actor);
+    }
+
+    public function test_add_note_denies_agent_without_edit_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $documentation = $this->actor('documentation'); // has candidates.view but not candidates.edit
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->addNote($candidate, 'hello', $documentation);
+    }
+
+    public function test_add_task_persists_and_audits(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $assignee = $this->actor('counselor', $this->branchA);
+
+        $task = $this->service->addTask($candidate, ['title' => 'Call candidate', 'assigned_to' => $assignee->id, 'priority' => 'high'], $actor);
+
+        self::assertSame('Call candidate', $task->title);
+        self::assertSame('candidate', $task->relatedType);
+        self::assertSame($candidate->id, $task->relatedId);
+        self::assertSame($candidate->branchId, $task->branchId);
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='task_added' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_add_task_rejects_out_of_branch_assignee(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $outsider = $this->actor('counselor', $this->branchB);
+
+        $this->expectException(ValidationException::class);
+        $this->service->addTask($candidate, ['title' => 'Call candidate', 'assigned_to' => $outsider->id], $actor);
+    }
+
+    public function test_complete_task_marks_completed(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $task = $this->service->addTask($candidate, ['title' => 'Call candidate', 'assigned_to' => $actor->id], $actor);
+
+        $this->service->completeTask($candidate, $task->id, $actor);
+
+        self::assertSame('completed', $this->db->selectValue('SELECT status FROM tasks WHERE id = ?', [$task->id]));
+    }
+
+    public function test_complete_task_rejects_already_closed(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $task = $this->service->addTask($candidate, ['title' => 'Call candidate', 'assigned_to' => $actor->id], $actor);
+        $this->service->completeTask($candidate, $task->id, $actor);
+
+        $this->expectException(\App\Exceptions\DomainRuleException::class);
+        $this->service->completeTask($candidate, $task->id, $actor);
+    }
+
+    public function test_cancel_task_marks_cancelled(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $task = $this->service->addTask($candidate, ['title' => 'Call candidate', 'assigned_to' => $actor->id], $actor);
+
+        $this->service->cancelTask($candidate, $task->id, $actor);
+
+        self::assertSame('cancelled', $this->db->selectValue('SELECT status FROM tasks WHERE id = ?', [$task->id]));
+    }
+
+    public function test_add_task_denies_agent_without_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $readOnly = $this->actor('read_only'); // view-only role: no tasks.create/tasks.edit
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->addTask($candidate, ['title' => 'Call candidate', 'assigned_to' => $actor->id], $readOnly);
     }
 }

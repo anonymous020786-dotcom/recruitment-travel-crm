@@ -7,6 +7,8 @@
  * @var list<\App\Models\CandidateSkill> $skills @var bool $canSkills
  * @var \App\Models\CandidatePreferences|null $preferences @var bool $canPreferences
  * @var list<\App\Models\Passport> $passports @var bool $canPassport
+ * @var list<array{type:string,at:string,actor:?string,text:string}> $timeline @var bool $canAddNote
+ * @var list<\App\Models\Task> $tasks @var bool $canTasks @var list<array{id:int,name:string}> $taskAssignees
  */
 $this->layout('layouts.app', ['title' => $candidate->fullName, 'currentPath' => '/candidates']);
 $this->start('content');
@@ -314,6 +316,37 @@ $this->start('content');
                 return $html;
             })()]) ?>
         </div>
+
+        <div id="timeline" class="mt-4">
+            <?= component('card', ['title' => 'Timeline', 'body' => (function () use ($candidate, $timeline, $canAddNote) {
+                $html = '';
+
+                if ($canAddNote) {
+                    $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/notes" class="mb-4 flex gap-2">'
+                        . csrf_field()
+                        . '<input type="text" name="body" required maxlength="5000" placeholder="Add a note…" aria-label="Note" class="form-input">'
+                        . '<button class="btn btn-secondary">Add</button></form>';
+                }
+
+                if ($timeline === []) {
+                    $html .= '<p class="text-sm text-slate-500">No activity yet.</p>';
+                    return $html;
+                }
+
+                $html .= '<ol class="space-y-3">';
+                foreach ($timeline as $item) {
+                    $icon = $item['type'] === 'note' ? '📝' : '•';
+                    $html .= '<li class="flex gap-3 text-sm">'
+                        . '<span class="mt-0.5 text-slate-400" aria-hidden="true">' . $icon . '</span>'
+                        . '<div><p class="text-slate-800">' . e($item['text']) . '</p>'
+                        . '<p class="text-xs text-slate-400">'
+                        . ($item['actor'] ? e($item['actor']) . ' · ' : '')
+                        . e(substr($item['at'], 0, 16)) . '</p></div></li>';
+                }
+                $html .= '</ol>';
+                return $html;
+            })()]) ?>
+        </div>
     </div>
 
     <div class="space-y-4">
@@ -382,6 +415,71 @@ $this->start('content');
                     . '<textarea name="notes" maxlength="500" placeholder="Notes" aria-label="Preference notes" class="form-textarea w-full" rows="2">' . e($notes) . '</textarea>'
                     . '<button class="btn btn-secondary btn-sm">Save preferences</button>'
                     . '</form>';
+            })()]) ?>
+        </div>
+
+        <div id="tasks">
+            <?= component('card', ['title' => 'Tasks', 'body' => (function () use ($candidate, $tasks, $canTasks, $taskAssignees) {
+                $html = '';
+
+                if ($canTasks) {
+                    $opts = '';
+                    foreach ($taskAssignees as $u) {
+                        $opts .= '<option value="' . (int) $u['id'] . '">' . e($u['name']) . '</option>';
+                    }
+                    $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/tasks" class="mb-4 space-y-2" data-once>'
+                        . csrf_field()
+                        . '<input type="text" name="title" required maxlength="200" placeholder="Task title" aria-label="Task title" class="form-input w-full">'
+                        . '<div class="grid grid-cols-2 gap-2">'
+                        . '<select name="assigned_to" required aria-label="Assign to" class="form-select"><option value="">Assign to…</option>' . $opts . '</select>'
+                        . '<select name="priority" aria-label="Priority" class="form-select">'
+                        . '<option value="low">Low</option><option value="medium" selected>Medium</option>'
+                        . '<option value="high">High</option><option value="urgent">Urgent</option></select>'
+                        . '</div>'
+                        . '<div class="grid grid-cols-2 gap-2">'
+                        . '<input type="date" name="due_date" aria-label="Due date" class="form-input">'
+                        . '<input type="time" name="due_time" aria-label="Due time" class="form-input">'
+                        . '</div>'
+                        . '<button class="btn btn-secondary btn-sm">Add task</button>'
+                        . '</form>';
+                }
+
+                if ($tasks === []) {
+                    $html .= '<p class="text-sm text-slate-500">No tasks yet.</p>';
+                    return $html;
+                }
+
+                $html .= '<ul class="divide-y divide-slate-100">';
+                foreach ($tasks as $t) {
+                    $due = $t->dueDate ? $t->dueDate . ($t->dueTime ? ' ' . $t->dueTime : '') : null;
+                    $meta = implode(' · ', array_filter([
+                        $t->assigneeName, $due ? 'Due ' . $due : null, ucfirst($t->priority),
+                    ]));
+                    $statusBadge = match ($t->status) {
+                        'completed' => component('badge', ['label' => 'Done', 'color' => 'green']),
+                        'cancelled' => component('badge', ['label' => 'Cancelled', 'color' => 'slate']),
+                        default => $t->isOverdue() ? component('badge', ['label' => 'Overdue', 'color' => 'red', 'dot' => true]) : '',
+                    };
+                    $html .= '<li class="py-2.5 text-sm">'
+                        . '<div class="flex items-start justify-between gap-2">'
+                        . '<div><p class="font-medium text-slate-900">' . e($t->title) . ($statusBadge !== '' ? ' ' . $statusBadge : '') . '</p>'
+                        . '<p class="text-xs text-slate-500">' . e($meta) . '</p>'
+                        . ($t->description ? '<p class="mt-1 text-slate-600">' . e($t->description) . '</p>' : '')
+                        . '</div>';
+
+                    if ($canTasks && $t->isPending()) {
+                        $html .= '<div class="flex gap-1">'
+                            . '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/tasks/' . $t->id . '/complete">'
+                            . csrf_field() . '<button class="btn btn-ghost btn-sm text-green-600">Complete</button></form>'
+                            . '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/tasks/' . $t->id . '/cancel"'
+                            . ' data-confirm="Cancel this task?">'
+                            . csrf_field() . '<button class="btn btn-ghost btn-sm text-red-600">Cancel</button></form>'
+                            . '</div>';
+                    }
+                    $html .= '</div></li>';
+                }
+                $html .= '</ul>';
+                return $html;
             })()]) ?>
         </div>
     </div>

@@ -63,4 +63,14 @@ final class CandidatePolicy extends Policy
     {
         return $this->can($user, 'candidates.passport.manage') && $this->inBranchScope($user, $candidate->branchId);
     }
+
+    public function addNote(User $user, Candidate $candidate): bool
+    {
+        return $this->view($user, $candidate) && $this->can($user, 'candidates.edit');
+    }
+
+    public function manageTasks(User $user, Candidate $candidate): bool
+    {
+        return $this->view($user, $candidate) && $this->canAny($user, 'tasks.create', 'tasks.edit');
+    }
 }

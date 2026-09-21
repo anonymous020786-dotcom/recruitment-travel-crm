@@ -204,5 +204,15 @@ return static function (Router $router): void {
             ->middleware(['can:candidates.passport.manage', 'throttle:write'])->name('candidates.passports.update');
         $r->delete('/candidates/{candidate}/passports/{passport}', [CandidateController::class, 'destroyPassport'])
             ->middleware(['can:candidates.passport.manage', 'throttle:write'])->name('candidates.passports.destroy');
+
+        $r->post('/candidates/{candidate}/notes', [CandidateController::class, 'addNote'])
+            ->middleware(['can:candidates.edit', 'throttle:write'])->name('candidates.notes.store');
+
+        $r->post('/candidates/{candidate}/tasks', [CandidateController::class, 'storeTask'])
+            ->middleware(['can:tasks.create', 'throttle:write'])->name('candidates.tasks.store');
+        $r->post('/candidates/{candidate}/tasks/{task}/complete', [CandidateController::class, 'completeTask'])
+            ->middleware(['can:tasks.complete', 'throttle:write'])->name('candidates.tasks.complete');
+        $r->post('/candidates/{candidate}/tasks/{task}/cancel', [CandidateController::class, 'cancelTask'])
+            ->middleware(['can:tasks.edit', 'throttle:write'])->name('candidates.tasks.cancel');
     });
 };

@@ -161,6 +161,19 @@ final class CandidateRepository
         return array_map(static fn (array $r): array => ['id' => (int) $r['id'], 'name' => (string) $r['name']], $rows);
     }
 
+    /** @return list<array<string,mixed>> newest first */
+    public function notes(int $candidateId, int $limit = 200): array
+    {
+        $limit = max(1, min($limit, 500));
+
+        return $this->db->select(
+            "SELECT n.id, n.body, n.created_at, u.name AS user_name
+             FROM candidate_notes n LEFT JOIN users u ON u.id = n.user_id
+             WHERE n.candidate_id = :id ORDER BY n.id DESC LIMIT {$limit}",
+            ['id' => $candidateId],
+        );
+    }
+
     /** @return list<array{key:string,label:string}> distinct stages in use, for the filter dropdown */
     public function stageOptions(): array
     {
