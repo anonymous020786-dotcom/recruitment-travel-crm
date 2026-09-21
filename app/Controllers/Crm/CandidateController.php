@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace App\Controllers\Crm;
 
+use App\Exceptions\DomainRuleException;
 use App\Exceptions\StaleRecordException;
 use App\Exceptions\ValidationException;
 use App\Http\Request;
 use App\Http\Response;
 use App\Models\Candidate;
+use App\Repositories\CandidateEducationRepository;
+use App\Repositories\CandidateExperienceRepository;
 use App\Repositories\CandidateRepository;
 use App\Services\CandidateService;
 use App\Support\Db;
 use App\Support\ListQuery;
+use App\Validators\CandidateEducationValidator;
+use App\Validators\CandidateExperienceValidator;
 use App\Validators\CandidateValidator;
 
 /**
@@ -26,6 +31,8 @@ final class CandidateController extends CrmController
     public function __construct(
         private readonly CandidateRepository $candidates,
         private readonly CandidateService $service,
+        private readonly CandidateEducationRepository $education,
+        private readonly CandidateExperienceRepository $experience,
     ) {
     }
 
@@ -47,9 +54,14 @@ final class CandidateController extends CrmController
         authorize('view', $model);
 
         return view_response('crm.candidates.show', [
-            'candidate'  => $model,
-            'counselors' => $this->candidates->assignableCounselors($this->scope()),
-            'canEdit'    => can('update', $model),
+            'candidate'   => $model,
+            'counselors'  => $this->candidates->assignableCounselors($this->scope()),
+            'canEdit'     => can('update', $model),
+            'education'   => $this->education->forCandidate($model->id),
+            'experience'  => $this->experience->forCandidate($model->id),
+            'canEducation' => can('manageEducation', $model),
+            'canExperience' => can('manageExperience', $model),
+            'countries'   => $this->countryOptions(),
         ]);
     }
 
@@ -119,6 +131,98 @@ final class CandidateController extends CrmController
         return Response::redirect('/candidates/' . $model->publicId);
     }
 
+    public function storeEducation(Request $request, string $candidate): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new CandidateEducationValidator())->validate($request->only($this->educationFieldKeys()));
+            $this->service->addEducation($model, $data, $this->currentUser());
+            flash('status', 'Education added.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not add that education record.');
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#education');
+    }
+
+    public function updateEducation(Request $request, string $candidate, string $education): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new CandidateEducationValidator())->validate($request->only($this->educationFieldKeys()));
+            $this->service->updateEducation($model, (int) $education, $data, $this->currentUser());
+            flash('status', 'Education updated.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not update that education record.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#education');
+    }
+
+    public function destroyEducation(string $candidate, string $education): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $this->service->removeEducation($model, (int) $education, $this->currentUser());
+            flash('status', 'Education removed.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#education');
+    }
+
+    public function storeExperience(Request $request, string $candidate): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new CandidateExperienceValidator())->validate($request->only($this->experienceFieldKeys()));
+            $this->service->addExperience($model, $data, $this->currentUser());
+            flash('status', 'Experience added.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not add that experience record.');
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#experience');
+    }
+
+    public function updateExperience(Request $request, string $candidate, string $experience): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new CandidateExperienceValidator())->validate($request->only($this->experienceFieldKeys()));
+            $this->service->updateExperience($model, (int) $experience, $data, $this->currentUser());
+            flash('status', 'Experience updated.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not update that experience record.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#experience');
+    }
+
+    public function destroyExperience(string $candidate, string $experience): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $this->service->removeExperience($model, (int) $experience, $this->currentUser());
+            flash('status', 'Experience removed.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#experience');
+    }
+
     // ---- internals -------------------------------------------------
 
     private function find(string $publicId): Candidate
@@ -139,6 +243,18 @@ final class CandidateController extends CrmController
             'nationality', 'city', 'state', 'country',
             'marital_status', 'current_country', 'highest_qualification', 'total_experience_years',
         ];
+    }
+
+    /** @return list<string> */
+    private function educationFieldKeys(): array
+    {
+        return ['level', 'institution', 'board_university', 'field_of_study', 'start_year', 'end_year', 'grade'];
+    }
+
+    /** @return list<string> */
+    private function experienceFieldKeys(): array
+    {
+        return ['employer_name', 'job_title', 'country', 'start_date', 'end_date', 'is_current', 'responsibilities'];
     }
 
     /** @return array<string,string> */

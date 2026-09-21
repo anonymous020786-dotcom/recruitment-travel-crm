@@ -175,5 +175,19 @@ return static function (Router $router): void {
         $r->put('/candidates/{candidate}', [CandidateController::class, 'update'])->middleware(['can:candidates.edit', 'throttle:write'])->name('candidates.update');
         $r->post('/candidates/{candidate}/counselor', [CandidateController::class, 'reassignCounselor'])
             ->middleware(['can:candidates.edit', 'throttle:write'])->name('candidates.counselor');
+
+        $r->post('/candidates/{candidate}/education', [CandidateController::class, 'storeEducation'])
+            ->middleware(['can:candidates.education.manage', 'throttle:write'])->name('candidates.education.store');
+        $r->put('/candidates/{candidate}/education/{education}', [CandidateController::class, 'updateEducation'])
+            ->middleware(['can:candidates.education.manage', 'throttle:write'])->name('candidates.education.update');
+        $r->delete('/candidates/{candidate}/education/{education}', [CandidateController::class, 'destroyEducation'])
+            ->middleware(['can:candidates.education.manage', 'throttle:write'])->name('candidates.education.destroy');
+
+        $r->post('/candidates/{candidate}/experience', [CandidateController::class, 'storeExperience'])
+            ->middleware(['can:candidates.experience.manage', 'throttle:write'])->name('candidates.experience.store');
+        $r->put('/candidates/{candidate}/experience/{experience}', [CandidateController::class, 'updateExperience'])
+            ->middleware(['can:candidates.experience.manage', 'throttle:write'])->name('candidates.experience.update');
+        $r->delete('/candidates/{candidate}/experience/{experience}', [CandidateController::class, 'destroyExperience'])
+            ->middleware(['can:candidates.experience.manage', 'throttle:write'])->name('candidates.experience.destroy');
     });
 };

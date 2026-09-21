@@ -8,10 +8,15 @@ use App\Audit\AuditService;
 use App\Auth\BranchScopeResolver;
 use App\Auth\Gate;
 use App\Exceptions\AuthorizationException;
+use App\Exceptions\DomainRuleException;
 use App\Exceptions\StaleRecordException;
 use App\Exceptions\ValidationException;
 use App\Models\Candidate;
+use App\Models\CandidateEducation;
+use App\Models\CandidateExperience;
 use App\Models\User;
+use App\Repositories\CandidateEducationRepository;
+use App\Repositories\CandidateExperienceRepository;
 use App\Repositories\CandidateRepository;
 use App\Repositories\PersonRepository;
 use App\Support\Db;
@@ -32,6 +37,8 @@ final class CandidateService
         private readonly Db $db,
         private readonly CandidateRepository $candidates,
         private readonly PersonRepository $persons,
+        private readonly CandidateEducationRepository $education,
+        private readonly CandidateExperienceRepository $experience,
         private readonly Gate $gate,
         private readonly AuditService $audit,
         private readonly BranchScopeResolver $scopes,
@@ -98,6 +105,100 @@ final class CandidateService
 
             return $fresh;
         });
+    }
+
+    /** @param array<string,mixed> $data */
+    public function addEducation(Candidate $candidate, array $data, User $actor): CandidateEducation
+    {
+        $this->authorize('manageEducation', $candidate, $actor, 'candidates.education.manage');
+
+        $id = $this->education->create($data + ['candidate_id' => $candidate->id]);
+        $this->audit->log('education_added', 'candidates', 'candidate', $candidate->id, null, $data, null, $actor);
+
+        $row = $this->education->findInCandidate($id, $candidate->id);
+        if ($row === null) {
+            throw new \RuntimeException('Education row vanished immediately after insert.');
+        }
+
+        return $row;
+    }
+
+    /** @param array<string,mixed> $data */
+    public function updateEducation(Candidate $candidate, int $educationId, array $data, User $actor): CandidateEducation
+    {
+        $this->authorize('manageEducation', $candidate, $actor, 'candidates.education.manage');
+
+        $existing = $this->education->findInCandidate($educationId, $candidate->id);
+        if ($existing === null) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Education record not found.', [], 404);
+        }
+
+        $this->education->update($educationId, $candidate->id, $data);
+        $this->audit->log('education_updated', 'candidates', 'candidate', $candidate->id, null, $data, null, $actor);
+
+        $row = $this->education->findInCandidate($educationId, $candidate->id);
+        if ($row === null) {
+            throw new \RuntimeException('Education row vanished immediately after update.');
+        }
+
+        return $row;
+    }
+
+    public function removeEducation(Candidate $candidate, int $educationId, User $actor): void
+    {
+        $this->authorize('manageEducation', $candidate, $actor, 'candidates.education.manage');
+
+        if ($this->education->delete($educationId, $candidate->id) === 0) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Education record not found.', [], 404);
+        }
+        $this->audit->log('education_removed', 'candidates', 'candidate', $candidate->id, ['education_id' => $educationId], null, null, $actor);
+    }
+
+    /** @param array<string,mixed> $data */
+    public function addExperience(Candidate $candidate, array $data, User $actor): CandidateExperience
+    {
+        $this->authorize('manageExperience', $candidate, $actor, 'candidates.experience.manage');
+
+        $id = $this->experience->create($data + ['candidate_id' => $candidate->id]);
+        $this->audit->log('experience_added', 'candidates', 'candidate', $candidate->id, null, $data, null, $actor);
+
+        $row = $this->experience->findInCandidate($id, $candidate->id);
+        if ($row === null) {
+            throw new \RuntimeException('Experience row vanished immediately after insert.');
+        }
+
+        return $row;
+    }
+
+    /** @param array<string,mixed> $data */
+    public function updateExperience(Candidate $candidate, int $experienceId, array $data, User $actor): CandidateExperience
+    {
+        $this->authorize('manageExperience', $candidate, $actor, 'candidates.experience.manage');
+
+        $existing = $this->experience->findInCandidate($experienceId, $candidate->id);
+        if ($existing === null) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Experience record not found.', [], 404);
+        }
+
+        $this->experience->update($experienceId, $candidate->id, $data);
+        $this->audit->log('experience_updated', 'candidates', 'candidate', $candidate->id, null, $data, null, $actor);
+
+        $row = $this->experience->findInCandidate($experienceId, $candidate->id);
+        if ($row === null) {
+            throw new \RuntimeException('Experience row vanished immediately after update.');
+        }
+
+        return $row;
+    }
+
+    public function removeExperience(Candidate $candidate, int $experienceId, User $actor): void
+    {
+        $this->authorize('manageExperience', $candidate, $actor, 'candidates.experience.manage');
+
+        if ($this->experience->delete($experienceId, $candidate->id) === 0) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Experience record not found.', [], 404);
+        }
+        $this->audit->log('experience_removed', 'candidates', 'candidate', $candidate->id, ['experience_id' => $experienceId], null, null, $actor);
     }
 
     // ---- internals -------------------------------------------------

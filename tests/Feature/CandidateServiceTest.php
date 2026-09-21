@@ -210,4 +210,130 @@ final class CandidateServiceTest extends DbTestCase
         $this->expectException(StaleRecordException::class);
         $this->service->reassignCounselor($candidate, $counselor->id, $actor, $candidate->recordVersion + 5);
     }
+
+    public function test_add_education_persists_and_audits(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $row = $this->service->addEducation($candidate, [
+            'level' => 'Bachelor', 'institution' => 'City College', 'start_year' => 2015, 'end_year' => 2018,
+        ], $actor);
+
+        self::assertSame('Bachelor', $row->level);
+        self::assertSame($candidate->id, $row->candidateId);
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='education_added' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_update_education_changes_fields(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $row = $this->service->addEducation($candidate, ['level' => 'Bachelor'], $actor);
+
+        $updated = $this->service->updateEducation($candidate, $row->id, ['level' => 'Master', 'grade' => 'A+'], $actor);
+
+        self::assertSame('Master', $updated->level);
+        self::assertSame('A+', $updated->grade);
+    }
+
+    public function test_update_education_rejects_unknown_id(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $this->expectException(\App\Exceptions\DomainRuleException::class);
+        $this->service->updateEducation($candidate, 999999, ['level' => 'Master'], $actor);
+    }
+
+    public function test_remove_education_deletes_row(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $row = $this->service->addEducation($candidate, ['level' => 'Bachelor'], $actor);
+
+        $this->service->removeEducation($candidate, $row->id, $actor);
+
+        self::assertFalse($this->db->exists('SELECT 1 FROM candidate_education WHERE id = ?', [$row->id]));
+    }
+
+    public function test_remove_education_rejects_unknown_id(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $this->expectException(\App\Exceptions\DomainRuleException::class);
+        $this->service->removeEducation($candidate, 999999, $actor);
+    }
+
+    public function test_add_education_denies_cross_branch_manager(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $otherBranchManager = $this->actor('manager', $this->branchB);
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->addEducation($candidate, ['level' => 'Bachelor'], $otherBranchManager);
+    }
+
+    public function test_add_experience_persists_and_audits(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $row = $this->service->addExperience($candidate, [
+            'employer_name' => 'Acme Travel', 'job_title' => 'Consultant', 'is_current' => true,
+        ], $actor);
+
+        self::assertSame('Acme Travel', $row->employerName);
+        self::assertTrue($row->isCurrent);
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='experience_added' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_update_experience_changes_fields(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $row = $this->service->addExperience($candidate, ['employer_name' => 'Acme Travel', 'job_title' => 'Consultant'], $actor);
+
+        $updated = $this->service->updateExperience($candidate, $row->id, ['employer_name' => 'Acme Travel', 'job_title' => 'Senior Consultant'], $actor);
+
+        self::assertSame('Senior Consultant', $updated->jobTitle);
+    }
+
+    public function test_update_experience_rejects_unknown_id(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $this->expectException(\App\Exceptions\DomainRuleException::class);
+        $this->service->updateExperience($candidate, 999999, ['employer_name' => 'X', 'job_title' => 'Y'], $actor);
+    }
+
+    public function test_remove_experience_deletes_row(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $row = $this->service->addExperience($candidate, ['employer_name' => 'Acme Travel', 'job_title' => 'Consultant'], $actor);
+
+        $this->service->removeExperience($candidate, $row->id, $actor);
+
+        self::assertFalse($this->db->exists('SELECT 1 FROM candidate_experience WHERE id = ?', [$row->id]));
+    }
+
+    public function test_add_experience_denies_agent_without_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $documentation = $this->actor('documentation'); // no candidates.experience.manage
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->addExperience($candidate, ['employer_name' => 'Acme Travel', 'job_title' => 'Consultant'], $documentation);
+    }
 }
