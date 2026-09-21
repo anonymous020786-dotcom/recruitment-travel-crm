@@ -15,18 +15,25 @@
 # without Node can deploy. The intermediate un-hashed app.css is not.
 /public/assets/build/app.css
 
-# Runtime storage (keep the directories + their .htaccess guards, ignore the contents)
+# Runtime storage (keep the directories + their .htaccess guards, ignore the
+# contents). A bare `/storage/private/*` ignores storage/private/documents and
+# storage/private/backups as opaque directory entries — git then never
+# descends into them, so a later `!/storage/**/.gitkeep` can't reach anything
+# inside (the exact gap Step 2.7 fixed for storage/private/.htaccess itself).
+# Un-ignore the two subdirectories explicitly, then re-ignore their real
+# contents one level deeper so uploaded/backup files still never get tracked.
 /storage/logs/*
 /storage/cache/*
 /storage/exports/*
 /storage/imports/*
 /storage/private/*
 /storage/framework/*
+!/storage/private/documents/
+!/storage/private/backups/
+/storage/private/documents/**
+/storage/private/backups/**
 !/storage/**/.gitkeep
 !/storage/**/.htaccess
-
-# Local backups
-/storage/private/backups/*
 
 # OS / editor
 .DS_Store

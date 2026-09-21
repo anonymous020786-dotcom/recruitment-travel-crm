@@ -24,6 +24,7 @@ final class DatabaseSeeder extends Seeder
         PermissionsSeeder::class,
         RolePermissionsSeeder::class,
         LeadReferenceSeeder::class,
+        DocumentTypesSeeder::class,
     ];
 
     public function run(): void

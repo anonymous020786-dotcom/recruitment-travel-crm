@@ -73,4 +73,9 @@ final class CandidatePolicy extends Policy
     {
         return $this->view($user, $candidate) && $this->canAny($user, 'tasks.create', 'tasks.edit');
     }
+
+    public function uploadDocument(User $user, Candidate $candidate): bool
+    {
+        return $this->can($user, 'documents.upload') && $this->inBranchScope($user, $candidate->branchId);
+    }
 }

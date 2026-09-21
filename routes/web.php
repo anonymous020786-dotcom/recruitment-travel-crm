@@ -10,6 +10,7 @@ use App\Controllers\Auth\WebAuthnLoginController;
 use App\Controllers\Crm\AccountController;
 use App\Controllers\Crm\CandidateController;
 use App\Controllers\Crm\DashboardController;
+use App\Controllers\Crm\DocumentController;
 use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
@@ -214,5 +215,15 @@ return static function (Router $router): void {
             ->middleware(['can:tasks.complete', 'throttle:write'])->name('candidates.tasks.complete');
         $r->post('/candidates/{candidate}/tasks/{task}/cancel', [CandidateController::class, 'cancelTask'])
             ->middleware(['can:tasks.edit', 'throttle:write'])->name('candidates.tasks.cancel');
+
+        $r->post('/candidates/{candidate}/documents', [DocumentController::class, 'store'])
+            ->middleware(['can:documents.upload', 'throttle:write'])->name('candidates.documents.store');
+        $r->delete('/candidates/{candidate}/documents/{document}', [DocumentController::class, 'destroy'])
+            ->middleware(['can:documents.delete', 'throttle:write'])->name('candidates.documents.destroy');
+
+        $r->get('/documents/{document}/download', [DocumentController::class, 'download'])
+            ->middleware(['can:documents.view'])->name('documents.download');
+        $r->get('/documents/{document}/preview', [DocumentController::class, 'preview'])
+            ->middleware(['can:documents.view'])->name('documents.preview');
     });
 };

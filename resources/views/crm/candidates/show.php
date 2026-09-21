@@ -9,6 +9,8 @@
  * @var list<\App\Models\Passport> $passports @var bool $canPassport
  * @var list<array{type:string,at:string,actor:?string,text:string}> $timeline @var bool $canAddNote
  * @var list<\App\Models\Task> $tasks @var bool $canTasks @var list<array{id:int,name:string}> $taskAssignees
+ * @var list<\App\Models\CandidateDocument> $documents @var list<\App\Models\DocumentType> $documentTypes
+ * @var bool $canUploadDocument @var bool $canDeleteDocument
  */
 $this->layout('layouts.app', ['title' => $candidate->fullName, 'currentPath' => '/candidates']);
 $this->start('content');
@@ -311,6 +313,71 @@ $this->start('content');
                             . '</form></details>';
                     }
                     $html .= '</li>';
+                }
+                $html .= '</ul>';
+                return $html;
+            })()]) ?>
+        </div>
+
+        <div id="documents" class="mt-4">
+            <?= component('card', ['title' => 'Documents', 'body' => (function () use ($candidate, $documents, $documentTypes, $canUploadDocument, $canDeleteDocument) {
+                $html = '';
+
+                if ($canUploadDocument) {
+                    $typeOpts = '';
+                    foreach ($documentTypes as $t) {
+                        $typeOpts .= '<option value="' . $t->id . '">' . e($t->label) . '</option>';
+                    }
+                    $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/documents"'
+                        . ' enctype="multipart/form-data" class="mb-4 grid gap-2 sm:grid-cols-4" data-once>'
+                        . csrf_field()
+                        . '<select name="document_type_id" required aria-label="Document type" class="form-select">'
+                        . '<option value="">Document type…</option>' . $typeOpts . '</select>'
+                        . '<input type="file" name="file" required aria-label="File" class="form-input sm:col-span-2">'
+                        . '<input type="date" name="expires_at" aria-label="Expiry date (if applicable)" class="form-input" title="Expiry date, if applicable">'
+                        . '<div class="sm:col-span-4"><button class="btn btn-secondary btn-sm">Upload</button>'
+                        . ' <span class="text-xs text-slate-500">PDF, JPEG or PNG (CV also accepts Word).</span></div>'
+                        . '</form>';
+                }
+
+                if ($documents === []) {
+                    $html .= '<p class="text-sm text-slate-500">No documents uploaded yet.</p>';
+                    return $html;
+                }
+
+                $statusColor = static fn (string $s): string => match ($s) {
+                    'verified' => 'green', 'rejected' => 'red', 'expired' => 'red',
+                    'under_review' => 'amber', default => 'slate',
+                };
+
+                $html .= '<ul class="divide-y divide-slate-100">';
+                foreach ($documents as $d) {
+                    $badges = component('badge', ['label' => $d->statusLabel(), 'color' => $statusColor($d->status)]);
+                    if ($d->status !== 'expired' && $d->isExpired()) {
+                        $badges .= ' ' . component('badge', ['label' => 'Expired', 'color' => 'red', 'dot' => true]);
+                    } elseif ($d->isExpiringSoon()) {
+                        $badges .= ' ' . component('badge', ['label' => 'Expiring soon', 'color' => 'amber', 'dot' => true]);
+                    }
+                    $meta = implode(' · ', array_filter([
+                        e($d->originalName), $d->sizeLabel(), $d->expiresAt ? 'Expires ' . $d->expiresAt : null,
+                        $d->uploadedByName ? 'by ' . e($d->uploadedByName) : null,
+                    ]));
+                    $html .= '<li class="py-2.5 text-sm">'
+                        . '<div class="flex items-start justify-between gap-2">'
+                        . '<div><p class="font-medium text-slate-900">' . e($d->documentTypeLabel) . ' ' . $badges . '</p>'
+                        . '<p class="text-xs text-slate-500">' . $meta . '</p>'
+                        . ($d->status === 'rejected' && $d->rejectionReason ? '<p class="text-xs text-red-600">Rejected: ' . e($d->rejectionReason) . '</p>' : '')
+                        . '</div>'
+                        . '<div class="flex shrink-0 gap-1">'
+                        . '<a href="/documents/' . e_attr($d->publicId) . '/preview" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Preview</a>'
+                        . '<a href="/documents/' . e_attr($d->publicId) . '/download" class="btn btn-ghost btn-sm">Download</a>';
+                    if ($canDeleteDocument) {
+                        $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/documents/' . $d->id . '"'
+                            . ' data-confirm="Remove this document?">'
+                            . csrf_field() . '<input type="hidden" name="_method" value="DELETE">'
+                            . '<button class="btn btn-ghost btn-sm text-red-600">Delete</button></form>';
+                    }
+                    $html .= '</div></div></li>';
                 }
                 $html .= '</ul>';
                 return $html;

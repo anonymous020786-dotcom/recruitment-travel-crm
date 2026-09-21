@@ -13,9 +13,11 @@ use App\Models\Candidate;
 use App\Repositories\ActivityLogRepository;
 use App\Repositories\CandidateEducationRepository;
 use App\Repositories\CandidateExperienceRepository;
+use App\Repositories\CandidateDocumentRepository;
 use App\Repositories\CandidatePreferencesRepository;
 use App\Repositories\CandidateRepository;
 use App\Repositories\CandidateSkillRepository;
+use App\Repositories\DocumentTypeRepository;
 use App\Repositories\PassportRepository;
 use App\Repositories\TaskRepository;
 use App\Services\CandidateService;
@@ -33,8 +35,8 @@ use App\Validators\TaskValidator;
  * Candidate screens. Candidates are created only via lead conversion (see
  * LeadService::convert()); this controller covers viewing and editing the
  * 360° profile (identity, education, experience, skills, preferences,
- * passports, timeline, tasks). Documents and job-application tabs land in
- * later phases.
+ * passports, documents, timeline, tasks). Job-application tabs land in later
+ * phases.
  */
 final class CandidateController extends CrmController
 {
@@ -48,6 +50,8 @@ final class CandidateController extends CrmController
         private readonly PassportRepository $passports,
         private readonly TaskRepository $tasks,
         private readonly ActivityLogRepository $activity,
+        private readonly CandidateDocumentRepository $documents,
+        private readonly DocumentTypeRepository $documentTypes,
     ) {
     }
 
@@ -88,6 +92,10 @@ final class CandidateController extends CrmController
             'tasks'       => $this->tasks->forRelated('candidate', $model->id),
             'canTasks'    => can('manageTasks', $model),
             'taskAssignees' => $this->candidates->assignableCounselors($this->scope()),
+            'documents'   => $this->documents->forCandidate($model->id),
+            'documentTypes' => $this->documentTypes->active(),
+            'canUploadDocument' => can('uploadDocument', $model),
+            'canDeleteDocument' => can('documents.delete'),
         ]);
     }
 
@@ -472,6 +480,8 @@ final class CandidateController extends CrmController
             'task_added' => 'added a task',
             'task_completed' => 'completed a task',
             'task_cancelled' => 'cancelled a task',
+            'document_uploaded' => 'uploaded a document',
+            'document_deleted' => 'removed a document',
         ];
 
         foreach ($logs as $l) {
