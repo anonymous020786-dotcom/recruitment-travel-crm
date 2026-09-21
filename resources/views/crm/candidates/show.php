@@ -4,6 +4,8 @@
  * @var list<array{id:int,name:string}> $counselors @var bool $canEdit
  * @var list<\App\Models\CandidateEducation> $education @var list<\App\Models\CandidateExperience> $experience
  * @var bool $canEducation @var bool $canExperience @var array<string,string> $countries
+ * @var list<\App\Models\CandidateSkill> $skills @var bool $canSkills
+ * @var \App\Models\CandidatePreferences|null $preferences @var bool $canPreferences
  */
 $this->layout('layouts.app', ['title' => $candidate->fullName, 'currentPath' => '/candidates']);
 $this->start('content');
@@ -185,6 +187,47 @@ $this->start('content');
                 return $html;
             })()]) ?>
         </div>
+
+        <div id="skills" class="mt-4">
+            <?= component('card', ['title' => 'Skills', 'body' => (function () use ($candidate, $skills, $canSkills) {
+                $html = '';
+                $profOpts = '';
+                foreach (['basic' => 'Basic', 'intermediate' => 'Intermediate', 'advanced' => 'Advanced', 'expert' => 'Expert'] as $val => $label) {
+                    $profOpts .= '<option value="' . $val . '">' . $label . '</option>';
+                }
+
+                if ($canSkills) {
+                    $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/skills" class="mb-4 grid gap-2 sm:grid-cols-4" data-once>'
+                        . csrf_field()
+                        . '<input type="text" name="skill_name" required maxlength="80" placeholder="Skill (e.g. MS Excel)" aria-label="Skill name" class="form-input">'
+                        . '<select name="proficiency" aria-label="Proficiency" class="form-select"><option value="">Proficiency</option>' . $profOpts . '</select>'
+                        . '<input type="number" name="years" min="0" max="60" step="0.5" placeholder="Years" aria-label="Years of experience" class="form-input">'
+                        . '<div><button class="btn btn-secondary btn-sm">Add skill</button></div>'
+                        . '</form>';
+                }
+
+                if ($skills === []) {
+                    $html .= '<p class="text-sm text-slate-500">No skills recorded yet.</p>';
+                    return $html;
+                }
+
+                $html .= '<ul class="flex flex-wrap gap-2">';
+                foreach ($skills as $s) {
+                    $label = e($s->name) . ' · ' . e($s->proficiencyLabel()) . ($s->years !== null ? ' (' . e((string) $s->years) . 'y)' : '');
+                    $html .= '<li class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">'
+                        . '<span>' . $label . '</span>';
+                    if ($canSkills) {
+                        $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/skills/' . $s->skillId . '"'
+                            . ' data-confirm="Remove this skill?" class="inline">'
+                            . csrf_field() . '<input type="hidden" name="_method" value="DELETE">'
+                            . '<button class="text-slate-400 hover:text-red-600" aria-label="Remove ' . e($s->name) . '">&times;</button></form>';
+                    }
+                    $html .= '</li>';
+                }
+                $html .= '</ul>';
+                return $html;
+            })()]) ?>
+        </div>
     </div>
 
     <div class="space-y-4">
@@ -212,6 +255,49 @@ $this->start('content');
                     . '<a href="/leads/' . e_attr($candidate->originLeadPublicId) . '" class="font-medium text-brand-600 hover:underline">' . e((string) $candidate->originLeadNumber) . '</a>'
                 : '<p class="text-sm text-slate-500">No originating lead on record.</p>',
         ]) ?>
+
+        <div id="preferences">
+            <?= component('card', ['title' => 'Preferences', 'body' => (function () use ($candidate, $preferences, $canPreferences) {
+                if (!$canPreferences && $preferences === null) {
+                    return '<p class="text-sm text-slate-500">No preferences recorded yet.</p>';
+                }
+
+                $countriesVal = $preferences !== null ? implode(', ', $preferences->preferredCountries) : '';
+                $titlesVal = $preferences !== null ? implode(', ', $preferences->preferredJobTitles) : '';
+                $relocate = $preferences === null || $preferences->willingToRelocate;
+                $passportReady = $preferences !== null && $preferences->passportReady;
+
+                if (!$canPreferences) {
+                    $html = '<dl class="grid gap-y-2 text-sm">';
+                    $html .= '<div><dt class="text-slate-500">Preferred countries</dt><dd class="text-slate-900">' . e($countriesVal ?: '—') . '</dd></div>';
+                    $html .= '<div><dt class="text-slate-500">Preferred roles</dt><dd class="text-slate-900">' . e($titlesVal ?: '—') . '</dd></div>';
+                    $html .= '<div><dt class="text-slate-500">Willing to relocate</dt><dd class="text-slate-900">' . ($relocate ? 'Yes' : 'No') . '</dd></div>';
+                    $html .= '<div><dt class="text-slate-500">Passport ready</dt><dd class="text-slate-900">' . ($passportReady ? 'Yes' : 'No') . '</dd></div>';
+                    $html .= '</dl>';
+                    return $html;
+                }
+
+                $minSalary = $preferences?->minExpectedSalary;
+                $currency = $preferences?->salaryCurrency ?? '';
+                $availableFrom = $preferences?->availableFrom ?? '';
+                $notes = $preferences?->notes ?? '';
+
+                return '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/preferences" class="space-y-2">'
+                    . csrf_field() . '<input type="hidden" name="_method" value="PUT">'
+                    . '<input type="text" name="preferred_countries" value="' . e_attr($countriesVal) . '" placeholder="Preferred countries (AE, SA, ...)" aria-label="Preferred countries" class="form-input w-full">'
+                    . '<input type="text" name="preferred_job_titles" value="' . e_attr($titlesVal) . '" placeholder="Preferred job titles (comma-separated)" aria-label="Preferred job titles" class="form-input w-full">'
+                    . '<div class="grid grid-cols-2 gap-2">'
+                    . '<input type="number" name="min_expected_salary" min="0" step="0.01" value="' . e_attr((string) ($minSalary ?? '')) . '" placeholder="Min salary" aria-label="Minimum expected salary" class="form-input">'
+                    . '<input type="text" name="salary_currency" maxlength="3" value="' . e_attr($currency) . '" placeholder="Currency (AED)" aria-label="Salary currency" class="form-input">'
+                    . '</div>'
+                    . '<input type="date" name="available_from" value="' . e_attr($availableFrom) . '" aria-label="Available from" class="form-input w-full">'
+                    . '<label class="flex items-center gap-1.5 text-xs text-slate-600"><input type="hidden" name="willing_to_relocate" value="0"><input type="checkbox" name="willing_to_relocate" value="1"' . ($relocate ? ' checked' : '') . '> Willing to relocate</label>'
+                    . '<label class="flex items-center gap-1.5 text-xs text-slate-600"><input type="hidden" name="passport_ready" value="0"><input type="checkbox" name="passport_ready" value="1"' . ($passportReady ? ' checked' : '') . '> Passport ready</label>'
+                    . '<textarea name="notes" maxlength="500" placeholder="Notes" aria-label="Preference notes" class="form-textarea w-full" rows="2">' . e($notes) . '</textarea>'
+                    . '<button class="btn btn-secondary btn-sm">Save preferences</button>'
+                    . '</form>';
+            })()]) ?>
+        </div>
     </div>
 </div>
 <?php $this->stop(); ?>

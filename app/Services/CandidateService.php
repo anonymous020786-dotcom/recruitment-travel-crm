@@ -14,11 +14,16 @@ use App\Exceptions\ValidationException;
 use App\Models\Candidate;
 use App\Models\CandidateEducation;
 use App\Models\CandidateExperience;
+use App\Models\CandidatePreferences;
+use App\Models\CandidateSkill;
 use App\Models\User;
 use App\Repositories\CandidateEducationRepository;
 use App\Repositories\CandidateExperienceRepository;
+use App\Repositories\CandidatePreferencesRepository;
 use App\Repositories\CandidateRepository;
+use App\Repositories\CandidateSkillRepository;
 use App\Repositories\PersonRepository;
+use App\Repositories\SkillRepository;
 use App\Support\Db;
 
 /**
@@ -39,6 +44,9 @@ final class CandidateService
         private readonly PersonRepository $persons,
         private readonly CandidateEducationRepository $education,
         private readonly CandidateExperienceRepository $experience,
+        private readonly SkillRepository $skills,
+        private readonly CandidateSkillRepository $candidateSkills,
+        private readonly CandidatePreferencesRepository $preferences,
         private readonly Gate $gate,
         private readonly AuditService $audit,
         private readonly BranchScopeResolver $scopes,
@@ -199,6 +207,64 @@ final class CandidateService
             throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Experience record not found.', [], 404);
         }
         $this->audit->log('experience_removed', 'candidates', 'candidate', $candidate->id, ['experience_id' => $experienceId], null, null, $actor);
+    }
+
+    /** @param array<string,mixed> $data skill_name/category/proficiency/years */
+    public function addSkill(Candidate $candidate, array $data, User $actor): CandidateSkill
+    {
+        $this->authorize('manageSkills', $candidate, $actor, 'candidates.skills.manage');
+
+        $skillId = $this->skills->findOrCreateByName((string) $data['skill_name'], $data['category'] ?? null);
+        $this->candidateSkills->attach($candidate->id, $skillId, (string) ($data['proficiency'] ?? 'intermediate'), $data['years'] ?? null);
+        $this->audit->log('skill_added', 'candidates', 'candidate', $candidate->id, null, ['skill_id' => $skillId] + $data, null, $actor);
+
+        foreach ($this->candidateSkills->forCandidate($candidate->id) as $row) {
+            if ($row->skillId === $skillId) {
+                return $row;
+            }
+        }
+
+        throw new \RuntimeException('Skill row vanished immediately after attach.');
+    }
+
+    public function removeSkill(Candidate $candidate, int $skillId, User $actor): void
+    {
+        $this->authorize('manageSkills', $candidate, $actor, 'candidates.skills.manage');
+
+        if ($this->candidateSkills->detach($candidate->id, $skillId) === 0) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Skill not found on this candidate.', [], 404);
+        }
+        $this->audit->log('skill_removed', 'candidates', 'candidate', $candidate->id, ['skill_id' => $skillId], null, null, $actor);
+    }
+
+    /**
+     * @param array<string,mixed> $data preferred_countries/preferred_job_titles (lists)
+     *                                   plus the scalar candidate_preferences columns
+     */
+    public function savePreferences(Candidate $candidate, array $data, User $actor): CandidatePreferences
+    {
+        $this->authorize('managePreferences', $candidate, $actor, 'candidates.preferences.manage');
+
+        $row = [
+            'preferred_countries'  => json_encode($data['preferred_countries'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'preferred_job_titles' => json_encode($data['preferred_job_titles'] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'min_expected_salary'  => $data['min_expected_salary'] ?? null,
+            'salary_currency'      => $data['salary_currency'] ?? null,
+            'willing_to_relocate'  => (int) ($data['willing_to_relocate'] ?? true),
+            'available_from'       => $data['available_from'] ?? null,
+            'passport_ready'       => (int) ($data['passport_ready'] ?? false),
+            'notes'                => $data['notes'] ?? null,
+        ];
+
+        $this->preferences->upsert($candidate->id, $row);
+        $this->audit->log('preferences_saved', 'candidates', 'candidate', $candidate->id, null, $data, null, $actor);
+
+        $fresh = $this->preferences->find($candidate->id);
+        if ($fresh === null) {
+            throw new \RuntimeException('Preferences row vanished immediately after upsert.');
+        }
+
+        return $fresh;
     }
 
     // ---- internals -------------------------------------------------

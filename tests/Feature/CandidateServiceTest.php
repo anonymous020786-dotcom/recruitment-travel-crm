@@ -68,6 +68,7 @@ final class CandidateServiceTest extends DbTestCase
         }
         $this->db->affectingStatement("DELETE FROM branches WHERE code LIKE 'CX-%'");
         $this->db->affectingStatement("DELETE FROM number_sequences WHERE scope LIKE 'lead:%' OR scope LIKE 'candidate:%'");
+        $this->db->affectingStatement("DELETE FROM skills WHERE name LIKE 'CX-Skill-%'");
     }
 
     private function branch(string $code): int
@@ -335,5 +336,115 @@ final class CandidateServiceTest extends DbTestCase
 
         $this->expectException(AuthorizationException::class);
         $this->service->addExperience($candidate, ['employer_name' => 'Acme Travel', 'job_title' => 'Consultant'], $documentation);
+    }
+
+    public function test_add_skill_creates_catalog_entry_and_attaches(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $name = 'CX-Skill-' . bin2hex(random_bytes(3));
+
+        $row = $this->service->addSkill($candidate, ['skill_name' => $name, 'proficiency' => 'advanced', 'years' => 4.0], $actor);
+
+        self::assertSame($name, $row->name);
+        self::assertSame('advanced', $row->proficiency);
+        self::assertSame(4.0, $row->years);
+        self::assertTrue($this->db->exists('SELECT 1 FROM skills WHERE name = ?', [$name]));
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='skill_added' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_add_skill_twice_reuses_catalog_entry_and_updates_proficiency(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $name = 'CX-Skill-' . bin2hex(random_bytes(3));
+
+        $this->service->addSkill($candidate, ['skill_name' => $name, 'proficiency' => 'basic'], $actor);
+        $second = $this->service->addSkill($candidate, ['skill_name' => $name, 'proficiency' => 'expert'], $actor);
+
+        self::assertSame('expert', $second->proficiency);
+        self::assertSame(1, (int) $this->db->selectValue('SELECT COUNT(*) FROM skills WHERE name = ?', [$name]));
+        self::assertSame(1, (int) $this->db->selectValue('SELECT COUNT(*) FROM candidate_skills WHERE candidate_id = ?', [$candidate->id]));
+    }
+
+    public function test_remove_skill_detaches_row(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $name = 'CX-Skill-' . bin2hex(random_bytes(3));
+        $row = $this->service->addSkill($candidate, ['skill_name' => $name], $actor);
+
+        $this->service->removeSkill($candidate, $row->skillId, $actor);
+
+        self::assertFalse($this->db->exists(
+            'SELECT 1 FROM candidate_skills WHERE candidate_id = ? AND skill_id = ?',
+            [$candidate->id, $row->skillId],
+        ));
+    }
+
+    public function test_remove_skill_rejects_unknown_skill(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $this->expectException(\App\Exceptions\DomainRuleException::class);
+        $this->service->removeSkill($candidate, 999999, $actor);
+    }
+
+    public function test_add_skill_denies_agent_without_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $documentation = $this->actor('documentation'); // no candidates.skills.manage
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->addSkill($candidate, ['skill_name' => 'CX-Skill-' . bin2hex(random_bytes(3))], $documentation);
+    }
+
+    public function test_save_preferences_creates_row(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $prefs = $this->service->savePreferences($candidate, [
+            'preferred_countries' => ['AE', 'SA'], 'preferred_job_titles' => ['Driver'],
+            'min_expected_salary' => 2500.0, 'salary_currency' => 'AED',
+            'willing_to_relocate' => true, 'available_from' => '2027-01-01',
+            'passport_ready' => true, 'notes' => 'Prefers day shift.',
+        ], $actor);
+
+        self::assertSame(['AE', 'SA'], $prefs->preferredCountries);
+        self::assertSame(['Driver'], $prefs->preferredJobTitles);
+        self::assertSame(2500.0, $prefs->minExpectedSalary);
+        self::assertTrue($prefs->passportReady);
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='preferences_saved' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_save_preferences_upserts_on_second_call(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $this->service->savePreferences($candidate, ['preferred_countries' => ['AE'], 'preferred_job_titles' => []], $actor);
+        $second = $this->service->savePreferences($candidate, ['preferred_countries' => ['QA'], 'preferred_job_titles' => []], $actor);
+
+        self::assertSame(['QA'], $second->preferredCountries);
+        self::assertSame(1, (int) $this->db->selectValue('SELECT COUNT(*) FROM candidate_preferences WHERE candidate_id = ?', [$candidate->id]));
+    }
+
+    public function test_save_preferences_denies_agent_without_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $documentation = $this->actor('documentation'); // no candidates.preferences.manage
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->savePreferences($candidate, ['preferred_countries' => [], 'preferred_job_titles' => []], $documentation);
     }
 }

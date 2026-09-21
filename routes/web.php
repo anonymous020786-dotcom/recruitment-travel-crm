@@ -189,5 +189,13 @@ return static function (Router $router): void {
             ->middleware(['can:candidates.experience.manage', 'throttle:write'])->name('candidates.experience.update');
         $r->delete('/candidates/{candidate}/experience/{experience}', [CandidateController::class, 'destroyExperience'])
             ->middleware(['can:candidates.experience.manage', 'throttle:write'])->name('candidates.experience.destroy');
+
+        $r->post('/candidates/{candidate}/skills', [CandidateController::class, 'storeSkill'])
+            ->middleware(['can:candidates.skills.manage', 'throttle:write'])->name('candidates.skills.store');
+        $r->delete('/candidates/{candidate}/skills/{skill}', [CandidateController::class, 'destroySkill'])
+            ->middleware(['can:candidates.skills.manage', 'throttle:write'])->name('candidates.skills.destroy');
+
+        $r->put('/candidates/{candidate}/preferences', [CandidateController::class, 'savePreferences'])
+            ->middleware(['can:candidates.preferences.manage', 'throttle:write'])->name('candidates.preferences.update');
     });
 };

@@ -12,12 +12,16 @@ use App\Http\Response;
 use App\Models\Candidate;
 use App\Repositories\CandidateEducationRepository;
 use App\Repositories\CandidateExperienceRepository;
+use App\Repositories\CandidatePreferencesRepository;
 use App\Repositories\CandidateRepository;
+use App\Repositories\CandidateSkillRepository;
 use App\Services\CandidateService;
 use App\Support\Db;
 use App\Support\ListQuery;
 use App\Validators\CandidateEducationValidator;
 use App\Validators\CandidateExperienceValidator;
+use App\Validators\CandidatePreferencesValidator;
+use App\Validators\CandidateSkillValidator;
 use App\Validators\CandidateValidator;
 
 /**
@@ -33,6 +37,8 @@ final class CandidateController extends CrmController
         private readonly CandidateService $service,
         private readonly CandidateEducationRepository $education,
         private readonly CandidateExperienceRepository $experience,
+        private readonly CandidateSkillRepository $skills,
+        private readonly CandidatePreferencesRepository $preferences,
     ) {
     }
 
@@ -62,6 +68,10 @@ final class CandidateController extends CrmController
             'canEducation' => can('manageEducation', $model),
             'canExperience' => can('manageExperience', $model),
             'countries'   => $this->countryOptions(),
+            'skills'      => $this->skills->forCandidate($model->id),
+            'canSkills'   => can('manageSkills', $model),
+            'preferences' => $this->preferences->find($model->id),
+            'canPreferences' => can('managePreferences', $model),
         ]);
     }
 
@@ -221,6 +231,53 @@ final class CandidateController extends CrmController
         }
 
         return Response::redirect('/candidates/' . $model->publicId . '#experience');
+    }
+
+    public function storeSkill(Request $request, string $candidate): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new CandidateSkillValidator())->validate($request->only(['skill_name', 'category', 'proficiency', 'years']));
+            $this->service->addSkill($model, $data, $this->currentUser());
+            flash('status', 'Skill saved.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not save that skill.');
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#skills');
+    }
+
+    public function destroySkill(string $candidate, string $skill): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $this->service->removeSkill($model, (int) $skill, $this->currentUser());
+            flash('status', 'Skill removed.');
+        } catch (DomainRuleException $e) {
+            session()?->flash('error_toast', $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#skills');
+    }
+
+    public function savePreferences(Request $request, string $candidate): Response
+    {
+        $model = $this->find($candidate);
+
+        try {
+            $data = (new CandidatePreferencesValidator())->validate($request->only([
+                'preferred_countries', 'preferred_job_titles', 'min_expected_salary', 'salary_currency',
+                'willing_to_relocate', 'available_from', 'passport_ready', 'notes',
+            ]));
+            $this->service->savePreferences($model, $data, $this->currentUser());
+            flash('status', 'Preferences saved.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Could not save preferences.');
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#preferences');
     }
 
     // ---- internals -------------------------------------------------
