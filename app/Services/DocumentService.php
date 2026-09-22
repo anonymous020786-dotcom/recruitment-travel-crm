@@ -15,6 +15,7 @@ use App\Models\Candidate;
 use App\Models\CandidateDocument;
 use App\Models\User;
 use App\Repositories\CandidateDocumentRepository;
+use App\Repositories\ChecklistRepository;
 use App\Repositories\DocumentTypeRepository;
 use App\Support\DocumentUpload;
 use App\Support\Ulid;
@@ -35,6 +36,7 @@ final class DocumentService
         private readonly Gate $gate,
         private readonly AuditService $audit,
         private readonly StatusMachine $statuses,
+        private readonly ChecklistRepository $checklist,
     ) {
     }
 
@@ -135,11 +137,15 @@ final class DocumentService
             throw AuthorizationException::forPermission('documents.verify');
         }
 
-        return $this->transitionTo($candidate, $documentId, $expectedVersion, 'verified', [
+        $verified = $this->transitionTo($candidate, $documentId, $expectedVersion, 'verified', [
             'verified_by' => $actor->id,
             'verified_at' => gmdate('Y-m-d H:i:s'),
             'rejection_reason' => null,
         ], 'document_verified', $actor);
+
+        $this->checklist->markSatisfied($candidate->id, $verified->documentTypeId, $verified->id);
+
+        return $verified;
     }
 
     public function reject(Candidate $candidate, int $documentId, string $reason, User $actor, int $expectedVersion): CandidateDocument
@@ -164,7 +170,23 @@ final class DocumentService
     {
         $today ??= gmdate('Y-m-d');
 
-        return $this->documents->markExpiredBefore($today);
+        $expired = $this->documents->markExpiredBefore($today);
+        if ($expired > 0) {
+            $this->checklist->clearSatisfiedForExpiredDocuments();
+        }
+
+        return $expired;
+    }
+
+    public function toggleChecklistRequirement(Candidate $candidate, int $documentTypeId, bool $required, User $actor): void
+    {
+        if (!$this->gate->forUser($actor)->allows('documents.checklist.manage')) {
+            throw AuthorizationException::forPermission('documents.checklist.manage');
+        }
+        $this->checklist->setRequired($candidate->id, $documentTypeId, $required);
+        $this->audit->log('checklist_updated', 'candidates', 'candidate', $candidate->id, null, [
+            'document_type_id' => $documentTypeId, 'is_required' => $required,
+        ], null, $actor);
     }
 
     /** @param array<string,mixed> $extraFields */

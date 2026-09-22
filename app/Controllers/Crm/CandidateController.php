@@ -17,6 +17,7 @@ use App\Repositories\CandidateDocumentRepository;
 use App\Repositories\CandidatePreferencesRepository;
 use App\Repositories\CandidateRepository;
 use App\Repositories\CandidateSkillRepository;
+use App\Repositories\ChecklistRepository;
 use App\Repositories\DocumentTypeRepository;
 use App\Repositories\PassportRepository;
 use App\Repositories\TaskRepository;
@@ -52,6 +53,7 @@ final class CandidateController extends CrmController
         private readonly ActivityLogRepository $activity,
         private readonly CandidateDocumentRepository $documents,
         private readonly DocumentTypeRepository $documentTypes,
+        private readonly ChecklistRepository $checklist,
     ) {
     }
 
@@ -98,6 +100,8 @@ final class CandidateController extends CrmController
             'canDeleteDocument' => can('documents.delete'),
             'canVerifyDocument' => can('documents.verify'),
             'canRejectDocument' => can('documents.reject'),
+            'checklist'   => $this->checklist->forCandidate($model->id),
+            'canManageChecklist' => can('documents.checklist.manage'),
         ]);
     }
 
@@ -487,6 +491,7 @@ final class CandidateController extends CrmController
             'document_review_started' => 'started reviewing a document',
             'document_verified' => 'verified a document',
             'document_rejected' => 'rejected a document',
+            'checklist_updated' => 'updated the document checklist',
         ];
 
         foreach ($logs as $l) {

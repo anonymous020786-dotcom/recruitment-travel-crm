@@ -10,6 +10,7 @@ use App\Exceptions\ValidationException;
 use App\Models\Candidate;
 use App\Models\User;
 use App\Repositories\CandidateDocumentRepository;
+use App\Repositories\ChecklistRepository;
 use App\Repositories\DocumentTypeRepository;
 use App\Services\CandidateService;
 use App\Services\DocumentService;
@@ -24,6 +25,7 @@ final class DocumentServiceTest extends DbTestCase
     private DocumentService $service;
     private CandidateDocumentRepository $documents;
     private DocumentTypeRepository $types;
+    private ChecklistRepository $checklist;
     private int $branchA;
     /** @var array<string,int> */
     private array $roles = [];
@@ -48,6 +50,7 @@ final class DocumentServiceTest extends DbTestCase
         $this->service = $this->app->get(DocumentService::class);
         $this->documents = $this->app->get(CandidateDocumentRepository::class);
         $this->types = $this->app->get(DocumentTypeRepository::class);
+        $this->checklist = $this->app->get(ChecklistRepository::class);
         $this->branchA = $this->branch('DX-A');
     }
 
@@ -455,5 +458,100 @@ final class DocumentServiceTest extends DbTestCase
 
         self::assertSame(1, $first);
         self::assertSame(0, $second);
+    }
+
+    public function test_checklist_seeds_from_required_default_types(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $items = $this->checklist->forCandidate($candidate->id);
+
+        $requiredDefaultCount = (int) $this->db->selectValue(
+            'SELECT COUNT(*) FROM document_types WHERE is_required_default = 1 AND is_active = 1',
+        );
+        self::assertSame($requiredDefaultCount, count($items));
+        foreach ($items as $item) {
+            self::assertTrue($item->isRequired);
+            self::assertFalse($item->isSatisfied());
+        }
+    }
+
+    public function test_checklist_seeding_is_idempotent(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+
+        $first = count($this->checklist->forCandidate($candidate->id));
+        $second = count($this->checklist->forCandidate($candidate->id));
+
+        self::assertSame($first, $second);
+    }
+
+    public function test_verifying_a_document_satisfies_its_checklist_item(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        self::assertTrue($type->isRequiredDefault, 'test assumes passport is a default-required type');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+
+        $this->service->verify($candidate, $doc->id, $actor, $doc->recordVersion);
+
+        $items = $this->checklist->forCandidate($candidate->id);
+        $passportItem = current(array_filter($items, static fn ($i) => $i->documentTypeId === $type->id));
+        self::assertNotFalse($passportItem);
+        self::assertTrue($passportItem->isSatisfied());
+        self::assertSame($doc->id, $passportItem->satisfiedDocumentId);
+    }
+
+    public function test_expiring_a_document_clears_its_checklist_satisfaction(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, '2020-01-01', $actor);
+        $this->service->verify($candidate, $doc->id, $actor, $doc->recordVersion);
+
+        $this->service->expireDue('2026-01-01');
+
+        $items = $this->checklist->forCandidate($candidate->id);
+        $passportItem = current(array_filter($items, static fn ($i) => $i->documentTypeId === $type->id));
+        self::assertNotFalse($passportItem);
+        self::assertFalse($passportItem->isSatisfied());
+        self::assertNull($passportItem->satisfiedDocumentId);
+    }
+
+    public function test_toggle_checklist_requirement_waives_and_restores(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $this->checklist->forCandidate($candidate->id); // seed
+
+        $this->service->toggleChecklistRequirement($candidate, $type->id, false, $actor);
+        $items = $this->checklist->forCandidate($candidate->id);
+        $passportItem = current(array_filter($items, static fn ($i) => $i->documentTypeId === $type->id));
+        self::assertFalse($passportItem->isRequired);
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='checklist_updated' AND record_id = ?",
+            [$candidate->id],
+        ));
+
+        $this->service->toggleChecklistRequirement($candidate, $type->id, true, $actor);
+        $items = $this->checklist->forCandidate($candidate->id);
+        $passportItem = current(array_filter($items, static fn ($i) => $i->documentTypeId === $type->id));
+        self::assertTrue($passportItem->isRequired);
+    }
+
+    public function test_toggle_checklist_requirement_denies_agent_without_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $counselor = $this->actor('counselor');
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->toggleChecklistRequirement($candidate, $type->id, false, $counselor);
     }
 }

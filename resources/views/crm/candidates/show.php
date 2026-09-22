@@ -12,6 +12,7 @@
  * @var list<\App\Models\CandidateDocument> $documents @var list<\App\Models\DocumentType> $documentTypes
  * @var bool $canUploadDocument @var bool $canDeleteDocument
  * @var bool $canVerifyDocument @var bool $canRejectDocument
+ * @var list<\App\Models\ChecklistItem> $checklist @var bool $canManageChecklist
  */
 $this->layout('layouts.app', ['title' => $candidate->fullName, 'currentPath' => '/candidates']);
 $this->start('content');
@@ -312,6 +313,34 @@ $this->start('content');
                             . '<label class="flex items-center gap-1.5 text-xs text-slate-600 sm:col-span-3"><input type="hidden" name="is_primary" value="0"><input type="checkbox" name="is_primary" value="1"' . ($p->isPrimary ? ' checked' : '') . '> Primary passport</label>'
                             . '<div><button class="btn btn-secondary btn-sm">Save</button></div>'
                             . '</form></details>';
+                    }
+                    $html .= '</li>';
+                }
+                $html .= '</ul>';
+                return $html;
+            })()]) ?>
+        </div>
+
+        <div id="checklist" class="mt-4">
+            <?= component('card', ['title' => 'Document checklist', 'body' => (function () use ($candidate, $checklist, $canManageChecklist) {
+                if ($checklist === []) {
+                    return '<p class="text-sm text-slate-500">No required documents configured.</p>';
+                }
+
+                $html = '<ul class="divide-y divide-slate-100">';
+                foreach ($checklist as $item) {
+                    if (!$item->isRequired && !$canManageChecklist) {
+                        continue;
+                    }
+                    $icon = $item->isSatisfied() ? '✅' : ($item->isRequired ? '⬜' : '➖');
+                    $label = e($item->typeLabel) . (!$item->isRequired ? ' <span class="text-slate-400">(not required)</span>' : '');
+                    $html .= '<li class="flex items-center justify-between gap-2 py-2 text-sm">'
+                        . '<span><span aria-hidden="true">' . $icon . '</span> ' . $label . '</span>';
+                    if ($canManageChecklist) {
+                        $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/checklist/' . $item->documentTypeId . '">'
+                            . csrf_field()
+                            . '<input type="hidden" name="required" value="' . ($item->isRequired ? '0' : '1') . '">'
+                            . '<button class="btn btn-ghost btn-sm">' . ($item->isRequired ? 'Waive' : 'Require') . '</button></form>';
                     }
                     $html .= '</li>';
                 }

@@ -130,6 +130,19 @@ final class DocumentController extends CrmController
         return Response::redirect('/candidates/' . $model->publicId . '#documents');
     }
 
+    public function toggleChecklist(Request $request, string $candidate, string $type): Response
+    {
+        $model = $this->findCandidate($candidate);
+
+        try {
+            $this->service->toggleChecklistRequirement($model, (int) $type, $request->boolean('required'), $this->currentUser());
+        } catch (AuthorizationException) {
+            session()?->flash('error_toast', 'You do not have permission to manage the document checklist.');
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#documents');
+    }
+
     public function download(Request $request, string $document): Response
     {
         return $this->serve($request, $document, 'download');

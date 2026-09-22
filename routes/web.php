@@ -226,6 +226,8 @@ return static function (Router $router): void {
             ->middleware(['can:documents.verify', 'throttle:write'])->name('candidates.documents.verify');
         $r->post('/candidates/{candidate}/documents/{document}/reject', [DocumentController::class, 'reject'])
             ->middleware(['can:documents.reject', 'throttle:write'])->name('candidates.documents.reject');
+        $r->post('/candidates/{candidate}/checklist/{type}', [DocumentController::class, 'toggleChecklist'])
+            ->middleware(['can:documents.checklist.manage', 'throttle:write'])->name('candidates.checklist.toggle');
 
         $r->get('/documents/{document}/download', [DocumentController::class, 'download'])
             ->middleware(['can:documents.view'])->name('documents.download');
