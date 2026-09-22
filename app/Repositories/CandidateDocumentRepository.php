@@ -106,4 +106,38 @@ final class CandidateDocumentRepository
             'document_id' => $documentId, 'user_id' => $userId, 'action' => $action, 'ip_address' => $ipBinary,
         ]);
     }
+
+    /** Verified documents past their expiry date -> expired. Only ever matches status='verified', so re-running is a no-op. */
+    public function markExpiredBefore(string $date): int
+    {
+        return $this->db->affectingStatement(
+            "UPDATE candidate_documents SET status = 'expired', record_version = record_version + 1, updated_at = UTC_TIMESTAMP()
+             WHERE status = 'verified' AND expires_at IS NOT NULL AND expires_at < :d",
+            ['d' => $date],
+        );
+    }
+
+    /**
+     * Verified documents expiring within `$maxDays` (or already past),
+     * for the cron reminder feed — the caller buckets by exact day-count
+     * against config('cron.reminder_windows.document').
+     *
+     * @return list<array<string,mixed>> raw rows incl. id, candidate_id, candidate_name,
+     *         assigned_counselor, type_label, expires_at
+     */
+    public function dueForExpiryReminder(int $maxDays, string $today): array
+    {
+        return $this->db->select(
+            "SELECT d.id, d.candidate_id, p.full_name AS candidate_name, c.assigned_counselor,
+                    dt.label AS type_label, d.expires_at
+             FROM candidate_documents d
+             JOIN document_types dt ON dt.id = d.document_type_id
+             JOIN candidates c ON c.id = d.candidate_id
+             JOIN persons p ON p.id = c.person_id
+             WHERE d.status = 'verified' AND d.expires_at IS NOT NULL
+               AND d.expires_at <= (:today + INTERVAL :days DAY)
+             ORDER BY d.expires_at",
+            ['today' => $today, 'days' => $maxDays],
+        );
+    }
 }

@@ -31,6 +31,17 @@ return [
         'lost'           => ['follow_up'],
     ],
 
+    // 'pending' is in the DB enum for a future "requested but not yet
+    // uploaded" flow; DocumentService::upload() always inserts at 'uploaded'.
+    'document' => [
+        'pending'      => ['uploaded'],
+        'uploaded'     => ['under_review', 'verified', 'rejected'],
+        'under_review' => ['verified', 'rejected'],
+        'verified'     => ['expired'],   // set by cron only
+        'rejected'     => [],
+        'expired'      => [],
+    ],
+
     // 'application' => [ ... ]   (Phase 6)
     // 'visa'        => [ ... ]   (Phase 7)
     // 'job'         => [ ... ]   (Phase 5)

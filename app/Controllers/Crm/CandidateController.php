@@ -96,6 +96,8 @@ final class CandidateController extends CrmController
             'documentTypes' => $this->documentTypes->active(),
             'canUploadDocument' => can('uploadDocument', $model),
             'canDeleteDocument' => can('documents.delete'),
+            'canVerifyDocument' => can('documents.verify'),
+            'canRejectDocument' => can('documents.reject'),
         ]);
     }
 
@@ -482,6 +484,9 @@ final class CandidateController extends CrmController
             'task_cancelled' => 'cancelled a task',
             'document_uploaded' => 'uploaded a document',
             'document_deleted' => 'removed a document',
+            'document_review_started' => 'started reviewing a document',
+            'document_verified' => 'verified a document',
+            'document_rejected' => 'rejected a document',
         ];
 
         foreach ($logs as $l) {

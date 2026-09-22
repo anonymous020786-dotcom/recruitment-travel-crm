@@ -6,8 +6,10 @@ namespace App\Services;
 
 use App\Audit\AuditService;
 use App\Auth\Gate;
+use App\Domain\StatusMachine;
 use App\Exceptions\AuthorizationException;
 use App\Exceptions\DomainRuleException;
+use App\Exceptions\StaleRecordException;
 use App\Exceptions\ValidationException;
 use App\Models\Candidate;
 use App\Models\CandidateDocument;
@@ -32,6 +34,7 @@ final class DocumentService
         private readonly DocumentUpload $upload,
         private readonly Gate $gate,
         private readonly AuditService $audit,
+        private readonly StatusMachine $statuses,
     ) {
     }
 
@@ -115,5 +118,77 @@ final class DocumentService
         ], null, null, $actor);
 
         @unlink($this->upload->absolutePath($document->storagePath));
+    }
+
+    public function startReview(Candidate $candidate, int $documentId, User $actor, int $expectedVersion): CandidateDocument
+    {
+        if (!$this->gate->forUser($actor)->allows('documents.verify') && !$this->gate->forUser($actor)->allows('documents.reject')) {
+            throw AuthorizationException::forPermission('documents.verify');
+        }
+
+        return $this->transitionTo($candidate, $documentId, $expectedVersion, 'under_review', [], 'document_review_started', $actor);
+    }
+
+    public function verify(Candidate $candidate, int $documentId, User $actor, int $expectedVersion): CandidateDocument
+    {
+        if (!$this->gate->forUser($actor)->allows('documents.verify')) {
+            throw AuthorizationException::forPermission('documents.verify');
+        }
+
+        return $this->transitionTo($candidate, $documentId, $expectedVersion, 'verified', [
+            'verified_by' => $actor->id,
+            'verified_at' => gmdate('Y-m-d H:i:s'),
+            'rejection_reason' => null,
+        ], 'document_verified', $actor);
+    }
+
+    public function reject(Candidate $candidate, int $documentId, string $reason, User $actor, int $expectedVersion): CandidateDocument
+    {
+        if (!$this->gate->forUser($actor)->allows('documents.reject')) {
+            throw AuthorizationException::forPermission('documents.reject');
+        }
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new ValidationException(['rejection_reason' => ['Say why this document is being rejected.']]);
+        }
+
+        return $this->transitionTo($candidate, $documentId, $expectedVersion, 'rejected', [
+            'rejection_reason' => mb_substr($reason, 0, 255),
+            'verified_by' => null,
+            'verified_at' => null,
+        ], 'document_rejected', $actor);
+    }
+
+    /** Cron entry point: verified documents past their expiry date → 'expired'. Idempotent (only matches status='verified'). */
+    public function expireDue(?string $today = null): int
+    {
+        $today ??= gmdate('Y-m-d');
+
+        return $this->documents->markExpiredBefore($today);
+    }
+
+    /** @param array<string,mixed> $extraFields */
+    private function transitionTo(Candidate $candidate, int $documentId, int $expectedVersion, string $toStatus, array $extraFields, string $auditAction, User $actor): CandidateDocument
+    {
+        $document = $this->documents->findInCandidate($documentId, $candidate->id);
+        if ($document === null) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Document not found.', [], 404);
+        }
+
+        $this->statuses->assert('document', $document->status, $toStatus);
+
+        $affected = $this->documents->updateFields($documentId, ['status' => $toStatus] + $extraFields, $expectedVersion);
+        if ($affected === 0) {
+            throw new StaleRecordException('document', $document->publicId);
+        }
+
+        $this->audit->log($auditAction, 'candidates', 'candidate', $candidate->id, ['status' => $document->status], ['status' => $toStatus], null, $actor);
+
+        $fresh = $this->documents->findInCandidate($documentId, $candidate->id);
+        if ($fresh === null) {
+            throw new \RuntimeException('Document row vanished immediately after transition.');
+        }
+
+        return $fresh;
     }
 }

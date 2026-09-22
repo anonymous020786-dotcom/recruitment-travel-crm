@@ -11,6 +11,7 @@
  * @var list<\App\Models\Task> $tasks @var bool $canTasks @var list<array{id:int,name:string}> $taskAssignees
  * @var list<\App\Models\CandidateDocument> $documents @var list<\App\Models\DocumentType> $documentTypes
  * @var bool $canUploadDocument @var bool $canDeleteDocument
+ * @var bool $canVerifyDocument @var bool $canRejectDocument
  */
 $this->layout('layouts.app', ['title' => $candidate->fullName, 'currentPath' => '/candidates']);
 $this->start('content');
@@ -320,7 +321,7 @@ $this->start('content');
         </div>
 
         <div id="documents" class="mt-4">
-            <?= component('card', ['title' => 'Documents', 'body' => (function () use ($candidate, $documents, $documentTypes, $canUploadDocument, $canDeleteDocument) {
+            <?= component('card', ['title' => 'Documents', 'body' => (function () use ($candidate, $documents, $documentTypes, $canUploadDocument, $canDeleteDocument, $canVerifyDocument, $canRejectDocument) {
                 $html = '';
 
                 if ($canUploadDocument) {
@@ -362,6 +363,7 @@ $this->start('content');
                         e($d->originalName), $d->sizeLabel(), $d->expiresAt ? 'Expires ' . $d->expiresAt : null,
                         $d->uploadedByName ? 'by ' . e($d->uploadedByName) : null,
                     ]));
+                    $pendingReview = in_array($d->status, ['uploaded', 'under_review'], true);
                     $html .= '<li class="py-2.5 text-sm">'
                         . '<div class="flex items-start justify-between gap-2">'
                         . '<div><p class="font-medium text-slate-900">' . e($d->documentTypeLabel) . ' ' . $badges . '</p>'
@@ -371,13 +373,30 @@ $this->start('content');
                         . '<div class="flex shrink-0 gap-1">'
                         . '<a href="/documents/' . e_attr($d->publicId) . '/preview" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Preview</a>'
                         . '<a href="/documents/' . e_attr($d->publicId) . '/download" class="btn btn-ghost btn-sm">Download</a>';
+                    if ($pendingReview && $d->status === 'uploaded' && ($canVerifyDocument || $canRejectDocument)) {
+                        $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/documents/' . $d->id . '/review">'
+                            . csrf_field() . '<button class="btn btn-ghost btn-sm">Start review</button></form>';
+                    }
+                    if ($pendingReview && $canVerifyDocument) {
+                        $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/documents/' . $d->id . '/verify">'
+                            . csrf_field() . '<button class="btn btn-ghost btn-sm text-green-600">Verify</button></form>';
+                    }
                     if ($canDeleteDocument) {
                         $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/documents/' . $d->id . '"'
                             . ' data-confirm="Remove this document?">'
                             . csrf_field() . '<input type="hidden" name="_method" value="DELETE">'
                             . '<button class="btn btn-ghost btn-sm text-red-600">Delete</button></form>';
                     }
-                    $html .= '</div></div></li>';
+                    $html .= '</div></div>';
+
+                    if ($pendingReview && $canRejectDocument) {
+                        $html .= '<form method="post" action="/candidates/' . e_attr($candidate->publicId) . '/documents/' . $d->id . '/reject"'
+                            . ' class="mt-1.5 flex gap-2">'
+                            . csrf_field()
+                            . '<input type="text" name="rejection_reason" maxlength="255" placeholder="Reason for rejection" aria-label="Rejection reason" class="form-input flex-1">'
+                            . '<button class="btn btn-ghost btn-sm text-red-600">Reject</button></form>';
+                    }
+                    $html .= '</li>';
                 }
                 $html .= '</ul>';
                 return $html;

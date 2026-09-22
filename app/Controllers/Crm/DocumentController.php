@@ -6,10 +6,12 @@ namespace App\Controllers\Crm;
 
 use App\Exceptions\AuthorizationException;
 use App\Exceptions\DomainRuleException;
+use App\Exceptions\StaleRecordException;
 use App\Exceptions\ValidationException;
 use App\Http\Request;
 use App\Http\Response;
 use App\Models\Candidate;
+use App\Models\CandidateDocument;
 use App\Repositories\CandidateDocumentRepository;
 use App\Repositories\CandidateRepository;
 use App\Services\DocumentService;
@@ -69,6 +71,65 @@ final class DocumentController extends CrmController
         return Response::redirect('/candidates/' . $model->publicId . '#documents');
     }
 
+    public function startReview(string $candidate, string $document): Response
+    {
+        $model = $this->findCandidate($candidate);
+
+        try {
+            $doc = $this->findDocument($model, $document);
+            $this->service->startReview($model, $doc->id, $this->currentUser(), $doc->recordVersion);
+            flash('status', 'Marked as under review.');
+        } catch (AuthorizationException) {
+            session()?->flash('error_toast', 'You do not have permission to review documents.');
+        } catch (DomainRuleException|StaleRecordException $e) {
+            session()?->flash('error_toast', $e instanceof StaleRecordException
+                ? 'This document changed just now. Please try again.'
+                : $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#documents');
+    }
+
+    public function verify(string $candidate, string $document): Response
+    {
+        $model = $this->findCandidate($candidate);
+
+        try {
+            $doc = $this->findDocument($model, $document);
+            $this->service->verify($model, $doc->id, $this->currentUser(), $doc->recordVersion);
+            flash('status', 'Document verified.');
+        } catch (AuthorizationException) {
+            session()?->flash('error_toast', 'You do not have permission to verify documents.');
+        } catch (DomainRuleException|StaleRecordException $e) {
+            session()?->flash('error_toast', $e instanceof StaleRecordException
+                ? 'This document changed just now. Please try again.'
+                : $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#documents');
+    }
+
+    public function reject(Request $request, string $candidate, string $document): Response
+    {
+        $model = $this->findCandidate($candidate);
+
+        try {
+            $doc = $this->findDocument($model, $document);
+            $this->service->reject($model, $doc->id, (string) $request->input('rejection_reason', ''), $this->currentUser(), $doc->recordVersion);
+            flash('status', 'Document rejected.');
+        } catch (ValidationException $e) {
+            session()?->flash('error_toast', $e->first() ?? 'Give a reason for rejecting this document.');
+        } catch (AuthorizationException) {
+            session()?->flash('error_toast', 'You do not have permission to reject documents.');
+        } catch (DomainRuleException|StaleRecordException $e) {
+            session()?->flash('error_toast', $e instanceof StaleRecordException
+                ? 'This document changed just now. Please try again.'
+                : $e->getMessage());
+        }
+
+        return Response::redirect('/candidates/' . $model->publicId . '#documents');
+    }
+
     public function download(Request $request, string $document): Response
     {
         return $this->serve($request, $document, 'download');
@@ -123,6 +184,16 @@ final class DocumentController extends CrmController
         }
 
         return $model;
+    }
+
+    private function findDocument(Candidate $candidate, string $documentId): CandidateDocument
+    {
+        $doc = $this->documents->findInCandidate((int) $documentId, $candidate->id);
+        if ($doc === null) {
+            abort(404, 'Document not found.');
+        }
+
+        return $doc;
     }
 
     private function blankToNull(string $value): ?string

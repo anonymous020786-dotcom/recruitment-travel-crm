@@ -220,6 +220,12 @@ return static function (Router $router): void {
             ->middleware(['can:documents.upload', 'throttle:write'])->name('candidates.documents.store');
         $r->delete('/candidates/{candidate}/documents/{document}', [DocumentController::class, 'destroy'])
             ->middleware(['can:documents.delete', 'throttle:write'])->name('candidates.documents.destroy');
+        $r->post('/candidates/{candidate}/documents/{document}/review', [DocumentController::class, 'startReview'])
+            ->middleware(['throttle:write'])->name('candidates.documents.review');
+        $r->post('/candidates/{candidate}/documents/{document}/verify', [DocumentController::class, 'verify'])
+            ->middleware(['can:documents.verify', 'throttle:write'])->name('candidates.documents.verify');
+        $r->post('/candidates/{candidate}/documents/{document}/reject', [DocumentController::class, 'reject'])
+            ->middleware(['can:documents.reject', 'throttle:write'])->name('candidates.documents.reject');
 
         $r->get('/documents/{document}/download', [DocumentController::class, 'download'])
             ->middleware(['can:documents.view'])->name('documents.download');

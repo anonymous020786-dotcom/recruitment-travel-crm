@@ -306,4 +306,154 @@ final class DocumentServiceTest extends DbTestCase
 
         self::assertNull($this->documents->findByPublicId($doc->publicId, $scope));
     }
+
+    public function test_start_review_transitions_uploaded_to_under_review(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+
+        $updated = $this->service->startReview($candidate, $doc->id, $actor, $doc->recordVersion);
+
+        self::assertSame('under_review', $updated->status);
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='document_review_started' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_verify_transitions_uploaded_to_verified_and_records_reviewer(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+
+        $updated = $this->service->verify($candidate, $doc->id, $actor, $doc->recordVersion);
+
+        self::assertSame('verified', $updated->status);
+        self::assertSame($actor->id, $updated->verifiedBy);
+        self::assertNotNull($updated->verifiedAt);
+    }
+
+    public function test_verify_via_under_review_also_works(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+        $reviewing = $this->service->startReview($candidate, $doc->id, $actor, $doc->recordVersion);
+
+        $updated = $this->service->verify($candidate, $doc->id, $actor, $reviewing->recordVersion);
+
+        self::assertSame('verified', $updated->status);
+    }
+
+    public function test_reject_requires_a_reason(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+
+        $this->expectException(ValidationException::class);
+        $this->service->reject($candidate, $doc->id, '   ', $actor, $doc->recordVersion);
+    }
+
+    public function test_reject_transitions_and_stores_reason(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+
+        $updated = $this->service->reject($candidate, $doc->id, 'Photo is blurry.', $actor, $doc->recordVersion);
+
+        self::assertSame('rejected', $updated->status);
+        self::assertSame('Photo is blurry.', $updated->rejectionReason);
+        self::assertTrue($this->db->exists(
+            "SELECT 1 FROM activity_logs WHERE module='candidates' AND action='document_rejected' AND record_id = ?",
+            [$candidate->id],
+        ));
+    }
+
+    public function test_verify_rejects_an_already_verified_document(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+        $verified = $this->service->verify($candidate, $doc->id, $actor, $doc->recordVersion);
+
+        $this->expectException(DomainRuleException::class);
+        $this->service->verify($candidate, $doc->id, $actor, $verified->recordVersion);
+    }
+
+    public function test_verify_rejects_stale_version(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+
+        $this->expectException(\App\Exceptions\StaleRecordException::class);
+        $this->service->verify($candidate, $doc->id, $actor, $doc->recordVersion + 5);
+    }
+
+    public function test_verify_denies_agent_without_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+        $counselor = $this->actor('counselor'); // can upload/view/download but not verify/reject
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->verify($candidate, $doc->id, $counselor, $doc->recordVersion);
+    }
+
+    public function test_reject_denies_agent_without_permission(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('passport.pdf', $this->validPdf()), null, null, $actor);
+        $counselor = $this->actor('counselor');
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->reject($candidate, $doc->id, 'Not clear.', $counselor, $doc->recordVersion);
+    }
+
+    public function test_expire_due_marks_only_past_verified_documents(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $expired = $this->service->upload($candidate, $type->id, $this->fakeFile('a.pdf', $this->validPdf()), null, '2020-01-01', $actor);
+        $future = $this->service->upload($candidate, $type->id, $this->fakeFile('b.pdf', $this->validPdf()), null, '2099-01-01', $actor);
+        $expired = $this->service->verify($candidate, $expired->id, $actor, $expired->recordVersion);
+        $future = $this->service->verify($candidate, $future->id, $actor, $future->recordVersion);
+
+        $count = $this->service->expireDue('2026-01-01');
+
+        self::assertSame(1, $count);
+        self::assertSame('expired', $this->documents->findInCandidate($expired->id, $candidate->id)->status);
+        self::assertSame('verified', $this->documents->findInCandidate($future->id, $candidate->id)->status);
+    }
+
+    public function test_expire_due_is_idempotent(): void
+    {
+        $actor = $this->actor('manager');
+        $candidate = $this->candidate($actor);
+        $type = $this->types->findByKey('passport');
+        $doc = $this->service->upload($candidate, $type->id, $this->fakeFile('a.pdf', $this->validPdf()), null, '2020-01-01', $actor);
+        $doc = $this->service->verify($candidate, $doc->id, $actor, $doc->recordVersion);
+
+        $first = $this->service->expireDue('2026-01-01');
+        $second = $this->service->expireDue('2026-01-01');
+
+        self::assertSame(1, $first);
+        self::assertSame(0, $second);
+    }
 }
