@@ -1,6 +1,6 @@
 <?php
 /**
- * @var \App\Models\Job $job
+ * @var \App\Models\Job $job @var bool $canApply
  * @var list<array{candidate:array{id:int,public_id:string,number:string,name:string,stage:string},result:\App\Domain\Matching\MatchResult}> $rows
  */
 $this->layout('layouts.app', ['title' => 'Matches · ' . $job->title, 'currentPath' => '/jobs']);
@@ -36,6 +36,14 @@ $tone = static fn (float $s): string => $s >= 75 ? 'green' : ($s >= 50 ? 'amber'
                             <?= component('badge', ['label' => 'Missing mandatory: ' . implode(', ', $res->missingMandatory), 'color' => 'red', 'dot' => true]) ?>
                         <?php endif ?>
                         <?= component('badge', ['label' => number_format($res->score, 1) . ' / 100', 'color' => $tone($res->score)]) ?>
+                        <?php if (!empty($canApply)): ?>
+                            <form method="post" action="/applications" class="inline" data-confirm="Create an application for <?= e_attr($c['name']) ?>?">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="candidate" value="<?= e_attr($c['public_id']) ?>">
+                                <input type="hidden" name="job" value="<?= e_attr($job->publicId) ?>">
+                                <button class="btn btn-secondary btn-sm">Apply</button>
+                            </form>
+                        <?php endif ?>
                     </div>
                 </div>
                 <details class="mt-1">

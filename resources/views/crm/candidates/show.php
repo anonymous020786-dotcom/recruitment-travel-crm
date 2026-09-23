@@ -490,9 +490,24 @@ $this->start('content');
                 : '<p class="text-sm text-slate-500">No originating lead on record.</p>',
         ]) ?>
 
+        <?php if (!empty($candidateApplications)): ?>
+            <div id="applications">
+                <?= component('card', ['title' => 'Applications', 'body' => (function () use ($candidateApplications) {
+                    $html = '<ul class="divide-y divide-slate-100">';
+                    foreach ($candidateApplications as $a) {
+                        $html .= '<li class="flex items-center justify-between gap-2 py-2 text-sm"><a href="/applications/' . e_attr($a->publicId) . '" class="font-medium text-slate-900">' . e($a->jobTitle) . '</a>'
+                            . component('badge', ['label' => $a->label(), 'color' => in_array($a->status, ['rejected', 'cancelled'], true) ? 'red' : ($a->status === 'placed' ? 'green' : 'indigo')]) . '</li>';
+                    }
+
+                    return $html . '</ul>';
+                })()]) ?>
+            </div>
+        <?php endif ?>
+
         <?php if (!empty($jobMatches)): ?>
             <div id="job-matches">
-                <?= component('card', ['title' => 'Suggested jobs', 'body' => (function () use ($jobMatches) {
+                <?= component('card', ['title' => 'Suggested jobs', 'body' => (function () use ($jobMatches, $candidate, $canApply, $candidateApplications) {
+                    $applied = array_flip(array_map(static fn ($a): string => $a->jobPublicId, $candidateApplications));
                     $tone = static fn (float $s): string => $s >= 75 ? 'green' : ($s >= 50 ? 'amber' : 'slate');
                     $html = '<ul class="divide-y divide-slate-100">';
                     foreach ($jobMatches as $m) {
@@ -500,7 +515,13 @@ $this->start('content');
                         $res = $m['result'];
                         $html .= '<li class="py-2 text-sm"><div class="flex items-center justify-between gap-2">'
                             . '<a href="/jobs/' . e_attr($j->publicId) . '" class="font-medium text-slate-900">' . e($j->title) . '</a>'
-                            . component('badge', ['label' => number_format($res->score, 1), 'color' => $tone($res->score)]) . '</div>'
+                            . '<span class="flex items-center gap-2">' . component('badge', ['label' => number_format($res->score, 1), 'color' => $tone($res->score)])
+                            . (($canApply && !isset($applied[$j->publicId]))
+                                ? '<form method="post" action="/applications" class="inline">' . csrf_field()
+                                    . '<input type="hidden" name="candidate" value="' . e_attr($candidate->publicId) . '"><input type="hidden" name="job" value="' . e_attr($j->publicId) . '">'
+                                    . '<button class="btn btn-secondary btn-sm">Apply</button></form>'
+                                : (isset($applied[$j->publicId]) ? component('badge', ['label' => 'Applied', 'color' => 'indigo']) : ''))
+                            . '</span></div>'
                             . '<p class="text-xs text-slate-500">' . e($j->employerName) . ' · ' . e($j->country)
                             . (!$res->eligible ? ' · <span class="text-red-600">missing mandatory: ' . e(implode(', ', $res->missingMandatory)) . '</span>' : '') . '</p>'
                             . '<details><summary class="cursor-pointer text-xs text-brand-600">Why?</summary>'

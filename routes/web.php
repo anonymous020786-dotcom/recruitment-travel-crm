@@ -8,6 +8,7 @@ use App\Controllers\Auth\PasswordResetController;
 use App\Controllers\Auth\TwoFactorChallengeController;
 use App\Controllers\Auth\WebAuthnLoginController;
 use App\Controllers\Crm\AccountController;
+use App\Controllers\Crm\ApplicationController;
 use App\Controllers\Crm\CandidateController;
 use App\Controllers\Crm\DashboardController;
 use App\Controllers\Crm\DocumentController;
@@ -252,6 +253,12 @@ return static function (Router $router): void {
             ->middleware(['can:employers.contacts.manage', 'throttle:write'])->name('employers.contacts.update');
         $r->delete('/employers/{employer}/contacts/{contact}', [EmployerController::class, 'destroyContact'])
             ->middleware(['can:employers.contacts.manage', 'throttle:write'])->name('employers.contacts.destroy');
+
+        // ---- Applications ----
+        $r->get('/applications', [ApplicationController::class, 'index'])->middleware(['can:applications.view'])->name('applications.index');
+        $r->post('/applications', [ApplicationController::class, 'store'])->middleware(['can:applications.create', 'throttle:write'])->name('applications.store');
+        $r->get('/applications/{application}', [ApplicationController::class, 'show'])->middleware(['can:applications.view'])->name('applications.show');
+        $r->post('/applications/{application}/status', [ApplicationController::class, 'changeStatus'])->middleware(['can:applications.change_status', 'throttle:write'])->name('applications.status');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');

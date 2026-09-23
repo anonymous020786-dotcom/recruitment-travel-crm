@@ -39,6 +39,7 @@ final class JobController extends CrmController
         private readonly EmployerRepository $employers,
         private readonly JobService $service,
         private readonly StatusMachine $statuses,
+        private readonly \App\Repositories\ApplicationRepository $applications,
     ) {
     }
 
@@ -101,6 +102,7 @@ final class JobController extends CrmController
             'canStatus'    => can('changeStatus', $model),
             'canPublish'   => can('publish', $model),
             'canMatch'     => can('match', $model),
+            'applications' => can('applications.view') ? $this->applications->forJob($model->id, $this->scope()) : [],
             'nextStatuses' => $this->statuses->transitionsFrom('job', $model->status),
         ]);
     }

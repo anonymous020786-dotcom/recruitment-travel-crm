@@ -79,6 +79,19 @@ final class CandidateRepository
     }
 
     /**
+     * Refresh the denormalised pipeline snapshot. Deliberately does NOT bump
+     * record_version: `stage` is derived from application state, not user-edited,
+     * so it must not invalidate someone's open edit form.
+     */
+    public function setStage(int $id, string $stage): void
+    {
+        $this->db->affectingStatement(
+            'UPDATE candidates SET stage = :s WHERE id = :id AND stage <> :s2',
+            ['s' => $stage, 'id' => $id, 's2' => $stage],
+        );
+    }
+
+    /**
      * Optimistic update: only writes when record_version matches; bumps it.
      *
      * @param array<string,mixed> $changes

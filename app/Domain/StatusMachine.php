@@ -28,6 +28,12 @@ final class StatusMachine
         return $this->rules[$entity][$from] ?? [];
     }
 
+    /** @return list<string> the entity's states in declaration order (pipeline order for ordered entities) */
+    public function states(string $entity): array
+    {
+        return array_map('strval', array_keys($this->rules[$entity] ?? []));
+    }
+
     public function isKnown(string $entity, string $status): bool
     {
         $map = $this->rules[$entity] ?? [];

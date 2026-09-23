@@ -130,6 +130,18 @@ if ($canDelete && in_array($job->status, ['draft', 'closed', 'cancelled'], true)
     </div>
 
     <div class="space-y-4">
+        <?php if (!empty($applications)): ?>
+            <?= component('card', ['title' => 'Applications (' . count($applications) . ')', 'body' => (function () use ($applications) {
+                $html = '<ul class="divide-y divide-slate-100">';
+                foreach ($applications as $a) {
+                    $html .= '<li class="flex items-center justify-between gap-2 py-2 text-sm"><a href="/applications/' . e_attr($a->publicId) . '" class="font-medium text-slate-900">' . e($a->candidateName) . '</a>'
+                        . component('badge', ['label' => $a->label(), 'color' => in_array($a->status, ['rejected', 'cancelled'], true) ? 'red' : ($a->status === 'placed' ? 'green' : 'indigo')]) . '</li>';
+                }
+
+                return $html . '</ul>';
+            })()]) ?>
+        <?php endif ?>
+
         <?= component('card', ['title' => 'Lifecycle', 'body' => (function () use ($job, $canStatus, $nextStatuses, $base) {
             $html = '<p class="mb-2 text-sm text-slate-600">Status: <span class="font-medium text-slate-900">' . e($job->statusLabel()) . '</span></p>';
             if (!$canStatus || $nextStatuses === []) {

@@ -86,6 +86,21 @@ final class MatchService
         return $this->rank($rows, $limit);
     }
 
+    /**
+     * Score one candidate against one job without any permission check — for
+     * internal callers (ApplicationService snapshots it) that authorize
+     * themselves. Returns null if the candidate is outside the given scope.
+     */
+    public function scorePair(Candidate $candidate, Job $job, \App\Auth\BranchScope $scope): ?MatchResult
+    {
+        $profile = $this->profiles->candidateProfiles($scope, [$candidate->id], 1)[0]['profile'] ?? null;
+        if ($profile === null) {
+            return null;
+        }
+
+        return $this->engine->score($profile, $this->jobProfile($job, $this->requirements->forJob($job->id)));
+    }
+
     /** @param list<\App\Models\JobRequirement> $requirements @return array<string,mixed> */
     private function jobProfile(Job $job, array $requirements): array
     {

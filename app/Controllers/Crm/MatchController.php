@@ -31,6 +31,10 @@ final class MatchController extends CrmController
             abort(403);
         }
 
-        return view_response('crm.jobs.matches', ['job' => $model, 'rows' => $rows]);
+        return view_response('crm.jobs.matches', [
+            'job' => $model,
+            'rows' => $rows,
+            'canApply' => can('applications.create') && $model->status === 'open',
+        ]);
     }
 }
