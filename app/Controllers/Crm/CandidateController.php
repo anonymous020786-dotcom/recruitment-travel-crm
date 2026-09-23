@@ -56,6 +56,7 @@ final class CandidateController extends CrmController
         private readonly ChecklistRepository $checklist,
         private readonly \App\Services\MatchService $matches,
         private readonly \App\Repositories\ApplicationRepository $applications,
+        private readonly \App\Repositories\MedicalRepository $medical,
     ) {
     }
 
@@ -106,6 +107,8 @@ final class CandidateController extends CrmController
             'canManageChecklist' => can('documents.checklist.manage'),
             'jobMatches'  => $this->jobMatches($model),
             'canApply'    => can('applications.create'),
+            'medical'     => can('medical.view') ? $this->medical->forCandidate($model->id) : [],
+            'canBook'     => can('medical.create'),
             'candidateApplications' => can('applications.view') ? $this->applications->forCandidate($model->id, $this->scope()) : [],
         ]);
     }

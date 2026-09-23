@@ -19,6 +19,7 @@ use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\InterviewController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
+use App\Controllers\Crm\MedicalController;
 use App\Controllers\Crm\LeadImportController;
 use App\Controllers\Crm\PasskeyController;
 use App\Controllers\HealthController;
@@ -267,6 +268,14 @@ return static function (Router $router): void {
         $r->post('/interviews/{interview}/confirm', [InterviewController::class, 'confirm'])->middleware(['can:interviews.edit', 'throttle:write'])->name('interviews.confirm');
         $r->post('/interviews/{interview}/reschedule', [InterviewController::class, 'reschedule'])->middleware(['can:interviews.edit', 'throttle:write'])->name('interviews.reschedule');
         $r->post('/interviews/{interview}/outcome', [InterviewController::class, 'outcome'])->middleware(['can:interviews.record_outcome', 'throttle:write'])->name('interviews.outcome');
+
+        // ---- Medical ----
+        $r->get('/medical', [MedicalController::class, 'index'])->middleware(['can:medical.view'])->name('medical.index');
+        $r->post('/candidates/{candidate}/medical', [MedicalController::class, 'store'])->middleware(['can:medical.create', 'throttle:write'])->name('medical.store');
+        $r->post('/medical/{medical}/reschedule', [MedicalController::class, 'reschedule'])->middleware(['can:medical.edit', 'throttle:write'])->name('medical.reschedule');
+        $r->post('/medical/{medical}/attended', [MedicalController::class, 'attended'])->middleware(['can:medical.edit', 'throttle:write'])->name('medical.attended');
+        $r->post('/medical/{medical}/result', [MedicalController::class, 'result'])->middleware(['can:medical.edit', 'throttle:write'])->name('medical.result');
+        $r->delete('/medical/{medical}', [MedicalController::class, 'destroy'])->middleware(['can:medical.delete', 'throttle:write'])->name('medical.destroy');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');

@@ -85,6 +85,16 @@ return [
         'cancelled'           => [],   // terminal
     ],
 
+    // Medical examination. `retest` is terminal for the record: a retest is a NEW record.
+    'medical' => [
+        'pending'   => ['scheduled', 'completed'],
+        'scheduled' => ['completed', 'fit', 'unfit', 'retest'],
+        'completed' => ['fit', 'unfit', 'retest'],
+        'fit'       => [],
+        'unfit'     => [],
+        'retest'    => [],
+    ],
+
     // 'visa'        => [ ... ]   (Phase 7)
     // 'tour_booking'=> [ ... ]   (Phase 8)
 ];

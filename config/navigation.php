@@ -16,6 +16,7 @@ return [
     ['label' => 'Jobs',         'icon' => 'jobs',         'path' => '/jobs',           'permission' => 'jobs.view'],
     ['label' => 'Applications', 'icon' => 'applications', 'path' => '/applications',   'permission' => 'applications.view'],
     ['label' => 'Interviews',   'icon' => 'interviews',   'path' => '/interviews',     'permission' => 'interviews.view'],
+    ['label' => 'Medical',      'icon' => 'medical',      'path' => '/medical',        'permission' => 'medical.view'],
     ['label' => 'Visa',         'icon' => 'visa',         'path' => '/visa',           'permission' => 'visa.view'],
     ['label' => 'Travel',       'icon' => 'travel',       'path' => '/travel',         'permission' => 'travel.view'],
     ['label' => 'Tours',        'icon' => 'tours',        'path' => '/tours/bookings', 'permission' => 'tours.bookings.view'],

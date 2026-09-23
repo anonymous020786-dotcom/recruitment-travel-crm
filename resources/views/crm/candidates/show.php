@@ -9,6 +9,7 @@
  * @var list<\App\Models\Passport> $passports @var bool $canPassport
  * @var list<array{type:string,at:string,actor:?string,text:string}> $timeline @var bool $canAddNote
  * @var list<\App\Models\Task> $tasks @var bool $canTasks @var list<array{id:int,name:string}> $taskAssignees
+ * @var list<\App\Models\MedicalRecord> $medical @var bool $canBook
  * @var list<\App\Models\CandidateDocument> $documents @var list<\App\Models\DocumentType> $documentTypes
  * @var bool $canUploadDocument @var bool $canDeleteDocument
  * @var bool $canVerifyDocument @var bool $canRejectDocument
@@ -503,6 +504,10 @@ $this->start('content');
                 })()]) ?>
             </div>
         <?php endif ?>
+
+        <div id="medical">
+            <?= $this->partial('crm.medical._card', ['candidate' => $candidate, 'medical' => $medical, 'candidateApplications' => $candidateApplications, 'canBook' => $canBook]) ?>
+        </div>
 
         <?php if (!empty($jobMatches)): ?>
             <div id="job-matches">
