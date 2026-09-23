@@ -58,6 +58,24 @@ final class EmployerRepository
         return $row ? Employer::fromRow($row) : null;
     }
 
+    /**
+     * Active employers in scope, for pick-lists.
+     *
+     * @return array<string,string> public_id => company name
+     */
+    public function options(BranchScope $scope): array
+    {
+        [$branchSql, $bind] = $scope->whereClause('e.branch_id');
+        $rows = $this->db->select(
+            "SELECT e.public_id, e.company_name FROM employers e
+             WHERE e.deleted_at IS NULL AND e.status IN ('active', 'prospect') AND {$branchSql}
+             ORDER BY e.company_name LIMIT 500",
+            $bind,
+        );
+
+        return array_column($rows, 'company_name', 'public_id');
+    }
+
     /** @param array<string,mixed> $data */
     public function create(array $data): int
     {

@@ -42,8 +42,19 @@ return [
         'expired'      => [],
     ],
 
+    // Job posting lifecycle. `closed` and `cancelled` are terminal; a filled
+    // job can only be closed. No override permission exists for jobs.
+    'job' => [
+        'draft'     => ['open', 'cancelled'],
+        'open'      => ['paused', 'interview', 'filled', 'closed', 'cancelled'],
+        'paused'    => ['open', 'closed', 'cancelled'],
+        'interview' => ['open', 'filled', 'closed', 'cancelled'],
+        'filled'    => ['closed'],
+        'closed'    => [],
+        'cancelled' => [],
+    ],
+
     // 'application' => [ ... ]   (Phase 6)
     // 'visa'        => [ ... ]   (Phase 7)
-    // 'job'         => [ ... ]   (Phase 5)
     // 'tour_booking'=> [ ... ]   (Phase 8)
 ];

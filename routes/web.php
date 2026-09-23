@@ -12,6 +12,7 @@ use App\Controllers\Crm\CandidateController;
 use App\Controllers\Crm\DashboardController;
 use App\Controllers\Crm\DocumentController;
 use App\Controllers\Crm\EmployerController;
+use App\Controllers\Crm\JobController;
 use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
@@ -250,5 +251,20 @@ return static function (Router $router): void {
             ->middleware(['can:employers.contacts.manage', 'throttle:write'])->name('employers.contacts.update');
         $r->delete('/employers/{employer}/contacts/{contact}', [EmployerController::class, 'destroyContact'])
             ->middleware(['can:employers.contacts.manage', 'throttle:write'])->name('employers.contacts.destroy');
+
+        // ---- Jobs (literal paths before the {job} wildcard) ----
+        $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');
+        $r->get('/jobs/create', [JobController::class, 'create'])->middleware(['can:jobs.create'])->name('jobs.create');
+        $r->post('/jobs', [JobController::class, 'store'])->middleware(['can:jobs.create', 'throttle:write'])->name('jobs.store');
+        $r->get('/jobs/{job}', [JobController::class, 'show'])->middleware(['can:jobs.view'])->name('jobs.show');
+        $r->get('/jobs/{job}/edit', [JobController::class, 'edit'])->middleware(['can:jobs.edit'])->name('jobs.edit');
+        $r->put('/jobs/{job}', [JobController::class, 'update'])->middleware(['can:jobs.edit', 'throttle:write'])->name('jobs.update');
+        $r->delete('/jobs/{job}', [JobController::class, 'destroy'])->middleware(['can:jobs.delete', 'throttle:write'])->name('jobs.destroy');
+        $r->post('/jobs/{job}/status', [JobController::class, 'changeStatus'])->middleware(['can:jobs.change_status', 'throttle:write'])->name('jobs.status');
+        $r->post('/jobs/{job}/publish', [JobController::class, 'publish'])->middleware(['can:jobs.publish', 'throttle:write'])->name('jobs.publish');
+        $r->post('/jobs/{job}/requirements', [JobController::class, 'storeRequirement'])->middleware(['can:jobs.edit', 'throttle:write'])->name('jobs.requirements.store');
+        $r->delete('/jobs/{job}/requirements/{requirement}', [JobController::class, 'destroyRequirement'])->middleware(['can:jobs.edit', 'throttle:write'])->name('jobs.requirements.destroy');
+        $r->post('/jobs/{job}/benefits', [JobController::class, 'storeBenefit'])->middleware(['can:jobs.edit', 'throttle:write'])->name('jobs.benefits.store');
+        $r->delete('/jobs/{job}/benefits/{benefit}', [JobController::class, 'destroyBenefit'])->middleware(['can:jobs.edit', 'throttle:write'])->name('jobs.benefits.destroy');
     });
 };

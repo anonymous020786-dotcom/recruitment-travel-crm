@@ -28,6 +28,14 @@ final class SkillRepository
         return (int) $this->db->insertRow('skills', ['name' => $name, 'category' => $category]);
     }
 
+    /** Exact (case-insensitive under the table's collation) catalogue lookup; never creates. */
+    public function findIdByName(string $name): ?int
+    {
+        $id = $this->db->selectValue('SELECT id FROM skills WHERE name = :n', ['n' => trim($name)]);
+
+        return $id !== null ? (int) $id : null;
+    }
+
     /** @return list<array{id:int,name:string,category:?string}> */
     public function search(string $term, int $limit = 20): array
     {

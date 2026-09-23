@@ -137,6 +137,7 @@ return static function (Application $app): void {
     $app->singleton(\App\Services\LeadExportService::class);
     $app->singleton(\App\Services\CandidateService::class);
     $app->singleton(\App\Services\EmployerService::class);
+    $app->singleton(\App\Services\JobService::class);
 
     $app->singleton(Gate::class, static function (Application $app): Gate {
         $gate = new Gate($app, $app->get(PermissionService::class), $app->get(Auth::class));
@@ -145,6 +146,7 @@ return static function (Application $app): void {
         $gate->policy(\App\Models\Lead::class, \App\Policies\LeadPolicy::class);
         $gate->policy(\App\Models\Candidate::class, \App\Policies\CandidatePolicy::class);
         $gate->policy(\App\Models\Employer::class, \App\Policies\EmployerPolicy::class);
+        $gate->policy(\App\Models\Job::class, \App\Policies\JobPolicy::class);
 
         return $gate;
     });

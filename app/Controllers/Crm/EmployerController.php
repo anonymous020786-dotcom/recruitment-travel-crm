@@ -13,6 +13,7 @@ use App\Models\Employer;
 use App\Repositories\CandidateRepository;
 use App\Repositories\EmployerContactRepository;
 use App\Repositories\EmployerRepository;
+use App\Repositories\JobRepository;
 use App\Services\EmployerService;
 use App\Support\Db;
 use App\Support\ListQuery;
@@ -31,6 +32,7 @@ final class EmployerController extends CrmController
         private readonly EmployerRepository $employers,
         private readonly EmployerContactRepository $contacts,
         private readonly CandidateRepository $candidates,
+        private readonly JobRepository $jobs,
         private readonly EmployerService $service,
     ) {
     }
@@ -79,6 +81,8 @@ final class EmployerController extends CrmController
         return view_response('crm.employers.show', [
             'employer'   => $model,
             'contacts'   => $this->contacts->forEmployer($model->id),
+            'jobs'       => $this->jobs->forEmployer($model->id),
+            'canPostJob' => can('jobs.create') && !in_array($model->status, ['suspended', 'blacklisted', 'inactive'], true),
             'canEdit'    => can('update', $model),
             'canDelete'  => can('delete', $model),
             'canContacts' => can('manageContacts', $model),

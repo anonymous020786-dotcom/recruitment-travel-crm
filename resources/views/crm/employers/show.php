@@ -2,6 +2,7 @@
 /**
  * @var \App\Models\Employer $employer @var list<\App\Models\EmployerContact> $contacts
  * @var bool $canEdit @var bool $canDelete @var bool $canContacts
+ * @var list<\App\Models\Job> $jobs @var bool $canPostJob
  */
 $this->layout('layouts.app', ['title' => $employer->companyName, 'currentPath' => '/employers']);
 $this->start('content');
@@ -113,7 +114,22 @@ if ($canDelete) {
     </div>
 
     <div class="space-y-4">
-        <?= component('card', ['title' => 'Jobs', 'body' => '<p class="text-sm text-slate-500">Job postings for this employer arrive in the next step.</p>']) ?>
+        <?= component('card', ['title' => 'Jobs', 'body' => (function () use ($employer, $jobs, $canPostJob) {
+            $html = '';
+            if ($canPostJob) {
+                $html .= '<a href="/jobs/create?employer=' . e_attr($employer->publicId) . '" class="btn btn-secondary btn-sm mb-3">New job</a>';
+            }
+            if ($jobs === []) {
+                return $html . '<p class="text-sm text-slate-500">No jobs posted yet.</p>';
+            }
+            $html .= '<ul class="divide-y divide-slate-100">';
+            foreach ($jobs as $j) {
+                $html .= '<li class="flex items-center justify-between gap-2 py-2 text-sm"><a href="/jobs/' . e_attr($j->publicId) . '" class="font-medium text-slate-900">' . e($j->title) . '</a>'
+                    . component('badge', ['label' => $j->statusLabel(), 'color' => $j->status === 'open' ? 'green' : 'slate']) . '</li>';
+            }
+
+            return $html . '</ul>';
+        })()]) ?>
     </div>
 </div>
 <?php $this->stop(); ?>
