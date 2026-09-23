@@ -490,8 +490,30 @@ $this->start('content');
                 : '<p class="text-sm text-slate-500">No originating lead on record.</p>',
         ]) ?>
 
+        <?php if (!empty($jobMatches)): ?>
+            <div id="job-matches">
+                <?= component('card', ['title' => 'Suggested jobs', 'body' => (function () use ($jobMatches) {
+                    $tone = static fn (float $s): string => $s >= 75 ? 'green' : ($s >= 50 ? 'amber' : 'slate');
+                    $html = '<ul class="divide-y divide-slate-100">';
+                    foreach ($jobMatches as $m) {
+                        $j = $m['job'];
+                        $res = $m['result'];
+                        $html .= '<li class="py-2 text-sm"><div class="flex items-center justify-between gap-2">'
+                            . '<a href="/jobs/' . e_attr($j->publicId) . '" class="font-medium text-slate-900">' . e($j->title) . '</a>'
+                            . component('badge', ['label' => number_format($res->score, 1), 'color' => $tone($res->score)]) . '</div>'
+                            . '<p class="text-xs text-slate-500">' . e($j->employerName) . ' · ' . e($j->country)
+                            . (!$res->eligible ? ' · <span class="text-red-600">missing mandatory: ' . e(implode(', ', $res->missingMandatory)) . '</span>' : '') . '</p>'
+                            . '<details><summary class="cursor-pointer text-xs text-brand-600">Why?</summary>'
+                            . $this->partial('crm._match_breakdown', ['result' => $res]) . '</details></li>';
+                    }
+
+                    return $html . '</ul>';
+                })()]) ?>
+            </div>
+        <?php endif ?>
+
         <div id="preferences">
-            <?= component('card', ['title' => 'Preferences', 'body' => (function () use ($candidate, $preferences, $canPreferences) {
+            <?= component('card', ['title' => 'Preferences','body' => (function () use ($candidate, $preferences, $canPreferences) {
                 if (!$canPreferences && $preferences === null) {
                     return '<p class="text-sm text-slate-500">No preferences recorded yet.</p>';
                 }

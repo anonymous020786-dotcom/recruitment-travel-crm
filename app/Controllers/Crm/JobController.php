@@ -100,6 +100,7 @@ final class JobController extends CrmController
             'canDelete'    => can('delete', $model),
             'canStatus'    => can('changeStatus', $model),
             'canPublish'   => can('publish', $model),
+            'canMatch'     => can('match', $model),
             'nextStatuses' => $this->statuses->transitionsFrom('job', $model->status),
         ]);
     }

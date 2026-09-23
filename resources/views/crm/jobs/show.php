@@ -12,6 +12,9 @@ $terminal = in_array($job->status, ['closed', 'cancelled'], true);
 $base = '/jobs/' . e_attr($job->publicId);
 
 $actions = '';
+if (!empty($canMatch)) {
+    $actions .= '<a href="' . $base . '/matches" class="btn btn-secondary btn-sm">Find matches</a> ';
+}
 if ($canEdit && !$terminal) {
     $actions .= '<a href="' . $base . '/edit" class="btn btn-primary btn-sm">Edit</a> ';
 }

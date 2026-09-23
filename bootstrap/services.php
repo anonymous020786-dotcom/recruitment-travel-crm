@@ -116,6 +116,9 @@ return static function (Application $app): void {
     $app->singleton(StatusMachine::class, static fn (Application $app): StatusMachine => new StatusMachine(
         (array) $app->config()->get('statuses', []),
     ));
+    $app->singleton(\App\Domain\Matching\MatchEngine::class, static fn (Application $app): \App\Domain\Matching\MatchEngine => new \App\Domain\Matching\MatchEngine(
+        (array) $app->config()->get('matching', []),
+    ));
 
     $app->singleton(\App\Support\Totp::class);
     $app->singleton(\App\Support\Encryptor::class, static fn (Application $app) => new \App\Support\Encryptor(
@@ -138,6 +141,15 @@ return static function (Application $app): void {
     $app->singleton(\App\Services\CandidateService::class);
     $app->singleton(\App\Services\EmployerService::class);
     $app->singleton(\App\Services\JobService::class);
+    $app->singleton(\App\Services\MatchService::class, static fn (Application $app): \App\Services\MatchService => new \App\Services\MatchService(
+        $app->get(\App\Domain\Matching\MatchEngine::class),
+        $app->get(\App\Repositories\MatchProfileRepository::class),
+        $app->get(\App\Repositories\JobRepository::class),
+        $app->get(\App\Repositories\JobRequirementRepository::class),
+        $app->get(Gate::class),
+        $app->get(\App\Auth\BranchScopeResolver::class),
+        (array) $app->config()->get('matching', []),
+    ));
 
     $app->singleton(Gate::class, static function (Application $app): Gate {
         $gate = new Gate($app, $app->get(PermissionService::class), $app->get(Auth::class));

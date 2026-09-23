@@ -125,6 +125,25 @@ final class JobRepository
         );
     }
 
+    /**
+     * Open, not-yet-past-deadline jobs in scope (the pool a candidate is matched against).
+     *
+     * @return list<Job>
+     */
+    public function openJobs(BranchScope $scope, int $limit = 200): array
+    {
+        [$branchSql, $bind] = $scope->whereClause('j.branch_id');
+        $limit = max(1, min($limit, 500));
+        $rows = $this->db->select(
+            'SELECT ' . self::COLUMNS . ' ' . self::JOINS
+            . " WHERE j.status = 'open' AND j.deleted_at IS NULL AND (j.deadline IS NULL OR j.deadline >= UTC_DATE()) AND {$branchSql}"
+            . " ORDER BY j.id DESC LIMIT {$limit}",
+            $bind,
+        );
+
+        return array_map([Job::class, 'fromRow'], $rows);
+    }
+
     /** @return list<Job> */
     public function forEmployer(int $employerId, int $limit = 50): array
     {

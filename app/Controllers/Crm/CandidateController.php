@@ -54,6 +54,7 @@ final class CandidateController extends CrmController
         private readonly CandidateDocumentRepository $documents,
         private readonly DocumentTypeRepository $documentTypes,
         private readonly ChecklistRepository $checklist,
+        private readonly \App\Services\MatchService $matches,
     ) {
     }
 
@@ -102,7 +103,18 @@ final class CandidateController extends CrmController
             'canRejectDocument' => can('documents.reject'),
             'checklist'   => $this->checklist->forCandidate($model->id),
             'canManageChecklist' => can('documents.checklist.manage'),
+            'jobMatches'  => $this->jobMatches($model),
         ]);
+    }
+
+    /** Top open jobs for this candidate; empty when the viewer lacks jobs.match / jobs.view. */
+    private function jobMatches(Candidate $candidate): array
+    {
+        try {
+            return $this->matches->rankJobsForCandidate($candidate, $this->currentUser(), 5);
+        } catch (\App\Exceptions\AuthorizationException) {
+            return [];
+        }
     }
 
     public function edit(Request $request, string $candidate): Response

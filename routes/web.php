@@ -13,6 +13,7 @@ use App\Controllers\Crm\DashboardController;
 use App\Controllers\Crm\DocumentController;
 use App\Controllers\Crm\EmployerController;
 use App\Controllers\Crm\JobController;
+use App\Controllers\Crm\MatchController;
 use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
@@ -257,7 +258,8 @@ return static function (Router $router): void {
         $r->get('/jobs/create', [JobController::class, 'create'])->middleware(['can:jobs.create'])->name('jobs.create');
         $r->post('/jobs', [JobController::class, 'store'])->middleware(['can:jobs.create', 'throttle:write'])->name('jobs.store');
         $r->get('/jobs/{job}', [JobController::class, 'show'])->middleware(['can:jobs.view'])->name('jobs.show');
-        $r->get('/jobs/{job}/edit', [JobController::class, 'edit'])->middleware(['can:jobs.edit'])->name('jobs.edit');
+        $r->get('/jobs/{job}/matches', [MatchController::class, 'forJob'])->middleware(['can:jobs.match'])->name('jobs.matches');
+        $r->get('/jobs/{job}/edit',[JobController::class, 'edit'])->middleware(['can:jobs.edit'])->name('jobs.edit');
         $r->put('/jobs/{job}', [JobController::class, 'update'])->middleware(['can:jobs.edit', 'throttle:write'])->name('jobs.update');
         $r->delete('/jobs/{job}', [JobController::class, 'destroy'])->middleware(['can:jobs.delete', 'throttle:write'])->name('jobs.destroy');
         $r->post('/jobs/{job}/status', [JobController::class, 'changeStatus'])->middleware(['can:jobs.change_status', 'throttle:write'])->name('jobs.status');
