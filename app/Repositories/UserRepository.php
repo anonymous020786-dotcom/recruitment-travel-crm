@@ -135,4 +135,16 @@ final class UserRepository
 
         return array_map(static fn (array $r): int => (int) $r['id'], $rows);
     }
+
+    /** Whether an active user may be given work in a branch: org-wide, or attached to it (primary or extra). */
+    public function canServeBranch(int $userId, int $branchId): bool
+    {
+        return $this->db->exists(
+            'SELECT 1 FROM users u
+             WHERE u.id = :id AND u.is_active = 1 AND u.deleted_at IS NULL
+               AND (u.is_org_wide = 1 OR u.primary_branch_id = :pb
+                    OR EXISTS (SELECT 1 FROM user_branches ub WHERE ub.user_id = u.id AND ub.branch_id = :ub))',
+            ['id' => $userId, 'pb' => $branchId, 'ub' => $branchId],
+        );
+    }
 }

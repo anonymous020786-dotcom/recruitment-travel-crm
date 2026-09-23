@@ -135,5 +135,15 @@ return [
         'archived' => ['active'],
     ],
 
-    // 'tour_booking'=> [ ... ]   (Step 8.3)
+    // Tour booking (a customer buying a package). Independent of the recruitment
+    // pipeline. `travelling` → `completed` is the only way out of a trip in progress;
+    // `completed` and `cancelled` are final (a cancelled inquiry is replaced by a new booking).
+    'tour_booking' => [
+        'inquiry'    => ['quoted', 'confirmed', 'cancelled'],
+        'quoted'     => ['confirmed', 'cancelled'],
+        'confirmed'  => ['travelling', 'cancelled'],
+        'travelling' => ['completed'],
+        'completed'  => [],
+        'cancelled'  => [],
+    ],
 ];

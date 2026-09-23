@@ -514,6 +514,12 @@ $this->start('content');
             <?= $this->partial('crm.visa._card', ['candidate' => $candidate, 'visas' => $visas, 'candidateApplications' => $candidateApplications, 'countries' => $countries, 'canCreate' => $canCreateVisa]) ?>
         </div>
 
+        <?php if (!empty($tourBookings)): ?>
+            <div id="tours">
+                <?= $this->partial('crm.tours.bookings._person_card', ['tourBookings' => $tourBookings]) ?>
+            </div>
+        <?php endif ?>
+
         <?php if (!empty($jobMatches)): ?>
             <div id="job-matches">
                 <?= component('card', ['title' => 'Suggested jobs', 'body' => (function () use ($jobMatches, $candidate, $canApply, $candidateApplications) {

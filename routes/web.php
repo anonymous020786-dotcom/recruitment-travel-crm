@@ -20,6 +20,7 @@ use App\Controllers\Crm\InterviewController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
+use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
 use App\Controllers\Crm\VisaController;
@@ -312,6 +313,15 @@ return static function (Router $router): void {
         $r->delete('/tours/packages/{package}', [TourPackageController::class, 'destroy'])->middleware(['can:tours.packages.delete', 'throttle:write'])->name('tours.packages.destroy');
         $r->post('/tours/packages/{package}/items', [TourPackageController::class, 'storeItem'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.items.store');
         $r->delete('/tours/packages/{package}/items/{item}', [TourPackageController::class, 'destroyItem'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.items.destroy');
+
+        // ---- Tour bookings (literal paths before the {booking} wildcard) ----
+        $r->get('/tours/bookings', [TourBookingController::class, 'index'])->middleware(['can:tours.bookings.view'])->name('tours.bookings.index');
+        $r->get('/tours/bookings/create', [TourBookingController::class, 'create'])->middleware(['can:tours.bookings.create'])->name('tours.bookings.create');
+        $r->post('/tours/bookings', [TourBookingController::class, 'store'])->middleware(['can:tours.bookings.create', 'throttle:write'])->name('tours.bookings.store');
+        $r->get('/tours/bookings/{booking}', [TourBookingController::class, 'show'])->middleware(['can:tours.bookings.view'])->name('tours.bookings.show');
+        $r->get('/tours/bookings/{booking}/edit', [TourBookingController::class, 'edit'])->middleware(['can:tours.bookings.edit'])->name('tours.bookings.edit');
+        $r->put('/tours/bookings/{booking}', [TourBookingController::class, 'update'])->middleware(['can:tours.bookings.edit', 'throttle:write'])->name('tours.bookings.update');
+        $r->post('/tours/bookings/{booking}/status', [TourBookingController::class, 'changeStatus'])->middleware(['can:tours.bookings.change_status', 'throttle:write'])->name('tours.bookings.status');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');
