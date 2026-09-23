@@ -56,6 +56,14 @@ final class ApplicationRepository
         return $row ? Application::fromRow($row) : null;
     }
 
+    public function findByNumber(string $applicationNumber, BranchScope $scope): ?Application
+    {
+        [$branchSql, $bind] = $scope->whereClause('a.branch_id');
+        $row = $this->db->selectOne('SELECT ' . self::COLUMNS . ' ' . self::JOINS . " WHERE a.application_number = :n AND {$branchSql}", ['n' => $applicationNumber] + $bind);
+
+        return $row ? Application::fromRow($row) : null;
+    }
+
     public function existsFor(int $candidateId, int $jobId): bool
     {
         return $this->db->exists('SELECT 1 FROM applications WHERE candidate_id = :c AND job_id = :j', ['c' => $candidateId, 'j' => $jobId]);

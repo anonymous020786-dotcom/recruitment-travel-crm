@@ -69,6 +69,12 @@ $base = '/applications/' . e_attr($app->publicId);
             </div>
         <?php endif ?>
 
+        <?php if ($invoices !== null): ?>
+            <div id="invoices">
+                <?= $this->partial('crm.invoices._card', ['invoices' => $invoices, 'type' => 'application', 'reference' => $app->applicationNumber, 'canCreate' => $canInvoice]) ?>
+            </div>
+        <?php endif ?>
+
         <div id="history">
             <?= component('card', ['title' => 'Status history', 'body' => (function () use ($history, $label) {
                 $html = '<ol class="space-y-3 text-sm">';

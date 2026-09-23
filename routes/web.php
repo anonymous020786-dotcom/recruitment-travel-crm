@@ -17,6 +17,7 @@ use App\Controllers\Crm\JobController;
 use App\Controllers\Crm\MatchController;
 use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\InterviewController;
+use App\Controllers\Crm\InvoiceController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
@@ -322,6 +323,16 @@ return static function (Router $router): void {
         $r->get('/tours/bookings/{booking}/edit', [TourBookingController::class, 'edit'])->middleware(['can:tours.bookings.edit'])->name('tours.bookings.edit');
         $r->put('/tours/bookings/{booking}', [TourBookingController::class, 'update'])->middleware(['can:tours.bookings.edit', 'throttle:write'])->name('tours.bookings.update');
         $r->post('/tours/bookings/{booking}/status', [TourBookingController::class, 'changeStatus'])->middleware(['can:tours.bookings.change_status', 'throttle:write'])->name('tours.bookings.status');
+
+        // ---- Invoices (literal paths before the {invoice} wildcard) ----
+        $r->get('/invoices', [InvoiceController::class, 'index'])->middleware(['can:invoices.view'])->name('invoices.index');
+        $r->get('/invoices/create', [InvoiceController::class, 'create'])->middleware(['can:invoices.create'])->name('invoices.create');
+        $r->post('/invoices', [InvoiceController::class, 'store'])->middleware(['can:invoices.create', 'throttle:write'])->name('invoices.store');
+        $r->get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware(['can:invoices.view'])->name('invoices.show');
+        $r->get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->middleware(['can:invoices.edit'])->name('invoices.edit');
+        $r->put('/invoices/{invoice}', [InvoiceController::class, 'update'])->middleware(['can:invoices.edit', 'throttle:write'])->name('invoices.update');
+        $r->post('/invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->middleware(['can:invoices.create', 'throttle:write'])->name('invoices.issue');
+        $r->post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->middleware(['can:invoices.void', 'throttle:write'])->name('invoices.void');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');

@@ -34,6 +34,7 @@ final class TourBookingController extends CrmController
         private readonly LeadRepository $leads,
         private readonly TourBookingService $service,
         private readonly StatusMachine $statuses,
+        private readonly \App\Repositories\InvoiceRepository $invoices,
     ) {
     }
 
@@ -98,6 +99,8 @@ final class TourBookingController extends CrmController
             'canEdit'      => can('edit', $model) && $model->isOpen(),
             'canStatus'    => can('changeStatus', $model),
             'canCancel'    => can('cancel', $model),
+            'invoices'     => can('invoices.view') ? $this->invoices->forInvoiceable('tour_booking', $model->id, $this->scope()) : null,
+            'canInvoice'   => can('invoices.create') && $model->status !== 'cancelled',
             'nextStatuses' => $this->statuses->transitionsFrom('tour_booking', $model->status),
         ]);
     }

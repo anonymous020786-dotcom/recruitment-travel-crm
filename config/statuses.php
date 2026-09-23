@@ -146,4 +146,15 @@ return [
         'completed'  => [],
         'cancelled'  => [],
     ],
+
+    // Invoice. Drafts are editable; `issued` onwards the amounts are frozen and only
+    // payments move it (issued ⇄ partially_paid ⇄ paid, including back when a payment is
+    // reversed). `void` is final and only reachable while nothing has been paid.
+    'invoice' => [
+        'draft'          => ['issued', 'void'],
+        'issued'         => ['partially_paid', 'paid', 'void'],
+        'partially_paid' => ['issued', 'paid', 'void'],
+        'paid'           => ['issued', 'partially_paid'],
+        'void'           => [],
+    ],
 ];

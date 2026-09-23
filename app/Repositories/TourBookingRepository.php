@@ -57,6 +57,14 @@ final class TourBookingRepository
         return $row ? TourBooking::fromRow($row) : null;
     }
 
+    public function findByNumber(string $bookingNumber, BranchScope $scope): ?TourBooking
+    {
+        [$branchSql, $bind] = $scope->whereClause('b.branch_id');
+        $row = $this->db->selectOne('SELECT ' . self::COLUMNS . ' ' . self::JOINS . " WHERE b.booking_number = :n AND {$branchSql}", ['n' => $bookingNumber] + $bind);
+
+        return $row ? TourBooking::fromRow($row) : null;
+    }
+
     /** @return list<TourBooking> a customer's bookings within the branches the viewer can see, newest first */
     public function forPerson(int $personId, BranchScope $scope, int $limit = 50): array
     {

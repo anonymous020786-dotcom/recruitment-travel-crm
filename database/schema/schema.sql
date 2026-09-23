@@ -1070,6 +1070,21 @@ CREATE TABLE invoice_lines (
     CONSTRAINT chk_invoice_lines_nonneg CHECK (quantity >= 0 AND unit_price >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Append-only, written by InvoiceService / PaymentService inside the transition transaction.
+CREATE TABLE invoice_status_history (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    invoice_id  BIGINT UNSIGNED NOT NULL,
+    from_status VARCHAR(40)     NULL,
+    to_status   VARCHAR(40)     NOT NULL,
+    reason      VARCHAR(255)    NULL,
+    changed_by  BIGINT UNSIGNED NULL,
+    changed_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_ish_invoice (invoice_id, changed_at),
+    CONSTRAINT fk_ish_invoice FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE CASCADE,
+    CONSTRAINT fk_ish_user    FOREIGN KEY (changed_by) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE payments (
     id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     public_id           CHAR(26)        NOT NULL,

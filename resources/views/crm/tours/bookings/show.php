@@ -50,6 +50,12 @@ $actions = $canEdit ? '<a href="' . $base . '/edit" class="btn btn-primary btn-s
             return $html;
         })()]) ?>
 
+        <?php if ($invoices !== null): ?>
+            <div id="invoices">
+                <?= $this->partial('crm.invoices._card', ['invoices' => $invoices, 'type' => 'tour_booking', 'reference' => $booking->bookingNumber, 'canCreate' => $canInvoice]) ?>
+            </div>
+        <?php endif ?>
+
         <div id="history">
             <?= component('card', ['title' => 'Status history', 'body' => (function () use ($history, $label) {
                 $html = '<ol class="space-y-3 text-sm">';

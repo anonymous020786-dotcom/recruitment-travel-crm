@@ -35,6 +35,7 @@ final class ApplicationController extends CrmController
         private readonly StatusMachine $statuses,
         private readonly InterviewRepository $interviews,
         private readonly TravelService $travel,
+        private readonly \App\Repositories\InvoiceRepository $invoices,
     ) {
     }
 
@@ -94,6 +95,8 @@ final class ApplicationController extends CrmController
             'interviews'   => $interviews,
             'canSchedule'  => can('interviews.create') && !$hasOpen && $this->statuses->canTransition('application', $model->status, 'interview_scheduled'),
             'travel'       => $this->travelPanel($model),
+            'invoices'     => can('invoices.view') ? $this->invoices->forInvoiceable('application', $model->id, $this->scope()) : null,
+            'canInvoice'   => can('invoices.create') && !in_array($model->status, ['rejected', 'cancelled'], true),
             'canOverride'  => can('overrideStatus', $model),
             'nextStatuses' => $this->statuses->transitionsFrom('application', $model->status),
             'allStatuses'  => array_values(array_diff($this->statuses->states('application'), [$model->status])),
