@@ -19,7 +19,7 @@ return [
     ['label' => 'Medical',      'icon' => 'medical',      'path' => '/medical',        'permission' => 'medical.view'],
     ['label' => 'Visa',         'icon' => 'visa',         'path' => '/visa',           'permission' => 'visa.view'],
     ['label' => 'Travel',       'icon' => 'travel',       'path' => '/travel',         'permission' => 'travel.view'],
-    ['label' => 'Tours',        'icon' => 'tours',        'path' => '/tours/bookings', 'permission' => 'tours.bookings.view'],
+    ['label' => 'Tours',        'icon' => 'tours',        'path' => '/tours/packages', 'permission' => 'tours.packages.view'],
     ['label' => 'Invoices',     'icon' => 'invoices',     'path' => '/invoices',       'permission' => 'invoices.view'],
     ['label' => 'Payments',     'icon' => 'payments',     'path' => '/payments',       'permission' => 'payments.view'],
     ['label' => 'Reports',      'icon' => 'reports',      'path' => '/reports',        'permission' => 'reports.view'],

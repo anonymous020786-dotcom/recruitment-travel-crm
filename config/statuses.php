@@ -127,5 +127,13 @@ return [
         'absconded'  => [],
     ],
 
-    // 'tour_booking'=> [ ... ]   (Step 8.2)
+    // Tour package catalogue entry. Only an `active` package can be public; leaving
+    // `active` withdraws it from the public site. `archived` is read-only until reactivated.
+    'tour_package' => [
+        'draft'    => ['active', 'archived'],
+        'active'   => ['draft', 'archived'],
+        'archived' => ['active'],
+    ],
+
+    // 'tour_booking'=> [ ... ]   (Step 8.3)
 ];

@@ -146,6 +146,7 @@ return static function (Application $app): void {
     $app->singleton(\App\Services\MedicalService::class);
     $app->singleton(\App\Services\VisaService::class);
     $app->singleton(\App\Services\TravelService::class);
+    $app->singleton(\App\Services\TourPackageService::class);
     $app->singleton(\App\Services\ExpiryService::class, static fn (Application $app): \App\Services\ExpiryService => new \App\Services\ExpiryService(
         $app->get(Db::class),
         $app->get(\App\Repositories\VisaRepository::class),
@@ -181,6 +182,7 @@ return static function (Application $app): void {
         $gate->policy(\App\Models\VisaApplication::class, \App\Policies\VisaPolicy::class);
         $gate->policy(\App\Models\FlightBooking::class, \App\Policies\FlightPolicy::class);
         $gate->policy(\App\Models\Placement::class, \App\Policies\PlacementPolicy::class);
+        $gate->policy(\App\Models\TourPackage::class, \App\Policies\TourPackagePolicy::class);
 
         return $gate;
     });

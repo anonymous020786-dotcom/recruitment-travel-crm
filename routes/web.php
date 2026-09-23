@@ -20,6 +20,7 @@ use App\Controllers\Crm\InterviewController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
+use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
 use App\Controllers\Crm\VisaController;
 use App\Controllers\Crm\LeadImportController;
@@ -298,6 +299,19 @@ return static function (Router $router): void {
         $r->post('/applications/{application}/placement', [TravelController::class, 'place'])->middleware(['can:travel.placement.manage', 'throttle:write'])->name('travel.place');
         $r->post('/applications/{application}/travel-profile', [TravelController::class, 'profile'])->middleware(['can:travel.profile.manage', 'throttle:write'])->name('travel.profile');
         $r->post('/placements/{placement}/status', [TravelController::class, 'placementStatus'])->middleware(['can:travel.placement.manage', 'throttle:write'])->name('placements.status');
+
+        // ---- Tour packages (literal paths before the {package} wildcard) ----
+        $r->get('/tours/packages', [TourPackageController::class, 'index'])->middleware(['can:tours.packages.view'])->name('tours.packages.index');
+        $r->get('/tours/packages/create', [TourPackageController::class, 'create'])->middleware(['can:tours.packages.create'])->name('tours.packages.create');
+        $r->post('/tours/packages', [TourPackageController::class, 'store'])->middleware(['can:tours.packages.create', 'throttle:write'])->name('tours.packages.store');
+        $r->get('/tours/packages/{package}', [TourPackageController::class, 'show'])->middleware(['can:tours.packages.view'])->name('tours.packages.show');
+        $r->get('/tours/packages/{package}/edit', [TourPackageController::class, 'edit'])->middleware(['can:tours.packages.edit'])->name('tours.packages.edit');
+        $r->put('/tours/packages/{package}', [TourPackageController::class, 'update'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.update');
+        $r->post('/tours/packages/{package}/status', [TourPackageController::class, 'changeStatus'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.status');
+        $r->post('/tours/packages/{package}/publish', [TourPackageController::class, 'publish'])->middleware(['can:tours.packages.publish', 'throttle:write'])->name('tours.packages.publish');
+        $r->delete('/tours/packages/{package}', [TourPackageController::class, 'destroy'])->middleware(['can:tours.packages.delete', 'throttle:write'])->name('tours.packages.destroy');
+        $r->post('/tours/packages/{package}/items', [TourPackageController::class, 'storeItem'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.items.store');
+        $r->delete('/tours/packages/{package}/items/{item}', [TourPackageController::class, 'destroyItem'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.items.destroy');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');
