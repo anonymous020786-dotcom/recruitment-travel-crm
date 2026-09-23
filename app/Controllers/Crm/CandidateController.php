@@ -57,6 +57,7 @@ final class CandidateController extends CrmController
         private readonly \App\Services\MatchService $matches,
         private readonly \App\Repositories\ApplicationRepository $applications,
         private readonly \App\Repositories\MedicalRepository $medical,
+        private readonly \App\Repositories\VisaRepository $visas,
     ) {
     }
 
@@ -109,6 +110,8 @@ final class CandidateController extends CrmController
             'canApply'    => can('applications.create'),
             'medical'     => can('medical.view') ? $this->medical->forCandidate($model->id) : [],
             'canBook'     => can('medical.create'),
+            'visas'       => can('visa.view') ? $this->visas->forCandidate($model->id) : [],
+            'canCreateVisa' => can('visa.create'),
             'candidateApplications' => can('applications.view') ? $this->applications->forCandidate($model->id, $this->scope()) : [],
         ]);
     }

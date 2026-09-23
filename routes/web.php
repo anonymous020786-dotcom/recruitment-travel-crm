@@ -20,6 +20,7 @@ use App\Controllers\Crm\InterviewController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
+use App\Controllers\Crm\VisaController;
 use App\Controllers\Crm\LeadImportController;
 use App\Controllers\Crm\PasskeyController;
 use App\Controllers\HealthController;
@@ -276,6 +277,14 @@ return static function (Router $router): void {
         $r->post('/medical/{medical}/attended', [MedicalController::class, 'attended'])->middleware(['can:medical.edit', 'throttle:write'])->name('medical.attended');
         $r->post('/medical/{medical}/result', [MedicalController::class, 'result'])->middleware(['can:medical.edit', 'throttle:write'])->name('medical.result');
         $r->delete('/medical/{medical}', [MedicalController::class, 'destroy'])->middleware(['can:medical.delete', 'throttle:write'])->name('medical.destroy');
+
+        // ---- Visa ----
+        $r->get('/visa', [VisaController::class, 'index'])->middleware(['can:visa.view'])->name('visa.index');
+        $r->post('/candidates/{candidate}/visa', [VisaController::class, 'store'])->middleware(['can:visa.create', 'throttle:write'])->name('visa.store');
+        $r->get('/visa/{visa}', [VisaController::class, 'show'])->middleware(['can:visa.view'])->name('visa.show');
+        $r->put('/visa/{visa}', [VisaController::class, 'update'])->middleware(['can:visa.edit', 'throttle:write'])->name('visa.update');
+        $r->post('/visa/{visa}/status', [VisaController::class, 'changeStatus'])->middleware(['can:visa.change_status', 'throttle:write'])->name('visa.status');
+        $r->delete('/visa/{visa}', [VisaController::class, 'destroy'])->middleware(['can:visa.delete', 'throttle:write'])->name('visa.destroy');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');

@@ -824,6 +824,7 @@ CREATE TABLE visa_status_history (
     visa_application_id BIGINT UNSIGNED NOT NULL,
     from_status         VARCHAR(40)     NULL,
     to_status           VARCHAR(40)     NOT NULL,
+    is_override         TINYINT(1)      NOT NULL DEFAULT 0,  -- transition not in allowlist
     reason              VARCHAR(255)    NULL,
     changed_by          BIGINT UNSIGNED NOT NULL,
     changed_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,

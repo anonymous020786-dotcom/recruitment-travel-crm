@@ -95,6 +95,18 @@ return [
         'retest'    => [],
     ],
 
-    // 'visa'        => [ ... ]   (Phase 7)
+    // Visa application. rejected / expired / cancelled are closed; an actor holding
+    // visa.override_status may reopen one (audited, reason mandatory).
+    'visa' => [
+        'not_started'       => ['documents_pending', 'submitted', 'cancelled'],
+        'documents_pending' => ['submitted', 'cancelled'],
+        'submitted'         => ['under_processing', 'approved', 'rejected', 'cancelled'],
+        'under_processing'  => ['approved', 'rejected', 'cancelled'],
+        'approved'          => ['expired', 'cancelled'],
+        'rejected'          => [],
+        'expired'           => [],
+        'cancelled'         => [],
+    ],
+
     // 'tour_booking'=> [ ... ]   (Phase 8)
 ];

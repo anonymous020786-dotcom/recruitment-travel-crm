@@ -144,6 +144,7 @@ return static function (Application $app): void {
     $app->singleton(\App\Services\ApplicationService::class);
     $app->singleton(\App\Services\InterviewService::class);
     $app->singleton(\App\Services\MedicalService::class);
+    $app->singleton(\App\Services\VisaService::class);
     $app->singleton(\App\Services\MatchService::class, static fn (Application $app): \App\Services\MatchService => new \App\Services\MatchService(
         $app->get(\App\Domain\Matching\MatchEngine::class),
         $app->get(\App\Repositories\MatchProfileRepository::class),
@@ -165,6 +166,7 @@ return static function (Application $app): void {
         $gate->policy(\App\Models\Application::class, \App\Policies\ApplicationPolicy::class);
         $gate->policy(\App\Models\Interview::class, \App\Policies\InterviewPolicy::class);
         $gate->policy(\App\Models\MedicalRecord::class, \App\Policies\MedicalPolicy::class);
+        $gate->policy(\App\Models\VisaApplication::class, \App\Policies\VisaPolicy::class);
 
         return $gate;
     });

@@ -10,6 +10,7 @@
  * @var list<array{type:string,at:string,actor:?string,text:string}> $timeline @var bool $canAddNote
  * @var list<\App\Models\Task> $tasks @var bool $canTasks @var list<array{id:int,name:string}> $taskAssignees
  * @var list<\App\Models\MedicalRecord> $medical @var bool $canBook
+ * @var list<\App\Models\VisaApplication> $visas @var bool $canCreateVisa
  * @var list<\App\Models\CandidateDocument> $documents @var list<\App\Models\DocumentType> $documentTypes
  * @var bool $canUploadDocument @var bool $canDeleteDocument
  * @var bool $canVerifyDocument @var bool $canRejectDocument
@@ -507,6 +508,10 @@ $this->start('content');
 
         <div id="medical">
             <?= $this->partial('crm.medical._card', ['candidate' => $candidate, 'medical' => $medical, 'candidateApplications' => $candidateApplications, 'canBook' => $canBook]) ?>
+        </div>
+
+        <div id="visa">
+            <?= $this->partial('crm.visa._card', ['candidate' => $candidate, 'visas' => $visas, 'candidateApplications' => $candidateApplications, 'countries' => $countries, 'canCreate' => $canCreateVisa]) ?>
         </div>
 
         <?php if (!empty($jobMatches)): ?>
