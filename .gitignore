@@ -44,3 +44,6 @@ desktop.ini
 .vscode/
 bootstrap/cache/*
 !bootstrap/cache/.gitkeep
+
+# Personal Claude Code settings (not shared with the team)
+.claude/settings.local.json
