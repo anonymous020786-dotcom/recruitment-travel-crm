@@ -145,6 +145,17 @@ return static function (Application $app): void {
     $app->singleton(\App\Services\InterviewService::class);
     $app->singleton(\App\Services\MedicalService::class);
     $app->singleton(\App\Services\VisaService::class);
+    $app->singleton(\App\Services\ExpiryService::class, static fn (Application $app): \App\Services\ExpiryService => new \App\Services\ExpiryService(
+        $app->get(Db::class),
+        $app->get(\App\Repositories\VisaRepository::class),
+        $app->get(\App\Repositories\VisaHistoryRepository::class),
+        $app->get(\App\Repositories\MedicalRepository::class),
+        $app->get(\App\Repositories\PassportRepository::class),
+        $app->get(\App\Repositories\UserRepository::class),
+        $app->get(\App\Notifications\NotificationService::class),
+        $app->get(\App\Audit\AuditService::class),
+        (array) $app->config()->get('cron.reminder_windows', []),
+    ));
     $app->singleton(\App\Services\MatchService::class, static fn (Application $app): \App\Services\MatchService => new \App\Services\MatchService(
         $app->get(\App\Domain\Matching\MatchEngine::class),
         $app->get(\App\Repositories\MatchProfileRepository::class),

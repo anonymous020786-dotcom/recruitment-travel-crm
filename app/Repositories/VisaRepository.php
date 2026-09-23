@@ -107,6 +107,50 @@ final class VisaRepository
         return $this->db->affectingStatement("DELETE FROM visa_applications WHERE id = :id AND status = 'not_started'", ['id' => $id]);
     }
 
+    /**
+     * Approved visas at or inside the widest reminder window (including ones
+     * already past expiry that the sweep has not flipped yet).
+     *
+     * @return list<array<string,mixed>> id, candidate_id, candidate_name, country, expiry_date, branch_id, owner_id, application_id
+     */
+    public function dueForReminder(int $maxDays, string $today): array
+    {
+        return $this->db->select(
+            "SELECT v.id, v.candidate_id, v.application_id, v.country, v.expiry_date, c.branch_id, p.full_name AS candidate_name,
+                    COALESCE(a.assigned_to, c.assigned_counselor) AS owner_id
+             FROM visa_applications v
+             JOIN candidates c ON c.id = v.candidate_id
+             JOIN persons p ON p.id = c.person_id
+             LEFT JOIN applications a ON a.id = v.application_id
+             WHERE v.status = 'approved' AND v.expiry_date IS NOT NULL AND v.expiry_date <= (:today + INTERVAL :days DAY)
+             ORDER BY v.expiry_date",
+            ['today' => $today, 'days' => $maxDays],
+        );
+    }
+
+    /** @return list<array{id:int,record_version:int,candidate_id:int}> approved visas whose expiry date is before $today */
+    public function lapsed(string $today): array
+    {
+        $rows = $this->db->select(
+            "SELECT id, record_version, candidate_id FROM visa_applications WHERE status = 'approved' AND expiry_date < :today ORDER BY id",
+            ['today' => $today],
+        );
+
+        return array_map(static fn (array $r): array => [
+            'id' => (int) $r['id'], 'record_version' => (int) $r['record_version'], 'candidate_id' => (int) $r['candidate_id'],
+        ], $rows);
+    }
+
+    /** System write: approved -> expired, only if nobody touched the row meanwhile. */
+    public function markExpired(int $id, int $expectedVersion): int
+    {
+        return $this->db->affectingStatement(
+            "UPDATE visa_applications SET status = 'expired', record_version = record_version + 1, updated_at = UTC_TIMESTAMP()
+             WHERE id = :id AND status = 'approved' AND record_version = :ver",
+            ['id' => $id, 'ver' => $expectedVersion],
+        );
+    }
+
     /** @return Page<VisaApplication> */
     public function paginate(ListQuery $q, BranchScope $scope): Page
     {

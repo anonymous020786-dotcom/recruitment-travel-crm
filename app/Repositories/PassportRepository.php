@@ -85,4 +85,24 @@ final class PassportRepository
         }
         $this->db->affectingStatement($sql, $bind);
     }
+
+    /**
+     * Passports at or inside the widest reminder window, for candidates who still
+     * have a live application.
+     *
+     * @return list<array<string,mixed>> id, candidate_id, candidate_name, passport_number, expiry_date, owner_id
+     */
+    public function dueForReminder(int $maxDays, string $today): array
+    {
+        return $this->db->select(
+            "SELECT pp.id, pp.candidate_id, pp.passport_number, pp.expiry_date, pe.full_name AS candidate_name, c.assigned_counselor AS owner_id
+             FROM passports pp
+             JOIN candidates c ON c.id = pp.candidate_id
+             JOIN persons pe ON pe.id = c.person_id
+             WHERE pp.expiry_date IS NOT NULL AND pp.expiry_date <= (:today + INTERVAL :days DAY)
+               AND EXISTS (SELECT 1 FROM applications a WHERE a.candidate_id = pp.candidate_id AND a.status NOT IN ('placed','rejected','cancelled'))
+             ORDER BY pp.expiry_date",
+            ['today' => $today, 'days' => $maxDays],
+        );
+    }
 }

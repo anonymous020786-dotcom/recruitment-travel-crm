@@ -383,4 +383,17 @@ final class MedicalServiceTest extends DbTestCase
 
         self::assertSame(gmdate('Y-m-d'), $v->result(['result' => 'unfit'])['report_date'], 'report date defaults to today');
     }
+
+    public function test_search_matches_name_candidate_number_and_centre(): void
+    {
+        $actor = $this->actor();
+        $c = $this->candidate($actor);
+        $m = $this->service->book($c, null, $this->book(null, 'Zulu Diagnostics'), $actor);
+
+        foreach (['Cand', $c->candidateNumber, 'Zulu'] as $term) {
+            $ids = array_map(static fn ($x) => $x->id, $this->repo->paginate(\App\Support\ListQuery::of(['search' => $term]), $this->scope())->items);
+            self::assertContains($m->id, $ids, "search for {$term}");
+        }
+        self::assertSame([], $this->repo->paginate(\App\Support\ListQuery::of(['search' => 'nothing-like-this']), $this->scope())->items);
+    }
 }

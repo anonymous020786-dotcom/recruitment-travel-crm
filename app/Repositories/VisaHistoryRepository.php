@@ -17,7 +17,7 @@ final class VisaHistoryRepository
     {
     }
 
-    public function append(int $visaId, ?string $from, string $to, bool $isOverride, ?string $reason, int $changedBy): void
+    public function append(int $visaId, ?string $from, string $to, bool $isOverride, ?string $reason, ?int $changedBy): void
     {
         $this->db->insertRow('visa_status_history', [
             'visa_application_id' => $visaId, 'from_status' => $from, 'to_status' => $to,

@@ -410,4 +410,20 @@ final class InterviewServiceTest extends DbTestCase
     {
         return $this->app->get(\App\Repositories\JobRepository::class)->findById($app->jobId, $this->scopeFor($this->userIds[0]));
     }
+
+    public function test_board_search_and_filters_run(): void
+    {
+        $actor = $this->actor();
+        $app = $this->shortlisted($actor);
+        $i = $this->service->schedule($app, $this->slot(), $actor);
+        $scope = $this->scopeFor($this->userIds[0]);
+        $ids = fn (array $o): array => array_map(static fn ($x) => $x->id, $this->repo->paginate(\App\Support\ListQuery::of($o), $scope)->items);
+
+        self::assertContains($i->id, $ids(['search' => 'Cand']));
+        self::assertContains($i->id, $ids(['search' => $app->applicationNumber]));
+        self::assertContains($i->id, $ids(['filters' => ['when' => 'today', 'status' => 'scheduled', 'type' => 'telephonic']]));
+        self::assertContains($i->id, $ids(['filters' => ['when' => 'upcoming']]));
+        self::assertNotContains($i->id, $ids(['filters' => ['when' => 'past']]));
+        self::assertNotContains($i->id, $ids(['search' => 'nothing-like-this']));
+    }
 }

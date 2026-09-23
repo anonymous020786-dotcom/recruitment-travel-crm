@@ -496,4 +496,17 @@ final class VisaServiceTest extends DbTestCase
             }
         }
     }
+
+    public function test_search_matches_name_candidate_number_visa_number_and_reference(): void
+    {
+        $actor = $this->actor();
+        $c = $this->candidate($actor);
+        $v = $this->service->create($c, null, $this->details(['reference_number' => 'REF-XYZ-1', 'visa_number' => 'VN-42']), $actor);
+
+        foreach (['Cand', $c->candidateNumber, 'REF-XYZ-1', 'VN-42'] as $term) {
+            $ids = array_map(static fn ($x) => $x->id, $this->repo->paginate(\App\Support\ListQuery::of(['search' => $term]), $this->scope())->items);
+            self::assertContains($v->id, $ids, "search for {$term}");
+        }
+        self::assertSame([], $this->repo->paginate(\App\Support\ListQuery::of(['search' => 'nothing-like-this']), $this->scope())->items);
+    }
 }

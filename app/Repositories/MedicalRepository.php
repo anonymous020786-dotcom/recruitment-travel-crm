@@ -105,6 +105,28 @@ final class MedicalRepository
         return $this->db->affectingStatement("DELETE FROM medical_records WHERE id = :id AND status IN ('pending','scheduled')", ['id' => $id]);
     }
 
+    /**
+     * Fit certificates at or inside the widest reminder window, for candidates
+     * who still have a live application (old certificates of finished candidates are noise).
+     *
+     * @return list<array<string,mixed>> id, candidate_id, candidate_name, expires_at, branch_id, owner_id
+     */
+    public function dueForReminder(int $maxDays, string $today): array
+    {
+        return $this->db->select(
+            "SELECT m.id, m.candidate_id, m.expires_at, c.branch_id, p.full_name AS candidate_name,
+                    COALESCE(a.assigned_to, c.assigned_counselor) AS owner_id
+             FROM medical_records m
+             JOIN candidates c ON c.id = m.candidate_id
+             JOIN persons p ON p.id = c.person_id
+             LEFT JOIN applications a ON a.id = m.application_id
+             WHERE m.status = 'fit' AND m.expires_at IS NOT NULL AND m.expires_at <= (:today + INTERVAL :days DAY)
+               AND EXISTS (SELECT 1 FROM applications a2 WHERE a2.candidate_id = m.candidate_id AND a2.status NOT IN ('placed','rejected','cancelled'))
+             ORDER BY m.expires_at",
+            ['today' => $today, 'days' => $maxDays],
+        );
+    }
+
     /** @return Page<MedicalRecord> */
     public function paginate(ListQuery $q, BranchScope $scope): Page
     {
@@ -147,9 +169,9 @@ final class MedicalRepository
             $bind['f_until'] = gmdate('Y-m-d', strtotime('+' . MedicalRecord::EXPIRING_DAYS . ' days'));
         }
         if ($q->hasSearch()) {
-            $where[] = '(c.candidate_number = :s_exact OR p.full_name LIKE :s_name OR m.medical_center LIKE :s_name)';
+            $where[] = '(c.candidate_number = :s_exact OR p.full_name LIKE :s_name OR m.medical_center LIKE :s_centre)';
             $bind['s_exact'] = $q->search;
-            $bind['s_name'] = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q->search) . '%';
+            $bind['s_name'] = $bind['s_centre'] = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q->search) . '%';
         }
 
         return [implode(' AND ', $where), $bind];

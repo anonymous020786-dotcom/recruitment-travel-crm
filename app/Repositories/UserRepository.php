@@ -121,4 +121,18 @@ final class UserRepository
     {
         return $this->db->exists('SELECT 1 FROM users WHERE email = :email', ['email' => $email]);
     }
+
+    /** @return list<int> active users holding a role (by name) who are attached to a branch */
+    public function activeIdsByRoleInBranch(string $roleName, int $branchId): array
+    {
+        $rows = $this->db->select(
+            'SELECT u.id FROM users u
+             JOIN roles r ON r.id = u.role_id
+             JOIN user_branches ub ON ub.user_id = u.id
+             WHERE r.name = :role AND u.is_active = 1 AND ub.branch_id = :branch',
+            ['role' => $roleName, 'branch' => $branchId],
+        );
+
+        return array_map(static fn (array $r): int => (int) $r['id'], $rows);
+    }
 }

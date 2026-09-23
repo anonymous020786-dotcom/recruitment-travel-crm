@@ -25,6 +25,7 @@ return [
         'document-expiry'      => ['script' => 'cron/document-expiry.php',      'schedule' => '10 2 * * *',   'ttl' => 900,  'batch' => 1000],
         'passport-expiry'      => ['script' => 'cron/passport-expiry.php',      'schedule' => '20 2 * * *',   'ttl' => 900,  'batch' => 1000],
         'visa-expiry'          => ['script' => 'cron/visa-expiry.php',          'schedule' => '30 2 * * *',   'ttl' => 900,  'batch' => 1000],
+        'medical-expiry'       => ['script' => 'cron/medical-expiry.php',       'schedule' => '35 2 * * *',   'ttl' => 900,  'batch' => 1000],
         'interview-reminders'  => ['script' => 'cron/interview-reminders.php',  'schedule' => '0 * * * *',    'ttl' => 600,  'batch' => 500],
         'payment-reminders'    => ['script' => 'cron/payment-reminders.php',    'schedule' => '0 9 * * *',    'ttl' => 900,  'batch' => 1000],
         'daily-report'         => ['script' => 'cron/daily-report.php',         'schedule' => '0 7 * * *',    'ttl' => 600,  'batch' => 0],
@@ -38,6 +39,7 @@ return [
     // Notification reminder windows (days before expiry).
     'reminder_windows' => [
         'passport' => [180, 90, 30],
+        'medical'  => [30, 15, 7],
         'visa'     => [180, 90, 30],
         'document' => [30, 15, 7, 1],
         'invoice'  => [0], // on/after due date
