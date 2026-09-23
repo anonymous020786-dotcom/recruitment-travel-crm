@@ -8,6 +8,7 @@ use App\Support\Application;
 use App\Support\Config;
 use App\Support\Db;
 use App\Support\Logger;
+use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -60,6 +61,18 @@ abstract class DbTestCase extends TestCase
 
         // Same container wiring as production (Gate policies, StatusMachine, services, ...).
         (require TEST_ROOT . '/bootstrap/services.php')($this->app);
+    }
+
+    /**
+     * PHPUnit keeps every TestCase object (and so its connection) alive until the end of the run, which
+     * exhausted MariaDB's max_connections once the suite grew. Runs after each test's own tearDown().
+     */
+    #[After]
+    protected function releaseConnection(): void
+    {
+        if (isset($this->db)) {
+            $this->db->disconnect();
+        }
     }
 
     protected function cleanupUsers(string $emailLike): void

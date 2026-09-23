@@ -63,6 +63,12 @@ $base = '/applications/' . e_attr($app->publicId);
             <?= $this->partial('crm.applications._interviews', ['app' => $app, 'interviews' => $interviews, 'canSchedule' => $canSchedule]) ?>
         </div>
 
+        <?php if (!empty($travel)): ?>
+            <div id="travel">
+                <?= $this->partial('crm.travel._card', ['app' => $app, 'travel' => $travel]) ?>
+            </div>
+        <?php endif ?>
+
         <div id="history">
             <?= component('card', ['title' => 'Status history', 'body' => (function () use ($history, $label) {
                 $html = '<ol class="space-y-3 text-sm">';

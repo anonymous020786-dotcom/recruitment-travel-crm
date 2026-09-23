@@ -78,7 +78,7 @@ return [
         'visa_processing'     => ['visa_approved', 'rejected', 'cancelled'],
         'visa_approved'       => ['ticket_pending', 'cancelled'],
         'ticket_pending'      => ['ticket_booked', 'cancelled'],
-        'ticket_booked'       => ['departed', 'cancelled'],
+        'ticket_booked'       => ['departed', 'ticket_pending', 'cancelled'],   // back to ticket_pending when the only ticket is cancelled
         'departed'            => ['placed'],
         'placed'              => [],   // terminal (won)
         'rejected'            => [],   // terminal (override to reopen)
@@ -108,5 +108,24 @@ return [
         'cancelled'         => [],
     ],
 
-    // 'tour_booking'=> [ ... ]   (Phase 8)
+    // Flight booking. `flown` is set by recording the departure; `cancelled` and
+    // `flown` are terminal. `changed` = itinerary altered, waiting to be re-ticketed.
+    'flight' => [
+        'planned'   => ['booked', 'issued', 'cancelled'],
+        'booked'    => ['issued', 'changed', 'flown', 'cancelled'],
+        'issued'    => ['changed', 'flown', 'cancelled'],
+        'changed'   => ['booked', 'issued', 'cancelled'],
+        'flown'     => [],
+        'cancelled' => [],
+    ],
+
+    // Placement after arrival. Every non-active state is final.
+    'placement' => [
+        'active'     => ['completed', 'terminated', 'absconded'],
+        'completed'  => [],
+        'terminated' => [],
+        'absconded'  => [],
+    ],
+
+    // 'tour_booking'=> [ ... ]   (Step 8.2)
 ];

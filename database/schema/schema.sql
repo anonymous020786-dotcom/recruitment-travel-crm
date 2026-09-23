@@ -895,6 +895,7 @@ CREATE TABLE departure_records (
     created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
+    UNIQUE KEY uq_departure_application (application_id),
     KEY idx_departure_candidate (candidate_id),
     CONSTRAINT fk_departure_candidate FOREIGN KEY (candidate_id) REFERENCES candidates (id) ON DELETE CASCADE,
     CONSTRAINT fk_departure_flight    FOREIGN KEY (flight_booking_id) REFERENCES flight_bookings (id) ON DELETE SET NULL

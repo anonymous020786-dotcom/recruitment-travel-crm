@@ -20,6 +20,7 @@ use App\Controllers\Crm\InterviewController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
+use App\Controllers\Crm\TravelController;
 use App\Controllers\Crm\VisaController;
 use App\Controllers\Crm\LeadImportController;
 use App\Controllers\Crm\PasskeyController;
@@ -285,6 +286,18 @@ return static function (Router $router): void {
         $r->put('/visa/{visa}', [VisaController::class, 'update'])->middleware(['can:visa.edit', 'throttle:write'])->name('visa.update');
         $r->post('/visa/{visa}/status', [VisaController::class, 'changeStatus'])->middleware(['can:visa.change_status', 'throttle:write'])->name('visa.status');
         $r->delete('/visa/{visa}', [VisaController::class, 'destroy'])->middleware(['can:visa.delete', 'throttle:write'])->name('visa.destroy');
+
+        // ---- Travel: pipeline, flights, departure, arrival, placement ----
+        $r->get('/travel', [TravelController::class, 'index'])->middleware(['can:travel.view'])->name('travel.index');
+        $r->get('/placements', [TravelController::class, 'placements'])->middleware(['can:travel.view'])->name('placements.index');
+        $r->post('/applications/{application}/flights', [TravelController::class, 'bookFlight'])->middleware(['can:travel.tickets.manage', 'throttle:write'])->name('flights.store');
+        $r->post('/flights/{flight}/status', [TravelController::class, 'flightStatus'])->middleware(['can:travel.tickets.manage', 'throttle:write'])->name('flights.status');
+        $r->post('/flights/{flight}', [TravelController::class, 'updateFlight'])->middleware(['can:travel.tickets.manage', 'throttle:write'])->name('flights.update');
+        $r->post('/applications/{application}/departure', [TravelController::class, 'departure'])->middleware(['can:travel.departure.manage', 'throttle:write'])->name('travel.departure');
+        $r->post('/applications/{application}/arrival', [TravelController::class, 'arrival'])->middleware(['can:travel.departure.manage', 'throttle:write'])->name('travel.arrival');
+        $r->post('/applications/{application}/placement', [TravelController::class, 'place'])->middleware(['can:travel.placement.manage', 'throttle:write'])->name('travel.place');
+        $r->post('/applications/{application}/travel-profile', [TravelController::class, 'profile'])->middleware(['can:travel.profile.manage', 'throttle:write'])->name('travel.profile');
+        $r->post('/placements/{placement}/status', [TravelController::class, 'placementStatus'])->middleware(['can:travel.placement.manage', 'throttle:write'])->name('placements.status');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');

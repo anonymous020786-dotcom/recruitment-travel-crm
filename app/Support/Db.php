@@ -286,6 +286,13 @@ final class Db
         return $this->transactionLevel > 0;
     }
 
+    /** Close the connection; the next query opens a fresh one. Lets long-lived callers (the test suite) hand connections back. */
+    public function disconnect(): void
+    {
+        $this->pdo = null;
+        $this->transactionLevel = 0;
+    }
+
     // ---- Listeners (used by tests / query log) --------------------------
 
     public function listen(Closure $listener): void

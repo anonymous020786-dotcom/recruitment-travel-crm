@@ -19,6 +19,7 @@ use App\Repositories\EmployerRepository;
 use App\Repositories\InterviewRepository;
 use App\Repositories\JobRepository;
 use App\Services\ApplicationService;
+use App\Services\TravelService;
 use App\Support\ListQuery;
 
 /** Application screens: pipeline list, profile with history, apply, and status changes. */
@@ -33,6 +34,7 @@ final class ApplicationController extends CrmController
         private readonly ApplicationService $service,
         private readonly StatusMachine $statuses,
         private readonly InterviewRepository $interviews,
+        private readonly TravelService $travel,
     ) {
     }
 
@@ -91,6 +93,7 @@ final class ApplicationController extends CrmController
             'canStatus'    => $canStatus,
             'interviews'   => $interviews,
             'canSchedule'  => can('interviews.create') && !$hasOpen && $this->statuses->canTransition('application', $model->status, 'interview_scheduled'),
+            'travel'       => $this->travelPanel($model),
             'canOverride'  => can('overrideStatus', $model),
             'nextStatuses' => $this->statuses->transitionsFrom('application', $model->status),
             'allStatuses'  => array_values(array_diff($this->statuses->states('application'), [$model->status])),
@@ -122,6 +125,38 @@ final class ApplicationController extends CrmController
         }
 
         return Response::redirect('/applications/' . $model->publicId);
+    }
+
+    /**
+     * Data for the travel card, or null when it does not apply: the card appears once the visa is approved
+     * (or the application already has flights / a placement) and only for users who can view travel.
+     *
+     * @return array<string,mixed>|null
+     */
+    private function travelPanel(Application $app): ?array
+    {
+        if (!can('travel.view')) {
+            return null;
+        }
+        $panel = $this->travel->panel($app);
+        $relevant = in_array($app->status, ['visa_approved', 'ticket_pending', 'ticket_booked', 'departed', 'placed'], true)
+            || $panel['flights'] !== [] || $panel['placement'] !== null;
+        if (!$relevant) {
+            return null;
+        }
+
+        $moves = [];
+        foreach ($panel['flights'] as $f) {
+            $moves[$f->publicId] = array_values(array_diff($this->statuses->transitionsFrom('flight', $f->status), ['flown']));
+        }
+
+        return $panel + [
+            'flightMoves'  => $moves,
+            'canTickets'   => can('travel.tickets.manage'),
+            'canDeparture' => can('travel.departure.manage'),
+            'canPlacement' => can('travel.placement.manage'),
+            'canProfile'   => can('travel.profile.manage'),
+        ];
     }
 
     private function find(string $publicId): Application
