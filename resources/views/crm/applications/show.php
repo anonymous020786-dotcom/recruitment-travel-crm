@@ -2,6 +2,7 @@
 /**
  * @var \App\Models\Application $app
  * @var list<array{from:?string,to:string,is_override:bool,reason:?string,by:?string,at:string}> $history
+ * @var list<\App\Models\Interview> $interviews @var bool $canSchedule
  * @var bool $canStatus @var bool $canOverride @var list<string> $nextStatuses @var list<string> $allStatuses
  */
 $this->layout('layouts.app', ['title' => $app->applicationNumber, 'currentPath' => '/applications']);
@@ -57,6 +58,10 @@ $base = '/applications/' . e_attr($app->publicId);
                 return $html . '</ul>';
             })()]) ?>
         <?php endif ?>
+
+        <div id="interviews">
+            <?= $this->partial('crm.applications._interviews', ['app' => $app, 'interviews' => $interviews, 'canSchedule' => $canSchedule]) ?>
+        </div>
 
         <div id="history">
             <?= component('card', ['title' => 'Status history', 'body' => (function () use ($history, $label) {

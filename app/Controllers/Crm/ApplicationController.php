@@ -16,6 +16,7 @@ use App\Repositories\ApplicationHistoryRepository;
 use App\Repositories\ApplicationRepository;
 use App\Repositories\CandidateRepository;
 use App\Repositories\EmployerRepository;
+use App\Repositories\InterviewRepository;
 use App\Repositories\JobRepository;
 use App\Services\ApplicationService;
 use App\Support\ListQuery;
@@ -31,6 +32,7 @@ final class ApplicationController extends CrmController
         private readonly EmployerRepository $employers,
         private readonly ApplicationService $service,
         private readonly StatusMachine $statuses,
+        private readonly InterviewRepository $interviews,
     ) {
     }
 
@@ -77,11 +79,18 @@ final class ApplicationController extends CrmController
         authorize('view', $model);
 
         $canStatus = can('changeStatus', $model);
+        $interviews = can('interviews.view') ? $this->interviews->forApplication($model->id, $this->scope()) : [];
+        $hasOpen = false;
+        foreach ($interviews as $i) {
+            $hasOpen = $hasOpen || $i->isOpen();
+        }
 
         return view_response('crm.applications.show', [
             'app'          => $model,
             'history'      => $this->history->forApplication($model->id),
             'canStatus'    => $canStatus,
+            'interviews'   => $interviews,
+            'canSchedule'  => can('interviews.create') && !$hasOpen && $this->statuses->canTransition('application', $model->status, 'interview_scheduled'),
             'canOverride'  => can('overrideStatus', $model),
             'nextStatuses' => $this->statuses->transitionsFrom('application', $model->status),
             'allStatuses'  => array_values(array_diff($this->statuses->states('application'), [$model->status])),

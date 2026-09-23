@@ -16,6 +16,7 @@ use App\Controllers\Crm\EmployerController;
 use App\Controllers\Crm\JobController;
 use App\Controllers\Crm\MatchController;
 use App\Controllers\Crm\FollowupController;
+use App\Controllers\Crm\InterviewController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\LeadImportController;
@@ -259,6 +260,13 @@ return static function (Router $router): void {
         $r->post('/applications', [ApplicationController::class, 'store'])->middleware(['can:applications.create', 'throttle:write'])->name('applications.store');
         $r->get('/applications/{application}', [ApplicationController::class, 'show'])->middleware(['can:applications.view'])->name('applications.show');
         $r->post('/applications/{application}/status', [ApplicationController::class, 'changeStatus'])->middleware(['can:applications.change_status', 'throttle:write'])->name('applications.status');
+        $r->post('/applications/{application}/interviews', [InterviewController::class, 'store'])->middleware(['can:interviews.create', 'throttle:write'])->name('interviews.store');
+
+        // ---- Interviews ----
+        $r->get('/interviews', [InterviewController::class, 'index'])->middleware(['can:interviews.view'])->name('interviews.index');
+        $r->post('/interviews/{interview}/confirm', [InterviewController::class, 'confirm'])->middleware(['can:interviews.edit', 'throttle:write'])->name('interviews.confirm');
+        $r->post('/interviews/{interview}/reschedule', [InterviewController::class, 'reschedule'])->middleware(['can:interviews.edit', 'throttle:write'])->name('interviews.reschedule');
+        $r->post('/interviews/{interview}/outcome', [InterviewController::class, 'outcome'])->middleware(['can:interviews.record_outcome', 'throttle:write'])->name('interviews.outcome');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');
