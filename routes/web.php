@@ -11,6 +11,7 @@ use App\Controllers\Crm\AccountController;
 use App\Controllers\Crm\CandidateController;
 use App\Controllers\Crm\DashboardController;
 use App\Controllers\Crm\DocumentController;
+use App\Controllers\Crm\EmployerController;
 use App\Controllers\Crm\FollowupController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
@@ -233,5 +234,21 @@ return static function (Router $router): void {
             ->middleware(['can:documents.view'])->name('documents.download');
         $r->get('/documents/{document}/preview', [DocumentController::class, 'preview'])
             ->middleware(['can:documents.view'])->name('documents.preview');
+
+        // ---- Employers (literal paths before the {employer} wildcard) ----
+        $r->get('/employers', [EmployerController::class, 'index'])->middleware(['can:employers.view'])->name('employers.index');
+        $r->get('/employers/create', [EmployerController::class, 'create'])->middleware(['can:employers.create'])->name('employers.create');
+        $r->post('/employers', [EmployerController::class, 'store'])->middleware(['can:employers.create', 'throttle:write'])->name('employers.store');
+        $r->get('/employers/{employer}', [EmployerController::class, 'show'])->middleware(['can:employers.view'])->name('employers.show');
+        $r->get('/employers/{employer}/edit', [EmployerController::class, 'edit'])->middleware(['can:employers.edit'])->name('employers.edit');
+        $r->put('/employers/{employer}', [EmployerController::class, 'update'])->middleware(['can:employers.edit', 'throttle:write'])->name('employers.update');
+        $r->delete('/employers/{employer}', [EmployerController::class, 'destroy'])->middleware(['can:employers.delete', 'throttle:write'])->name('employers.destroy');
+
+        $r->post('/employers/{employer}/contacts', [EmployerController::class, 'storeContact'])
+            ->middleware(['can:employers.contacts.manage', 'throttle:write'])->name('employers.contacts.store');
+        $r->put('/employers/{employer}/contacts/{contact}', [EmployerController::class, 'updateContact'])
+            ->middleware(['can:employers.contacts.manage', 'throttle:write'])->name('employers.contacts.update');
+        $r->delete('/employers/{employer}/contacts/{contact}', [EmployerController::class, 'destroyContact'])
+            ->middleware(['can:employers.contacts.manage', 'throttle:write'])->name('employers.contacts.destroy');
     });
 };
