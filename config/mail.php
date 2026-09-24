@@ -32,4 +32,8 @@ return [
     // Daily "your follow-ups" digest email (cron/followups.php). The in-app
     // reminder notification is always created regardless of this flag.
     'followup_reminders' => Env::bool('MAIL_FOLLOWUP_REMINDERS', true),
+
+    // Morning digest of yesterday's activity (cron/daily-report.php): branch managers get their branch, super admins
+    // the whole organisation. Quiet days are never emailed. The report itself is always stored in `settings`.
+    'daily_report' => Env::bool('MAIL_DAILY_REPORT', true),
 ];

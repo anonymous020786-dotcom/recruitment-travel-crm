@@ -37,14 +37,39 @@ final class DashboardService
     ) {
     }
 
+    /**
+     * Pre-compute the snapshots people are about to ask for (cron/dashboard-cache.php): one per distinct
+     * (branch scope, widget set) among the given users, always freshly built. With caching off there is nothing to warm.
+     *
+     * @param iterable<array{0:User,1:BranchScope}> $viewers
+     * @return int snapshots built
+     */
+    public function warm(iterable $viewers, ?\DateTimeImmutable $now = null): int
+    {
+        if ($this->cacheSeconds <= 0) {
+            return 0;
+        }
+        $seen = [];
+        foreach ($viewers as [$user, $scope]) {
+            $key = $this->cacheKey($user, $scope);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $this->snapshot($user, $scope, $now, refresh: true);
+        }
+
+        return count($seen);
+    }
+
     /** @return array<string,mixed> */
-    public function snapshot(User $user, BranchScope $scope, ?\DateTimeImmutable $now = null): array
+    public function snapshot(User $user, BranchScope $scope, ?\DateTimeImmutable $now = null, bool $refresh = false): array
     {
         $now ??= new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
         $groups = $this->groupsFor($user);
-        $key = 'dash:' . sha1(json_encode([$scope->orgWide, $scope->ids, $groups]) ?: '');
+        $key = $this->cacheKey($user, $scope);
 
-        if ($this->cacheSeconds > 0 && ($hit = $this->cached($key, $now)) !== null) {
+        if (!$refresh && $this->cacheSeconds > 0 && ($hit = $this->cached($key, $now)) !== null) {
             return $hit;
         }
 
@@ -86,6 +111,11 @@ final class DashboardService
     }
 
     // ---- internals -------------------------------------------------
+
+    private function cacheKey(User $user, BranchScope $scope): string
+    {
+        return 'dash:' . sha1(json_encode([$scope->orgWide, $scope->ids, $this->groupsFor($user)]) ?: '');
+    }
 
     /**
      * @param list<string> $groups

@@ -122,6 +122,32 @@ final class UserRepository
         return $this->db->exists('SELECT 1 FROM users WHERE email = :email', ['email' => $email]);
     }
 
+    /** @return list<int> every active, non-deleted user holding a role (by name), in any branch */
+    public function activeIdsByRole(string $roleName): array
+    {
+        $rows = $this->db->select(
+            'SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id WHERE r.name = :role AND u.is_active = 1 AND u.deleted_at IS NULL',
+            ['role' => $roleName],
+        );
+
+        return array_map(static fn (array $r): int => (int) $r['id'], $rows);
+    }
+
+    /**
+     * Active users holding a role, with the address to write to; optionally only those attached to a branch.
+     *
+     * @return list<array{id:int,name:string,email:string}>
+     */
+    public function recipientsByRole(string $roleName, ?int $branchId = null): array
+    {
+        $sql = 'SELECT DISTINCT u.id, u.name, u.email FROM users u JOIN roles r ON r.id = u.role_id'
+            . ($branchId !== null ? ' JOIN user_branches ub ON ub.user_id = u.id AND ub.branch_id = :branch' : '')
+            . " WHERE r.name = :role AND u.is_active = 1 AND u.deleted_at IS NULL AND u.email <> '' ORDER BY u.id";
+        $rows = $this->db->select($sql, ['role' => $roleName] + ($branchId !== null ? ['branch' => $branchId] : []));
+
+        return array_map(static fn (array $r): array => ['id' => (int) $r['id'], 'name' => (string) $r['name'], 'email' => (string) $r['email']], $rows);
+    }
+
     /** @return list<int> active users holding a role (by name) who are attached to a branch */
     public function activeIdsByRoleInBranch(string $roleName, int $branchId): array
     {

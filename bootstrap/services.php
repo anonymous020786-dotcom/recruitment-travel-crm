@@ -158,6 +158,13 @@ return static function (Application $app): void {
         $app->get(\App\Domain\StatusMachine::class),
         (int) $app->config()->get('app.dashboard_cache_seconds', 60),
     ));
+    $app->singleton(\App\Services\IntegrityService::class);
+    $app->singleton(\App\Services\DailyReportService::class, static fn (Application $app): \App\Services\DailyReportService => new \App\Services\DailyReportService(
+        $app->get(\App\Repositories\DailyReportRepository::class),
+        $app->get(\App\Repositories\UserRepository::class),
+        $app->get(\App\Mail\MailComposer::class),
+        (bool) $app->config()->get('mail.daily_report', true),
+    ));
     $app->singleton(\App\Services\PaymentService::class);
     $app->singleton(\App\Services\PaymentReminderService::class, static fn (Application $app): \App\Services\PaymentReminderService => new \App\Services\PaymentReminderService(
         $app->get(\App\Repositories\InvoiceRepository::class),
