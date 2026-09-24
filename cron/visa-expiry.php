@@ -16,7 +16,7 @@ use App\Support\CronRunner;
 /** @var Application $app */
 $app = require __DIR__ . '/_bootstrap.php';
 
-exit($app->get(CronRunner::class)->run('visa-expiry', 900, function (callable $progress) use ($app): int {
+return CronRunner::finish($app->get(CronRunner::class)->run('visa-expiry', 900, function (callable $progress) use ($app): int {
     $service = $app->get(ExpiryService::class);
     $today = gmdate('Y-m-d');
     $reminded = $service->remindVisas($today);

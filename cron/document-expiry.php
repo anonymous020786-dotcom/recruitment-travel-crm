@@ -20,7 +20,7 @@ use App\Support\CronRunner;
 /** @var Application $app */
 $app = require __DIR__ . '/_bootstrap.php';
 
-exit($app->get(CronRunner::class)->run('document-expiry', 900, function (callable $progress) use ($app): int {
+return CronRunner::finish($app->get(CronRunner::class)->run('document-expiry', 900, function (callable $progress) use ($app): int {
     $today = gmdate('Y-m-d');
     $windows = (array) $app->config()->get('cron.reminder_windows.document', [30, 15, 7, 1]);
     $maxDays = $windows === [] ? 0 : max($windows);

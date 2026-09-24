@@ -16,7 +16,7 @@ use App\Support\CronRunner;
 /** @var Application $app */
 $app = require __DIR__ . '/_bootstrap.php';
 
-exit($app->get(CronRunner::class)->run('interview-reminders', 600, function (callable $progress) use ($app): int {
+return CronRunner::finish($app->get(CronRunner::class)->run('interview-reminders', 600, function (callable $progress) use ($app): int {
     $repo = $app->get(InterviewRepository::class);
     $notify = $app->get(NotificationService::class);
     $sent = 0;

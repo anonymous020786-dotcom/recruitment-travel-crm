@@ -18,7 +18,7 @@ use App\Support\Logger;
 /** @var Application $app */
 $app = require __DIR__ . '/_bootstrap.php';
 
-exit($app->get(CronRunner::class)->run('process-exports', 280, function (callable $progress) use ($app): int {
+return CronRunner::finish($app->get(CronRunner::class)->run('process-exports', 280, function (callable $progress) use ($app): int {
     $batchSize = (int) $app->config()->get('cron.jobs.process-exports.batch', 5);
     $jobs = $app->get(ExportRepository::class)->claimPending($batchSize);
     if ($jobs === []) {

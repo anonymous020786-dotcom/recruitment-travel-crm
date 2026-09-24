@@ -22,6 +22,18 @@ final class CronRunner
     }
 
     /**
+     * End a cron script. Run on its own (`php cron/x.php`) the script exits with the job's code; when
+     * `cron/dispatch.php` includes it in-process (CRON_IN_PROCESS) the code is returned so the dispatcher goes on.
+     */
+    public static function finish(int $code): int
+    {
+        if (\defined('CRON_IN_PROCESS')) {
+            return $code;
+        }
+        exit($code);
+    }
+
+    /**
      * @param Closure(callable(int):void):(int|void) $work receives a progress
      *        callback; return (or report) the number of items processed.
      * @return int exit code (0 ok, 1 failed, 2 skipped because locked)
@@ -38,7 +50,7 @@ final class CronRunner
 
         $runId = (int) $this->db->insertRow('cron_runs', [
             'job_name'   => $job,
-            'started_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'started_at' => gmdate('Y-m-d H:i:s'), // UTC, like finished_at — the dispatcher compares these to schedule times
             'status'     => 'running',
         ]);
 

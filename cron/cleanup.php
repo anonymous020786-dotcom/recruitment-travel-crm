@@ -22,7 +22,7 @@ use App\Support\Db;
 /** @var Application $app */
 $app = require __DIR__ . '/_bootstrap.php';
 
-exit($app->get(CronRunner::class)->run('cleanup', 600, function (callable $progress) use ($app): void {
+return CronRunner::finish($app->get(CronRunner::class)->run('cleanup', 600, function (callable $progress) use ($app): void {
     $db = $app->get(Db::class);
     $sessionTable = (string) $app->config()->get('session.table', 'sessions');
     $sessionLifetime = (int) $app->config()->get('session.lifetime_minutes', 480) * 60;

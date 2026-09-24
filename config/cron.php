@@ -15,6 +15,9 @@ return [
 
     'runs_table' => 'cron_runs',
 
+    // cron/dispatch.php stops starting new jobs after this many seconds (leave headroom under the host's limit).
+    'dispatch_budget_seconds' => Env::int('CRON_DISPATCH_BUDGET', 240),
+
     // Hour (UTC) at which cron/followups.php sends its daily digest email.
     'followup_digest_hour' => Env::int('FOLLOWUP_DIGEST_HOUR', 8),
 

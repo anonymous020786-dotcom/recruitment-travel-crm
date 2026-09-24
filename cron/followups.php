@@ -21,7 +21,7 @@ use App\Support\CronRunner;
 /** @var Application $app */
 $app = require __DIR__ . '/_bootstrap.php';
 
-exit($app->get(CronRunner::class)->run('followups', 280, function (callable $progress) use ($app): int {
+return CronRunner::finish($app->get(CronRunner::class)->run('followups', 280, function (callable $progress) use ($app): int {
     $today = gmdate('Y-m-d');
     $rows = $app->get(LeadFollowupRepository::class)->dueForReminder($today);
     if ($rows === []) {

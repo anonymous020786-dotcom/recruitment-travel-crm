@@ -15,7 +15,7 @@ use App\Support\CronRunner;
 /** @var Application $app */
 $app = require __DIR__ . '/_bootstrap.php';
 
-exit($app->get(CronRunner::class)->run('payment-reminders', 900, function (callable $progress) use ($app): int {
+return CronRunner::finish($app->get(CronRunner::class)->run('payment-reminders', 900, function (callable $progress) use ($app): int {
     $sent = $app->get(PaymentReminderService::class)->remindOverdue(gmdate('Y-m-d'));
     $progress($sent);
 

@@ -22,6 +22,11 @@ if (\PHP_SAPI !== 'cli' && \PHP_SAPI !== 'phpdbg') {
 }
 
 /** @var Application $app */
+// cron/dispatch.php boots once and runs many jobs in this process: reuse its container (secret already checked).
+if (isset($GLOBALS['cron_app']) && $GLOBALS['cron_app'] instanceof Application) {
+    return $GLOBALS['cron_app'];
+}
+
 $app = require dirname(__DIR__) . '/bootstrap/app.php';
 
 $configuredSecret = (string) $app->config()->get('cron.secret', '');
