@@ -23,6 +23,7 @@ use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
 use App\Controllers\Crm\PaymentController;
 use App\Controllers\Crm\RefundController;
+use App\Controllers\Crm\ReportController;
 use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
@@ -354,6 +355,11 @@ return static function (Router $router): void {
         $r->post('/refunds/{refund}/approve', [RefundController::class, 'approve'])->middleware(['can:refunds.approve', 'throttle:write'])->name('refunds.approve');
         $r->post('/refunds/{refund}/reject', [RefundController::class, 'reject'])->middleware(['can:refunds.reject', 'throttle:write'])->name('refunds.reject');
         $r->post('/refunds/{refund}/paid', [RefundController::class, 'markPaid'])->middleware(['can:refunds.mark_paid', 'throttle:write'])->name('refunds.paid');
+
+        // ---- Reports ----
+        $r->get('/reports', [ReportController::class, 'index'])->middleware(['can:reports.view'])->name('reports.index');
+        $r->get('/reports/{report}', [ReportController::class, 'show'])->middleware(['can:reports.view', 'throttle:dashboard'])->name('reports.show');
+        $r->get('/reports/{report}/csv', [ReportController::class, 'csv'])->middleware(['can:reports.export', 'throttle:export'])->name('reports.csv');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');
