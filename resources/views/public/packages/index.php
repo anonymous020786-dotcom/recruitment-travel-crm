@@ -3,7 +3,7 @@
 
 use App\Support\PublicFormat;
 
-$org = (string) config('seo.organization_name', config('app.name'));
+$org = (string) setting('business.name', config('app.name'));
 $this->layout('layouts.public', [
     'title' => 'Travel packages' . ($page > 1 ? " — page {$page}" : ''),
     'description' => 'Holiday and tour packages from ' . $org . ': destinations, duration, what is included and price. Enquire online and our team will help you plan.',

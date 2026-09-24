@@ -29,5 +29,6 @@ return [
     ['label' => 'Tasks',        'icon' => 'tasks',        'path' => '/tasks',          'permission' => 'tasks.view'],
     ['label' => 'Admin',        'icon' => 'admin',        'path' => '/admin/users',    'permission' => 'users.view'],
     ['label' => 'Roles',        'icon' => 'admin',        'path' => '/admin/roles',    'permission' => 'roles.manage'],
+    ['label' => 'Settings',     'icon' => 'admin',        'path' => '/admin/settings', 'permission' => 'settings.view'],
     ['label' => 'Scheduled jobs', 'icon' => 'admin',      'path' => '/admin/cron',     'permission' => 'system.console'],
 ];

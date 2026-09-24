@@ -33,9 +33,17 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
     <meta property="og:title" content="<?= e_attr($title) ?>">
     <meta property="og:description" content="<?= e_attr($description) ?>">
     <?php if (!empty($ogImage)): ?><meta property="og:image" content="<?= e_attr($ogImage) ?>"><?php endif ?>
-    <?php $siteUrl = rtrim((string) config('app.url', ''), '/'); ?>
+    <?php
+    $siteUrl = rtrim((string) config('app.url', ''), '/');
+    $bizPhone = (string) setting('business.phone', '');
+    $bizEmail = (string) setting('business.email', '');
+    $bizAddress = (string) setting('business.address', '');
+    $orgLd = ['@type' => 'Organization', 'name' => (string) setting('business.name', $appName), 'url' => $siteUrl]
+        + ($bizPhone !== '' ? ['telephone' => $bizPhone] : []) + ($bizEmail !== '' ? ['email' => $bizEmail] : [])
+        + ($bizAddress !== '' ? ['address' => ['@type' => 'PostalAddress', 'streetAddress' => $bizAddress]] : []);
+    ?>
     <script type="application/ld+json"><?= json_encode(['@context' => 'https://schema.org', '@graph' => [
-        ['@type' => 'Organization', 'name' => (string) config('seo.organization_name', $appName), 'url' => $siteUrl],
+        $orgLd,
         ['@type' => 'WebSite', 'name' => $appName, 'url' => $siteUrl],
     ]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
     <link rel="stylesheet" href="<?= e_attr(asset('app.css')) ?>">
@@ -69,8 +77,9 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
 
 <footer class="mt-16 border-t border-slate-200 bg-white">
     <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:justify-between">
-        <p>&copy; <?= date('Y') ?> <?= e((string) config('seo.organization_name', $appName)) ?>. All rights reserved.</p>
-        <nav aria-label="Footer" class="flex gap-3">
+        <p>&copy; <?= date('Y') ?> <?= e((string) setting('business.name', $appName)) ?>. All rights reserved.</p>
+        <nav aria-label="Footer" class="flex flex-wrap gap-3">
+            <?php if ($bizPhone !== ''): ?><a href="tel:<?= e_attr(preg_replace('/[^0-9+]/', '', $bizPhone)) ?>"><?= e($bizPhone) ?></a><?php endif ?>
             <a href="/about">About</a>
             <a href="/overseas-jobs">Jobs</a>
             <a href="/travel-packages">Travel</a>

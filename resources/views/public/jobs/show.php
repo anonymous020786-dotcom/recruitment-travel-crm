@@ -4,7 +4,7 @@
 use App\Support\HtmlSanitizer;
 use App\Support\PublicFormat;
 
-$org = (string) config('seo.organization_name', config('app.name'));
+$org = (string) setting('business.name', config('app.name'));
 $site = rtrim((string) config('app.url', ''), '/');
 $place = $job['country_name'] . (!empty($job['city']) ? ', ' . $job['city'] : '');
 $salary = PublicFormat::salary($job['salary_min'], $job['salary_max'], $job['currency']);

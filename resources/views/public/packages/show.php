@@ -4,7 +4,7 @@
 use App\Support\HtmlSanitizer;
 use App\Support\PublicFormat;
 
-$org = (string) config('seo.organization_name', config('app.name'));
+$org = (string) setting('business.name', config('app.name'));
 $site = rtrim((string) config('app.url', ''), '/');
 $duration = PublicFormat::duration($pkg['duration_days'], $pkg['duration_nights']);
 $price = PublicFormat::price($pkg['price'], $pkg['currency']);

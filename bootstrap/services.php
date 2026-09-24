@@ -177,7 +177,7 @@ return static function (Application $app): void {
         $app->get(\App\Repositories\UserRepository::class),
         $app->get(\App\Notifications\NotificationService::class),
         $app->get(\App\Repositories\TaskRepository::class),
-        (int) $app->config()->get('finance.reminder_max_repeats', 8),
+        (int) $app->get(\App\Services\SettingsService::class)->get('finance.reminder_max_repeats', 8),
     ));
     $app->singleton(\App\Services\RefundService::class, static fn (Application $app): \App\Services\RefundService => new \App\Services\RefundService(
         $app->get(Db::class),

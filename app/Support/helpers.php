@@ -29,6 +29,14 @@ if (!function_exists('config')) {
     }
 }
 
+if (!function_exists('setting')) {
+    /** An administrator-tunable setting from config/settings.php (Admin → Settings), or $fallback when empty. */
+    function setting(string $key, mixed $fallback = null): mixed
+    {
+        return app(\App\Services\SettingsService::class)->get($key, $fallback);
+    }
+}
+
 if (!function_exists('logger')) {
     function logger(): Logger
     {

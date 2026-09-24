@@ -6,7 +6,7 @@
 
 use App\Support\PublicFormat;
 
-$org = (string) config('seo.organization_name', config('app.name'));
+$org = (string) setting('business.name', config('app.name'));
 $where = $countryName !== null ? " in {$countryName}" : '';
 $qs = array_filter(['country' => $country, 'q' => $search, 'page' => $page > 1 ? $page : null], static fn ($v): bool => $v !== '' && $v !== null);
 $this->layout('layouts.public', [

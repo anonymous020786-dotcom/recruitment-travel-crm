@@ -1,13 +1,13 @@
 <?php
 $this->layout('layouts.public', [
     'title' => 'About us',
-    'description' => 'About ' . (string) config('seo.organization_name', config('app.name')) . ' — overseas recruitment and travel services.',
+    'description' => 'About ' . (string) setting('business.name', config('app.name')) . ' — overseas recruitment and travel services.',
     'canonical' => 'about',
 ]);
 $this->start('content');
 ?>
 <section class="mx-auto max-w-3xl px-4 py-16">
-    <h1 class="text-2xl font-bold text-slate-900">About <?= e((string) config('seo.organization_name', config('app.name'))) ?></h1>
+    <h1 class="text-2xl font-bold text-slate-900">About <?= e((string) setting('business.name', config('app.name'))) ?></h1>
     <div class="prose prose-slate mt-4 max-w-none text-slate-600">
         <p>We are an overseas recruitment and travel agency. Our team supports candidates
            and employers through every stage of international hiring, and arranges travel

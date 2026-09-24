@@ -32,6 +32,7 @@ use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
 use App\Controllers\Crm\RoleAdminController;
+use App\Controllers\Crm\SettingsController;
 use App\Controllers\Crm\UserAdminController;
 use App\Controllers\Crm\VisaController;
 use App\Controllers\Crm\LeadImportController;
@@ -420,6 +421,10 @@ return static function (Router $router): void {
         $r->get('/admin/roles/{role}', [RoleAdminController::class, 'show'])->middleware(['can:roles.manage'])->name('admin.roles.show');
         $r->put('/admin/roles/{role}', [RoleAdminController::class, 'update'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.roles.update');
         $r->post('/admin/roles/{role}/reset', [RoleAdminController::class, 'reset'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.roles.reset');
+
+        // ---- Admin: settings ----
+        $r->get('/admin/settings', [SettingsController::class, 'index'])->middleware(['can:settings.view'])->name('admin.settings');
+        $r->put('/admin/settings', [SettingsController::class, 'update'])->middleware(['can:settings.manage', 'throttle:write'])->name('admin.settings.update');
 
         // ---- Admin: scheduled jobs ----
         $r->get('/admin/cron', [CronController::class, 'index'])->middleware(['can:system.console'])->name('admin.cron');
