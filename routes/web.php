@@ -120,9 +120,9 @@ return static function (Router $router): void {
 
         $r->get('/account/two-factor', [AccountController::class, 'twoFactorSetup'])->name('account.2fa.setup');
         $r->post('/account/two-factor', [AccountController::class, 'twoFactorConfirm'])->middleware(['throttle:two_factor'])->name('account.2fa.confirm');
-        $r->post('/account/two-factor/disable', [AccountController::class, 'disableTwoFactor'])->middleware(['confirm'])->name('account.2fa.disable');
+        $r->post('/account/two-factor/disable', [AccountController::class, 'disableTwoFactor'])->middleware(['confirm', 'throttle:write'])->name('account.2fa.disable');
         $r->get('/account/recovery-codes', [AccountController::class, 'recoveryCodes'])->name('account.recovery');
-        $r->post('/account/recovery-codes', [AccountController::class, 'regenerateRecoveryCodes'])->middleware(['confirm'])->name('account.recovery.regen');
+        $r->post('/account/recovery-codes', [AccountController::class, 'regenerateRecoveryCodes'])->middleware(['confirm', 'throttle:write'])->name('account.recovery.regen');
 
         // ---- Passkeys (WebAuthn) ------------------------------
         $r->get('/account/passkeys', [PasskeyController::class, 'index'])->middleware(['confirm'])->name('account.passkeys');
@@ -130,19 +130,19 @@ return static function (Router $router): void {
             ->middleware(['throttle:two_factor', 'json', 'confirm'])->name('account.passkeys.options');
         $r->post('/account/passkeys', [PasskeyController::class, 'store'])
             ->middleware(['throttle:two_factor', 'json', 'confirm'])->name('account.passkeys.store');
-        $r->post('/account/passkeys/{id}/rename', [PasskeyController::class, 'rename'])->middleware(['confirm'])->name('account.passkeys.rename');
-        $r->post('/account/passkeys/{id}/delete', [PasskeyController::class, 'destroy'])->middleware(['confirm'])->name('account.passkeys.destroy');
-        $r->post('/account/passkeys/second-factor', [PasskeyController::class, 'toggleSecondFactor'])->middleware(['confirm'])->name('account.passkeys.2fa');
+        $r->post('/account/passkeys/{id}/rename', [PasskeyController::class, 'rename'])->middleware(['confirm', 'throttle:write'])->name('account.passkeys.rename');
+        $r->post('/account/passkeys/{id}/delete', [PasskeyController::class, 'destroy'])->middleware(['confirm', 'throttle:write'])->name('account.passkeys.destroy');
+        $r->post('/account/passkeys/second-factor', [PasskeyController::class, 'toggleSecondFactor'])->middleware(['confirm', 'throttle:write'])->name('account.passkeys.2fa');
 
-        $r->post('/account/devices/revoke', [AccountController::class, 'revokeDevice'])->name('account.devices.revoke');
-        $r->post('/account/sessions/revoke', [AccountController::class, 'revokeSession'])->name('account.sessions.revoke');
-        $r->post('/account/sessions/revoke-all', [AccountController::class, 'signOutEverywhere'])->middleware(['confirm'])->name('account.sessions.revoke_all');
+        $r->post('/account/devices/revoke', [AccountController::class, 'revokeDevice'])->middleware(['throttle:write'])->name('account.devices.revoke');
+        $r->post('/account/sessions/revoke', [AccountController::class, 'revokeSession'])->middleware(['throttle:write'])->name('account.sessions.revoke');
+        $r->post('/account/sessions/revoke-all', [AccountController::class, 'signOutEverywhere'])->middleware(['confirm', 'throttle:write'])->name('account.sessions.revoke_all');
 
         // ---- Leads --------------------------------------------------
         $r->get('/leads', [LeadController::class, 'index'])->middleware(['can:leads.view'])->name('leads.index');
         $r->get('/leads/create', [LeadController::class, 'create'])->middleware(['can:leads.create'])->name('leads.create');
         $r->post('/leads', [LeadController::class, 'store'])->middleware(['can:leads.create', 'throttle:write'])->name('leads.store');
-        $r->post('/leads/bulk/assign', [LeadController::class, 'bulkAssign'])->middleware(['can:leads.assign'])->name('leads.bulk.assign');
+        $r->post('/leads/bulk/assign', [LeadController::class, 'bulkAssign'])->middleware(['can:leads.assign', 'throttle:write'])->name('leads.bulk.assign');
 
         // Import/export — literal paths, must be declared before /leads/{lead}
         // (a two-segment wildcard route) or "import"/"export" would be parsed
@@ -168,11 +168,11 @@ return static function (Router $router): void {
         $r->get('/leads/{lead}/merge', [LeadController::class, 'mergeForm'])->middleware(['can:leads.merge'])->name('leads.merge');
         $r->post('/leads/{lead}/merge', [LeadController::class, 'merge'])->middleware(['can:leads.merge', 'throttle:write'])->name('leads.merge.do');
         $r->put('/leads/{lead}', [LeadController::class, 'update'])->middleware(['can:leads.edit', 'throttle:write'])->name('leads.update');
-        $r->delete('/leads/{lead}', [LeadController::class, 'destroy'])->middleware(['can:leads.delete'])->name('leads.destroy');
+        $r->delete('/leads/{lead}', [LeadController::class, 'destroy'])->middleware(['can:leads.delete', 'throttle:write'])->name('leads.destroy');
 
-        $r->post('/leads/{lead}/assign', [LeadController::class, 'assign'])->middleware(['can:leads.assign'])->name('leads.assign');
-        $r->post('/leads/{lead}/status', [LeadController::class, 'changeStatus'])->middleware(['can:leads.edit'])->name('leads.status');
-        $r->post('/leads/{lead}/notes', [LeadController::class, 'addNote'])->middleware(['can:leads.edit'])->name('leads.notes');
+        $r->post('/leads/{lead}/assign', [LeadController::class, 'assign'])->middleware(['can:leads.assign', 'throttle:write'])->name('leads.assign');
+        $r->post('/leads/{lead}/status', [LeadController::class, 'changeStatus'])->middleware(['can:leads.edit', 'throttle:write'])->name('leads.status');
+        $r->post('/leads/{lead}/notes', [LeadController::class, 'addNote'])->middleware(['can:leads.edit', 'throttle:write'])->name('leads.notes');
         $r->post('/leads/{lead}/communications', [LeadController::class, 'logCommunication'])
             ->middleware(['can:communication.log', 'throttle:write'])->name('leads.communications.store');
         $r->post('/leads/{lead}/followups', [LeadController::class, 'scheduleFollowup'])

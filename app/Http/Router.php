@@ -95,6 +95,12 @@ final class Router
         return $route;
     }
 
+    /** @return list<Route> every registered route, in registration order (used by the route audit) */
+    public function routes(): array
+    {
+        return $this->routes;
+    }
+
     public function finalizeNames(): void
     {
         foreach ($this->routes as $route) {
