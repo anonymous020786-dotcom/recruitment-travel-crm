@@ -4,7 +4,11 @@
  * @var string $key @var array{title:string,description:string,filter:string,columns:list<string>,numeric:list<int>} $def
  * @var array{from:string,to:string,days:int} $filters @var list<list<string|int>> $rows @var bool $truncated @var int $limit @var string $generatedBy
  */
-$period = $def['filter'] === 'range' ? $filters['from'] . ' to ' . $filters['to'] : 'expiring within ' . $filters['days'] . ' days';
+$period = match ($def['filter']) {
+    'range' => $filters['from'] . ' to ' . $filters['to'],
+    'days'  => 'expiring within ' . $filters['days'] . ' days',
+    default => 'as of ' . gmdate('Y-m-d'),
+};
 ?><!DOCTYPE html>
 <html lang="en">
 <head>

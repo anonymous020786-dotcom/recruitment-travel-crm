@@ -6,7 +6,11 @@ $this->start('content');
 $hasFilters = $query->hasSearch() || $query->filters !== [];
 $color = ['recorded' => 'green', 'reversed' => 'red'];
 ?>
-<?= component('page-header', ['title' => 'Payments', 'subtitle' => number_format($page->total) . ' matching']) ?>
+<?= component('page-header', [
+    'title' => 'Payments',
+    'subtitle' => number_format($page->total) . ' matching',
+    'actions' => can('reports.finance.view') ? '<a href="/reports/payments-register" class="btn btn-secondary btn-sm">Report / export</a>' : '',
+]) ?>
 
 <form method="get" action="/payments" class="card card-body mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
     <div>

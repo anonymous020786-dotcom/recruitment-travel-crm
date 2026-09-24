@@ -70,7 +70,7 @@ final class ReportController extends CrmController
         }
 
         $scope = $this->scope();
-        $name = 'report-' . $report . '-' . $filters['from'] . '-' . $filters['to'] . '.csv';
+        $name = 'report-' . $report . '-' . ($def['filter'] === 'range' ? $filters['from'] . '-' . $filters['to'] : gmdate('Y-m-d')) . '.csv';
 
         return Response::stream(function () use ($report, $filters, $scope, $user): void {
             $out = fopen('php://output', 'wb');

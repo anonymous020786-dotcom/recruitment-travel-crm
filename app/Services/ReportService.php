@@ -60,6 +60,31 @@ final class ReportService
             'description' => 'Bookings created in the period, per package and currency, with the value of those going ahead.',
             'columns' => ['Package', 'Currency', 'Bookings', 'In pipeline', 'Confirmed / travelling', 'Completed', 'Cancelled', 'Revenue'], 'numeric' => [2, 3, 4, 5, 6, 7],
         ],
+        'collections' => [
+            'title' => 'Collections', 'group' => 'Finance', 'permission' => 'reports.finance.view', 'filter' => 'range',
+            'description' => 'Money received per month, currency and payment method (reversed payments excluded; refunds are a separate report).',
+            'columns' => ['Month', 'Currency', 'Method', 'Payments', 'Amount received'], 'numeric' => [3, 4],
+        ],
+        'payments-register' => [
+            'title' => 'Payments register', 'group' => 'Finance', 'permission' => 'reports.finance.view', 'filter' => 'range',
+            'description' => 'Every payment received in the period, with receipt number and how much has been applied to invoices.',
+            'columns' => ['Received', 'Payment no.', 'Receipt no.', 'Customer', 'Method', 'Reference', 'Currency', 'Amount', 'Applied', 'Status'], 'numeric' => [7, 8],
+        ],
+        'invoices-register' => [
+            'title' => 'Invoices register', 'group' => 'Finance', 'permission' => 'reports.finance.view', 'filter' => 'range',
+            'description' => 'Every invoice raised in the period with what has been paid, refunded and is still owed.',
+            'columns' => ['Invoice', 'Customer', 'For', 'Reference', 'Issued', 'Due', 'Currency', 'Total', 'Paid', 'Refunded', 'Outstanding', 'Status'], 'numeric' => [7, 8, 9, 10],
+        ],
+        'refunds-register' => [
+            'title' => 'Refunds', 'group' => 'Finance', 'permission' => 'reports.finance.view', 'filter' => 'range',
+            'description' => 'Refunds requested in the period, who asked, who approved, and where each stands.',
+            'columns' => ['Requested', 'Refund no.', 'Customer', 'Payment', 'Invoice', 'Currency', 'Amount', 'Method', 'Status', 'Requested by', 'Approved by', 'Reason'], 'numeric' => [6],
+        ],
+        'overdue-invoices' => [
+            'title' => 'Overdue invoices', 'group' => 'Finance', 'permission' => 'reports.finance.view', 'filter' => 'none',
+            'description' => 'Every invoice past its due date that still owes money, oldest first — a live list, with the customer\'s phone for chasing.',
+            'columns' => ['Invoice', 'Customer', 'Phone', 'Due', 'Days overdue', 'Currency', 'Outstanding', 'Status'], 'numeric' => [4, 6],
+        ],
     ];
 
     public function __construct(
@@ -112,7 +137,7 @@ final class ReportService
             if ((strtotime($to) - strtotime($from)) / 86400 > self::MAX_RANGE_DAYS) {
                 throw new ValidationException(['to' => ['Choose a period of at most five years.']]);
             }
-        } else {
+        } elseif ((self::CATALOG[$key]['filter'] ?? '') === 'days') {
             $raw = $input['days'] ?? null;
             if ($raw !== null && $raw !== '') {
                 if (!is_numeric($raw) || (int) $raw < 1 || (int) $raw > self::MAX_EXPIRY_DAYS) {
@@ -179,6 +204,46 @@ final class ReportService
                     ];
                 }
                 break;
+            case 'collections':
+                foreach ($this->repo->collections($scope, $f['from'], $f['to']) as $r) {
+                    yield [$r['month'], $r['currency'], ucwords(str_replace('_', ' ', (string) $r['method'])), (int) $r['payments'], $this->money($r['total'])];
+                }
+                break;
+            case 'payments-register':
+                foreach ($this->repo->payments($scope, $f['from'], $f['to']) as $r) {
+                    yield [
+                        substr((string) $r['paid_at'], 0, 16), $r['payment_number'], $r['receipt_number'], $r['customer'], ucwords(str_replace('_', ' ', (string) $r['method'])),
+                        (string) ($r['reference'] ?? ''), $r['currency'], $this->money($r['amount']), $this->money($r['allocated']), ucfirst((string) $r['status']),
+                    ];
+                }
+                break;
+            case 'invoices-register':
+                foreach ($this->repo->invoices($scope, $f['from'], $f['to']) as $r) {
+                    yield [
+                        $r['invoice_number'], $r['customer'], $r['kind'] === 'tour_booking' ? 'Tour booking' : ($r['kind'] === 'application' ? 'Recruitment' : 'Other'),
+                        (string) ($r['reference'] ?? ''), (string) ($r['issued_on'] ?? ''), (string) ($r['due_on'] ?? ''), $r['currency'],
+                        $this->money($r['grand_total']), $this->money($r['amount_paid']), $this->money($r['amount_refunded']), $this->money($r['outstanding']),
+                        ucwords(str_replace('_', ' ', (string) $r['status'])),
+                    ];
+                }
+                break;
+            case 'refunds-register':
+                foreach ($this->repo->refunds($scope, $f['from'], $f['to']) as $r) {
+                    yield [
+                        substr((string) $r['created_at'], 0, 16), $r['refund_number'], $r['customer'], $r['payment_number'], (string) ($r['invoice_number'] ?? 'credit'),
+                        $r['currency'], $this->money($r['amount']), ucwords(str_replace('_', ' ', (string) $r['method'])), ucfirst((string) $r['status']),
+                        (string) ($r['requested_by'] ?? ''), (string) ($r['approved_by'] ?? ''), (string) $r['reason'],
+                    ];
+                }
+                break;
+            case 'overdue-invoices':
+                foreach ($this->repo->overdueInvoices($scope, gmdate('Y-m-d')) as $r) {
+                    yield [
+                        $r['invoice_number'], $r['customer'], (string) ($r['phone'] ?? ''), $r['due_on'], (int) $r['days_overdue'], $r['currency'],
+                        $this->money($r['outstanding']), ucwords(str_replace('_', ' ', (string) $r['status'])),
+                    ];
+                }
+                break;
             default:
                 throw new \InvalidArgumentException("Unknown report: {$key}");
         }
@@ -240,6 +305,11 @@ final class ReportService
         }
 
         return $kinds;
+    }
+
+    private function money(mixed $v): string
+    {
+        return number_format((float) $v, 2, '.', '');
     }
 
     private function date(mixed $v, string $field): ?string

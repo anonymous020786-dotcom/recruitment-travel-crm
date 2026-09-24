@@ -6,7 +6,11 @@ $this->start('content');
 $hasFilters = $query->hasSearch() || $query->filters !== [];
 $color = ['pending' => 'amber', 'approved' => 'blue', 'paid' => 'green', 'rejected' => 'red'];
 ?>
-<?= component('page-header', ['title' => 'Refunds', 'subtitle' => number_format($page->total) . ' matching']) ?>
+<?= component('page-header', [
+    'title' => 'Refunds',
+    'subtitle' => number_format($page->total) . ' matching',
+    'actions' => can('reports.finance.view') ? '<a href="/reports/refunds-register" class="btn btn-secondary btn-sm">Report / export</a>' : '',
+]) ?>
 
 <div class="mb-4 grid gap-3 sm:grid-cols-4">
     <?php foreach ($color as $s => $c): ?>

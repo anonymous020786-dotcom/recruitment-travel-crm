@@ -132,6 +132,92 @@ final class ReportRepository
     }
 
     /**
+     * Money received in the range, per month, currency and method (recorded payments only — reversed ones are not money).
+     * Refunds are reported separately, never netted silently.
+     */
+    public function collections(BranchScope $scope, string $from, string $to): \Generator
+    {
+        [$branchSql, $bind] = $scope->whereClause('branch_id');
+
+        yield from $this->db->cursor(
+            "SELECT DATE_FORMAT(paid_at, '%Y-%m') AS month, currency, method, COUNT(*) AS payments, SUM(amount) AS total
+             FROM payments WHERE status = 'recorded' AND DATE(paid_at) BETWEEN :from AND :to AND {$branchSql}
+             GROUP BY month, currency, method ORDER BY month DESC, currency, method",
+            ['from' => $from, 'to' => $to] + $bind,
+        );
+    }
+
+    /** Every payment received in the range, with how much of it has been applied to invoices. */
+    public function payments(BranchScope $scope, string $from, string $to): \Generator
+    {
+        [$branchSql, $bind] = $scope->whereClause('pm.branch_id');
+
+        yield from $this->db->cursor(
+            "SELECT pm.paid_at, pm.payment_number, pm.receipt_number, p.full_name AS customer, pm.method, pm.reference, pm.currency, pm.amount, pm.status,
+                    (SELECT COALESCE(SUM(a.amount), 0) FROM payment_allocations a WHERE a.payment_id = pm.id) AS allocated
+             FROM payments pm JOIN persons p ON p.id = pm.person_id
+             WHERE DATE(pm.paid_at) BETWEEN :from AND :to AND {$branchSql}
+             ORDER BY pm.paid_at DESC, pm.id DESC",
+            ['from' => $from, 'to' => $to] + $bind,
+        );
+    }
+
+    /** Every invoice raised in the range, with what has been paid, refunded and is still owed. */
+    public function invoices(BranchScope $scope, string $from, string $to): \Generator
+    {
+        [$branchSql, $bind] = $scope->whereClause('i.branch_id');
+
+        yield from $this->db->cursor(
+            "SELECT i.invoice_number, p.full_name AS customer, i.invoiceable_type AS kind, COALESCE(a.application_number, tb.booking_number) AS reference,
+                    i.issued_on, i.due_on, i.currency, i.grand_total, i.amount_paid, i.amount_refunded,
+                    GREATEST(i.grand_total - (i.amount_paid - i.amount_refunded), 0) AS outstanding, i.status
+             FROM invoices i
+             JOIN persons p ON p.id = i.person_id
+             LEFT JOIN applications a ON i.invoiceable_type = 'application' AND a.id = i.invoiceable_id
+             LEFT JOIN tour_bookings tb ON i.invoiceable_type = 'tour_booking' AND tb.id = i.invoiceable_id
+             WHERE DATE(i.created_at) BETWEEN :from AND :to AND {$branchSql}
+             ORDER BY i.created_at DESC, i.id DESC",
+            ['from' => $from, 'to' => $to] + $bind,
+        );
+    }
+
+    /** Every refund requested in the range. */
+    public function refunds(BranchScope $scope, string $from, string $to): \Generator
+    {
+        [$branchSql, $bind] = $scope->whereClause('r.branch_id');
+
+        yield from $this->db->cursor(
+            "SELECT r.created_at, r.refund_number, p.full_name AS customer, pm.payment_number, i.invoice_number, r.currency, r.amount, r.method, r.status,
+                    cu.name AS requested_by, au.name AS approved_by, r.reason
+             FROM refunds r
+             JOIN persons p ON p.id = r.person_id
+             JOIN payments pm ON pm.id = r.payment_id
+             LEFT JOIN invoices i ON i.id = r.invoice_id
+             LEFT JOIN users cu ON cu.id = r.created_by
+             LEFT JOIN users au ON au.id = r.approved_by
+             WHERE DATE(r.created_at) BETWEEN :from AND :to AND {$branchSql}
+             ORDER BY r.created_at DESC, r.id DESC",
+            ['from' => $from, 'to' => $to] + $bind,
+        );
+    }
+
+    /** Every invoice that is past due and still owes money, oldest first (a live snapshot, no date range). */
+    public function overdueInvoices(BranchScope $scope, string $today): \Generator
+    {
+        [$branchSql, $bind] = $scope->whereClause('i.branch_id');
+        $owed = 'GREATEST(i.grand_total - (i.amount_paid - i.amount_refunded), 0)';
+
+        yield from $this->db->cursor(
+            "SELECT i.invoice_number, p.full_name AS customer, p.primary_phone AS phone, i.due_on, DATEDIFF(:today, i.due_on) AS days_overdue,
+                    i.currency, {$owed} AS outstanding, i.status
+             FROM invoices i JOIN persons p ON p.id = i.person_id
+             WHERE i.status IN ('issued','partially_paid') AND i.due_on < :today2 AND {$owed} > 0 AND {$branchSql}
+             ORDER BY i.due_on, i.id",
+            ['today' => $today, 'today2' => $today] + $bind,
+        );
+    }
+
+    /**
      * Tour bookings created in the range, per package (and currency, since money is never mixed):
      * counts by outcome and the value of the bookings that are actually going ahead.
      */

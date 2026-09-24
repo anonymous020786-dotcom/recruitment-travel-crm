@@ -13,7 +13,8 @@ $money = static fn (string $cur, string $v): string => e($cur . ' ' . number_for
 <?= component('page-header', [
     'title' => 'Invoices',
     'subtitle' => number_format($page->total) . ' matching',
-    'actions' => '<a href="/invoices/aging" class="btn btn-secondary btn-sm">Ageing</a> ' . ($canCreate ? '<a href="/invoices/create" class="btn btn-primary btn-sm">New invoice</a>' : ''),
+    'actions' => '<a href="/invoices/aging" class="btn btn-secondary btn-sm">Ageing</a> '
+        . (can('reports.finance.view') ? '<a href="/reports/invoices-register" class="btn btn-secondary btn-sm">Report / export</a> ' : '') . ($canCreate ? '<a href="/invoices/create" class="btn btn-primary btn-sm">New invoice</a>' : ''),
 ]) ?>
 
 <?php if ($summary !== []): ?>

@@ -209,7 +209,7 @@ final class ReportServiceTest extends DbTestCase
         $keys = static fn (array $cat): array => array_merge(...array_map(static fn (array $g): array => array_column($g, 'key'), array_values($cat)));
 
         self::assertEqualsCanonicalizing(
-            ['lead-sources', 'applications-by-employer', 'placements', 'expiring-documents', 'flights', 'tour-packages'],
+            ['lead-sources', 'applications-by-employer', 'placements', 'expiring-documents', 'flights', 'tour-packages', 'collections', 'payments-register', 'invoices-register', 'refunds-register', 'overdue-invoices'],
             $keys($this->reports->catalogFor($manager)),
         );
 

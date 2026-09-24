@@ -6,7 +6,11 @@
 $this->layout('layouts.app', ['title' => $def['title'], 'currentPath' => '/reports']);
 $this->start('content');
 
-$qs = $def['filter'] === 'range' ? ['from' => $filters['from'], 'to' => $filters['to']] : ['days' => $filters['days']];
+$qs = match ($def['filter']) {
+    'range' => ['from' => $filters['from'], 'to' => $filters['to']],
+    'days'  => ['days' => $filters['days']],
+    default => [],
+};
 $actions = '<a href="/reports/' . e_attr($key) . '?' . e_attr(http_build_query($qs + ['print' => 1])) . '" target="_blank" class="btn btn-secondary btn-sm">Print</a>';
 if ($canExport) {
     $actions .= ' <a href="/reports/' . e_attr($key) . '/csv?' . e_attr(http_build_query($qs)) . '" class="btn btn-primary btn-sm">Download CSV</a>';
@@ -19,6 +23,7 @@ if ($canExport) {
     'actions' => $actions,
 ]) ?>
 
+<?php if ($def['filter'] !== 'none'): ?>
 <form method="get" action="/reports/<?= e_attr($key) ?>" class="card card-body mb-4 flex flex-wrap items-end gap-3">
     <?php if ($def['filter'] === 'range'): ?>
         <div><label class="form-label" for="from">From</label><input class="form-input" type="date" id="from" name="from" value="<?= e_attr($filters['from']) ?>"></div>
@@ -28,6 +33,7 @@ if ($canExport) {
     <?php endif ?>
     <button type="submit" class="btn btn-primary">Run report</button>
 </form>
+<?php endif ?>
 
 <?php if ($rows === []): ?>
     <?= component('card', ['body' => component('empty-state', ['title' => 'No rows', 'message' => 'Nothing matches these filters in the branches you can see.'])]) ?>
