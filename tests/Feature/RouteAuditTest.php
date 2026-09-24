@@ -23,6 +23,8 @@ final class RouteAuditTest extends DbTestCase
     /** Reachable without signing in. */
     private const ANONYMOUS = [
         'GET /', 'GET /about', 'GET /robots.txt', 'GET /sitemap.xml', 'GET /contact', 'POST /contact',
+        'GET /overseas-jobs', 'GET /overseas-jobs/{slug}', 'GET /overseas-jobs/{slug}/apply', 'POST /overseas-jobs/{slug}/apply',
+        'GET /travel-packages', 'GET /travel-packages/{slug}', 'GET /travel-packages/{slug}/enquire', 'POST /travel-packages/{slug}/enquire',
         'GET /health', 'GET /api/ping',
         'GET /login', 'POST /login', 'POST /login/passkey/options', 'POST /login/passkey',
         'GET /forgot-password', 'POST /forgot-password', 'GET /reset-password/{token}', 'POST /reset-password',
@@ -33,6 +35,9 @@ final class RouteAuditTest extends DbTestCase
     private const NO_PERMISSION_GATE = [
         'POST /logout'                          => 'every signed-in user may sign out',
         'GET /dashboard'                        => 'widgets are filtered by the viewer\'s permissions and branch scope',
+        'GET /notifications'                    => 'own notifications only',
+        'POST /notifications/read-all'          => 'own notifications only',
+        'GET /notifications/{id}/open'          => 'own notification only; the target screen enforces its own permission and branch scope',
         'GET /confirm-password'                 => 'own-account step-up',
         'POST /confirm-password'                => 'own-account step-up',
         'GET /account/profile'                  => 'own account only',

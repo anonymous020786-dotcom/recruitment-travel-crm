@@ -8,33 +8,28 @@ use App\Controllers\Public\SeoController;
 use App\Http\Kernel;
 use App\Http\Middleware\Authenticate;
 use App\Http\Router;
-use App\Support\Application;
-use App\Support\Config;
 use App\Support\HtmlAudit;
 use App\View\Assets;
 use App\View\View;
-use PHPUnit\Framework\TestCase;
-use Tests\Support\TestApp;
+use Tests\Support\DbTestCase;
 
 /**
  * The real public pages and the sign-in page, rendered from the real views, must pass the accessibility / SEO audit
  * (no errors). The signed-in screens need a session and data, so they are covered by `scripts/html-audit.php`.
  */
-final class PageAuditTest extends TestCase
+final class PageAuditTest extends DbTestCase
 {
     private View $view;
-    private Application $app;
 
     protected function setUp(): void
     {
-        $app = TestApp::make(['app.url' => 'https://crm.acmetravel.in', 'app.name' => 'Acme Travel', 'seo.organization_name' => 'Acme Travel Pvt Ltd']);
-        $app->instance(Assets::class, new Assets(TEST_ROOT . '/public'));
-        $this->app = $app;
+        parent::setUp();
+        foreach (['app.url' => 'https://crm.acmetravel.in', 'app.name' => 'Acme Travel', 'seo.organization_name' => 'Acme Travel Pvt Ltd'] as $k => $v) {
+            $this->app->config()->set($k, $v);
+        }
+        $this->app->instance(Assets::class, new Assets(TEST_ROOT . '/public'));
         $this->view = new View(TEST_ROOT . '/resources/views');
-        $app->instance(View::class, $this->view);
-        $app->instance(Config::class, $app->config());
-        (require TEST_ROOT . '/bootstrap/services.php')($app);   // the real bindings (integrations, Turnstile, …)
-        $app->instance(View::class, $this->view);
+        $this->app->instance(View::class, $this->view);
     }
 
     /** @return list<array{rule:string,severity:string,message:string,snippet:string}> */

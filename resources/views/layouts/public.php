@@ -11,6 +11,8 @@ $appName = (string) config('app.name');
 $canonical = rtrim((string) config('app.url', ''), '/') . '/' . ltrim($canonical ?? '', '/');
 $nav = [
     '/' => 'Home',
+    '/overseas-jobs' => 'Jobs',
+    '/travel-packages' => 'Travel',
     '/about' => 'About',
     '/contact' => 'Contact',
 ];
@@ -24,6 +26,7 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
     <title><?= e($title) ?><?= $title === (string) config('seo.default_title') ? '' : e((string) config('seo.title_suffix')) ?></title>
     <meta name="description" content="<?= e_attr($description) ?>">
     <link rel="canonical" href="<?= e_attr($canonical) ?>">
+    <?php if (!empty($robots)): ?><meta name="robots" content="<?= e_attr($robots) ?>"><?php endif ?>
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?= e_attr($canonical) ?>">
     <meta property="og:site_name" content="<?= e_attr($appName) ?>">
@@ -69,6 +72,8 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
         <p>&copy; <?= date('Y') ?> <?= e((string) config('seo.organization_name', $appName)) ?>. All rights reserved.</p>
         <nav aria-label="Footer" class="flex gap-3">
             <a href="/about">About</a>
+            <a href="/overseas-jobs">Jobs</a>
+            <a href="/travel-packages">Travel</a>
             <a href="/contact">Contact</a>
         </nav>
     </div>

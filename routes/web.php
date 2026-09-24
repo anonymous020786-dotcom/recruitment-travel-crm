@@ -14,6 +14,7 @@ use App\Controllers\Crm\CronController;
 use App\Controllers\Crm\DashboardController;
 use App\Controllers\Crm\DocumentController;
 use App\Controllers\Crm\EmployerController;
+use App\Controllers\Crm\EnquiryController;
 use App\Controllers\Crm\JobController;
 use App\Controllers\Crm\MatchController;
 use App\Controllers\Crm\FollowupController;
@@ -22,6 +23,7 @@ use App\Controllers\Crm\InvoiceController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
+use App\Controllers\Crm\NotificationController;
 use App\Controllers\Crm\PaymentController;
 use App\Controllers\Crm\RefundController;
 use App\Controllers\Crm\ReportController;
@@ -33,6 +35,8 @@ use App\Controllers\Crm\LeadImportController;
 use App\Controllers\Crm\PasskeyController;
 use App\Controllers\HealthController;
 use App\Controllers\Public\ContactController;
+use App\Controllers\Public\JobBoardController;
+use App\Controllers\Public\PackageBoardController;
 use App\Controllers\Public\PublicPageController;
 use App\Controllers\Public\SeoController;
 use App\Http\Router;
@@ -45,6 +49,12 @@ return static function (Router $router): void {
         $r->get('/about', [PublicPageController::class, 'about'])->name('about');
         $r->get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
         $r->get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
+
+        // The public jobs board and travel packages. (/jobs is the signed-in CRM screen, hence /overseas-jobs.)
+        $r->get('/overseas-jobs', [JobBoardController::class, 'index'])->name('jobs.index');
+        $r->get('/overseas-jobs/{slug}', [JobBoardController::class, 'show'])->name('jobs.show');
+        $r->get('/travel-packages', [PackageBoardController::class, 'index'])->name('packages.index');
+        $r->get('/travel-packages/{slug}', [PackageBoardController::class, 'show'])->name('packages.show');
     });
 
     // ---- Public forms (session for flash/CSRF, not shared-cached) -------
@@ -52,6 +62,15 @@ return static function (Router $router): void {
         $r->get('/contact', [PublicPageController::class, 'contact'])->name('contact');
         $r->post('/contact', [ContactController::class, 'submit'])
             ->middleware(['csrf', 'throttle:public_form'])->name('contact.submit');
+
+        // Apply / enquire forms live on their own pages: they carry a CSRF token, so they need a session, while the
+        // job and package pages themselves stay session-free and cacheable.
+        $r->get('/overseas-jobs/{slug}/apply', [JobBoardController::class, 'applyForm'])->name('jobs.apply.form');
+        $r->post('/overseas-jobs/{slug}/apply', [JobBoardController::class, 'apply'])
+            ->middleware(['csrf', 'throttle:public_form'])->name('jobs.apply');
+        $r->get('/travel-packages/{slug}/enquire', [PackageBoardController::class, 'enquireForm'])->name('packages.enquire.form');
+        $r->post('/travel-packages/{slug}/enquire', [PackageBoardController::class, 'enquire'])
+            ->middleware(['csrf', 'throttle:public_form'])->name('packages.enquire');
     });
 
     // ---- Health / readiness -------------------------------------------
@@ -361,6 +380,17 @@ return static function (Router $router): void {
         $r->get('/reports', [ReportController::class, 'index'])->middleware(['can:reports.view'])->name('reports.index');
         $r->get('/reports/{report}', [ReportController::class, 'show'])->middleware(['can:reports.view', 'throttle:dashboard'])->name('reports.show');
         $r->get('/reports/{report}/csv', [ReportController::class, 'csv'])->middleware(['can:reports.export', 'throttle:export'])->name('reports.csv');
+
+        // ---- Own notifications (each user sees only their own) ----
+        $r->get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        $r->post('/notifications/read-all', [NotificationController::class, 'readAll'])->middleware(['throttle:write'])->name('notifications.read_all');
+        $r->get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
+
+        // ---- Website enquiries (contact, job applications, package enquiries) ----
+        $r->get('/enquiries', [EnquiryController::class, 'index'])->middleware(['can:public_enquiries.view'])->name('enquiries.index');
+        $r->get('/enquiries/{enquiry}', [EnquiryController::class, 'show'])->middleware(['can:public_enquiries.view'])->name('enquiries.show');
+        $r->post('/enquiries/{enquiry}/status', [EnquiryController::class, 'status'])->middleware(['can:public_enquiries.convert', 'throttle:write'])->name('enquiries.status');
+        $r->post('/enquiries/{enquiry}/convert', [EnquiryController::class, 'convert'])->middleware(['can:public_enquiries.convert', 'throttle:write'])->name('enquiries.convert');
 
         // ---- Admin: scheduled jobs ----
         $r->get('/admin/cron', [CronController::class, 'index'])->middleware(['can:system.console'])->name('admin.cron');

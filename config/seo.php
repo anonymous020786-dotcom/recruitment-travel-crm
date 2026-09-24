@@ -18,7 +18,7 @@ return [
         '/dashboard', '/leads', '/candidates', '/persons', '/applications',
         '/interviews', '/visa', '/medical', '/documents', '/employers', '/jobs/',
         '/invoices', '/payments', '/refunds', '/reports', '/exports', '/tasks',
-        '/admin', '/api', '/login', '/logout', '/account', '/tours/bookings', '/tours/packages', '/travel$', '/placements', '/flights',
+        '/admin', '/enquiries', '/api', '/login', '/logout', '/account', '/tours/bookings', '/tours/packages', '/travel$', '/placements', '/flights',
     ],
 
     'public_cache_seconds' => 300,

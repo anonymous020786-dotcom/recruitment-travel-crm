@@ -45,6 +45,7 @@ final class ContactFormTest extends DbTestCase
     protected function tearDown(): void
     {
         $this->db->affectingStatement("DELETE FROM public_enquiries WHERE name LIKE 'CF %'");
+        $this->db->affectingStatement("DELETE FROM notifications WHERE type = 'enquiry_new' AND title LIKE '% from CF %'");
         if ($this->ip !== '') {
             $this->db->affectingStatement("DELETE FROM rate_limits WHERE bucket_key LIKE ?", ['%' . $this->ip . '%']);
         }

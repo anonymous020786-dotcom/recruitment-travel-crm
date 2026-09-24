@@ -6,13 +6,15 @@ namespace App\Controllers\Public;
 
 use App\Controllers\Controller;
 use App\Http\Response;
+use App\Repositories\PublicCatalogRepository;
 
-/**
- * robots.txt and sitemap.xml. Public jobs / packages / blog URLs are added to
- * the sitemap by their feature phases; for now it lists the static pages.
- */
+/** robots.txt and sitemap.xml (static pages plus every open public job and active public package). */
 final class SeoController extends Controller
 {
+    public function __construct(private readonly PublicCatalogRepository $catalog)
+    {
+    }
+
     public function robots(): Response
     {
         $lines = ['User-agent: *'];
@@ -36,14 +38,22 @@ final class SeoController extends Controller
             ['loc' => $base . '/', 'priority' => '1.0', 'changefreq' => 'weekly'],
             ['loc' => $base . '/about', 'priority' => '0.5', 'changefreq' => 'monthly'],
             ['loc' => $base . '/contact', 'priority' => '0.5', 'changefreq' => 'monthly'],
-            // Public /jobs, /travel-packages and blog URLs are added here when those pages exist — a sitemap must only list
-            // URLs that answer 200 to an anonymous visitor (PageAuditTest checks this).
+            ['loc' => $base . '/overseas-jobs', 'priority' => '0.9', 'changefreq' => 'daily'],
+            ['loc' => $base . '/travel-packages', 'priority' => '0.8', 'changefreq' => 'weekly'],
         ];
+        // Every open public job and active public package (a sitemap must only list URLs that answer 200 to an
+        // anonymous visitor — PageAuditTest checks the static ones, the catalogue query only returns visible rows).
+        foreach ($this->catalog->jobSitemap() as $j) {
+            $urls[] = ['loc' => $base . '/overseas-jobs/' . rawurlencode($j['slug']), 'priority' => '0.7', 'changefreq' => 'weekly', 'lastmod' => substr($j['updated_at'], 0, 10)];
+        }
+        foreach ($this->catalog->packageSitemap() as $p) {
+            $urls[] = ['loc' => $base . '/travel-packages/' . rawurlencode($p['slug']), 'priority' => '0.6', 'changefreq' => 'monthly', 'lastmod' => substr($p['updated_at'], 0, 10)];
+        }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
         foreach ($urls as $u) {
-            $xml .= "  <url><loc>" . e($u['loc']) . "</loc><lastmod>{$now}</lastmod>"
+            $xml .= "  <url><loc>" . e($u['loc']) . "</loc><lastmod>" . ($u['lastmod'] ?? $now) . "</lastmod>"
                 . "<changefreq>{$u['changefreq']}</changefreq><priority>{$u['priority']}</priority></url>\n";
         }
         $xml .= '</urlset>' . "\n";

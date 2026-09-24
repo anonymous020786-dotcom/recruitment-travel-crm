@@ -67,8 +67,11 @@ $navMarkup = static function (array $nav, string $currentPath): string {
             <p class="truncate text-sm font-semibold text-slate-900"><?= e($title) ?></p>
 
             <div class="ml-auto flex items-center gap-1">
-                <a href="/search" class="btn btn-ghost btn-sm" aria-label="Search"><?= component('icon', ['name' => 'search', 'class' => 'h-5 w-5']) ?></a>
-                <a href="/notifications" class="btn btn-ghost btn-sm" aria-label="Notifications"><?= component('icon', ['name' => 'bell', 'class' => 'h-5 w-5']) ?></a>
+                <?php $unread = $me !== null ? app(\App\Repositories\NotificationRepository::class)->unreadCount((int) $me->id) : 0; ?>
+                <a href="/notifications" class="btn btn-ghost btn-sm gap-1" aria-label="Notifications<?= $unread > 0 ? ', ' . $unread . ' unread' : '' ?>">
+                    <?= component('icon', ['name' => 'bell', 'class' => 'h-5 w-5']) ?>
+                    <?php if ($unread > 0): ?><span class="badge bg-red-50 text-red-700 ring-red-200" aria-hidden="true"><?= $unread > 99 ? '99+' : (int) $unread ?></span><?php endif ?>
+                </a>
 
                 <div data-dropdown class="relative">
                     <button data-dropdown-trigger type="button" aria-expanded="false"
