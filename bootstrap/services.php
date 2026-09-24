@@ -149,6 +149,15 @@ return static function (Application $app): void {
     $app->singleton(\App\Services\TourPackageService::class);
     $app->singleton(\App\Services\TourBookingService::class);
     $app->singleton(\App\Services\InvoiceService::class);
+    $app->singleton(\App\Services\DashboardService::class, static fn (Application $app): \App\Services\DashboardService => new \App\Services\DashboardService(
+        $app->get(Db::class),
+        $app->get(\App\Repositories\DashboardRepository::class),
+        $app->get(\App\Repositories\LeadRepository::class),
+        $app->get(\App\Repositories\InvoiceRepository::class),
+        $app->get(PermissionService::class),
+        $app->get(\App\Domain\StatusMachine::class),
+        (int) $app->config()->get('app.dashboard_cache_seconds', 60),
+    ));
     $app->singleton(\App\Services\PaymentService::class);
     $app->singleton(\App\Services\PaymentReminderService::class, static fn (Application $app): \App\Services\PaymentReminderService => new \App\Services\PaymentReminderService(
         $app->get(\App\Repositories\InvoiceRepository::class),

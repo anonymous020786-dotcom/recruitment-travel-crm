@@ -26,4 +26,7 @@ return [
     ],
 
     'trusted_proxies' => Env::list('TRUSTED_PROXIES'),
+
+    // How long a dashboard snapshot (per branch scope + widget set) is reused, in seconds. 0 = never cache.
+    'dashboard_cache_seconds' => Env::int('DASHBOARD_CACHE_SECONDS', 60),
 ];

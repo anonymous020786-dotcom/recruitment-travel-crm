@@ -44,6 +44,10 @@ exit($app->get(CronRunner::class)->run('cleanup', 600, function (callable $progr
     $progress($db->affectingStatement(
         "DELETE FROM cron_runs WHERE started_at < (UTC_TIMESTAMP() - INTERVAL 30 DAY)",
     ));
+    // Dashboard snapshots are only ever reused for seconds; a day-old one is dead weight.
+    $progress($db->affectingStatement(
+        "DELETE FROM settings WHERE key_name LIKE 'dash:%' AND updated_at < (UTC_TIMESTAMP() - INTERVAL 1 DAY)",
+    ));
     $progress($db->affectingStatement(
         "DELETE FROM cron_locks WHERE expires_at < (UTC_TIMESTAMP() - INTERVAL 1 DAY)",
     ));
