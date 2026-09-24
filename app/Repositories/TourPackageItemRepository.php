@@ -41,6 +41,20 @@ final class TourPackageItemRepository
         ]);
     }
 
+    /** @return int rows changed (0 when the line is not on that package, or nothing differed) */
+    public function update(int $id, int $packageId, ?int $dayNo, string $title, ?string $description): int
+    {
+        return $this->db->affectingStatement(
+            'UPDATE tour_package_items SET day_no = :d, title = :t, description = :desc WHERE id = :id AND tour_package_id = :p',
+            ['d' => $dayNo, 't' => $title, 'desc' => $description, 'id' => $id, 'p' => $packageId],
+        );
+    }
+
+    public function exists(int $id, int $packageId): bool
+    {
+        return $this->db->exists('SELECT 1 FROM tour_package_items WHERE id = :id AND tour_package_id = :p', ['id' => $id, 'p' => $packageId]);
+    }
+
     public function delete(int $id, int $packageId): int
     {
         return $this->db->affectingStatement('DELETE FROM tour_package_items WHERE id = :id AND tour_package_id = :p', ['id' => $id, 'p' => $packageId]);

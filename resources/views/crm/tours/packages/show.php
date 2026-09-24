@@ -67,12 +67,21 @@ if ($canDelete && in_array($package->status, ['draft', 'archived'], true)) {
                 $html .= '<ol class="divide-y divide-slate-100">';
                 foreach ($items as $i) {
                     /** @var \App\Models\TourPackageItem $i */
-                    $html .= '<li class="flex items-start justify-between gap-3 py-3 text-sm"><div>'
+                    $html .= '<li class="py-3 text-sm"><div class="flex items-start justify-between gap-3"><div>'
                         . '<p class="font-medium text-slate-900">' . ($i->dayNo !== null ? '<span class="mr-2 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">Day ' . (int) $i->dayNo . '</span>' : '') . e($i->title) . '</p>'
                         . ($i->description ? '<p class="mt-1 whitespace-pre-line text-slate-600">' . e($i->description) . '</p>' : '') . '</div>';
                     if ($editable) {
                         $html .= '<form method="post" action="' . $base . '/items/' . (int) $i->id . '">' . csrf_field()
                             . '<input type="hidden" name="_method" value="DELETE"><button class="btn btn-ghost btn-sm text-red-600">Remove</button></form>';
+                    }
+                    $html .= '</div>';
+                    if ($editable) {
+                        $html .= '<details class="mt-2"><summary class="cursor-pointer text-xs font-medium text-brand-600">Edit<span class="sr-only"> ' . e($i->title) . '</span></summary>'
+                            . '<form method="post" action="' . $base . '/items/' . (int) $i->id . '" class="mt-2 grid gap-2 sm:grid-cols-6" data-once>' . csrf_field() . '<input type="hidden" name="_method" value="PUT">'
+                            . '<input type="number" name="day_no" min="1" max="365" value="' . e_attr((string) ($i->dayNo ?? '')) . '" placeholder="Day" aria-label="Day" class="form-input">'
+                            . '<input type="text" name="title" required maxlength="180" value="' . e_attr($i->title) . '" aria-label="Title" class="form-input sm:col-span-3">'
+                            . '<div class="sm:col-span-2"><button class="btn btn-secondary btn-sm">Save line</button></div>'
+                            . '<textarea name="description" rows="2" maxlength="2000" aria-label="Details" class="form-input sm:col-span-6">' . e((string) $i->description) . '</textarea></form></details>';
                     }
                     $html .= '</li>';
                 }

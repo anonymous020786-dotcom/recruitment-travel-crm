@@ -315,6 +315,59 @@ final class TourPackageServiceTest extends DbTestCase
         self::assertSame([], $this->items->forPackage($b->id));
     }
 
+    public function test_an_itinerary_line_can_be_edited_in_place(): void
+    {
+        $actor = $this->actor();
+        $p = $this->make($actor);
+        $this->service->addItem($p, $this->line('Desert safari', '2'), $actor);
+        $this->service->addItem($p, $this->line('Beach day', '3'), $actor);
+        [$first, $second] = $this->items->forPackage($p->id);
+
+        $this->service->updateItem($p, $first->id, (new TourPackageValidator())->item(['day_no' => '4', 'title' => 'Dhow cruise', 'description' => 'Dinner on board']), $actor);
+
+        $lines = $this->items->forPackage($p->id);
+        $edited = array_values(array_filter($lines, static fn ($l): bool => $l->id === $first->id))[0];
+        self::assertSame('Dhow cruise', $edited->title);
+        self::assertSame(4, $edited->dayNo);
+        self::assertSame('Dinner on board', $edited->description);
+        self::assertSame('Beach day', array_values(array_filter($lines, static fn ($l): bool => $l->id === $second->id))[0]->title, 'the other line is untouched');
+        self::assertCount(2, $lines, 'editing never adds or removes a line');
+        self::assertTrue($this->db->exists("SELECT 1 FROM activity_logs WHERE action = 'item_updated' AND record_id = ?", [$p->id]));
+
+        // clearing the day and the details is allowed
+        $this->service->updateItem($p, $first->id, (new TourPackageValidator())->item(['day_no' => '', 'title' => 'Dhow cruise']), $actor);
+        $cleared = array_values(array_filter($this->items->forPackage($p->id), static fn ($l): bool => $l->id === $first->id))[0];
+        self::assertNull($cleared->dayNo);
+        self::assertNull($cleared->description);
+    }
+
+    public function test_a_line_cannot_be_edited_through_another_package_or_when_archived_or_by_the_wrong_role(): void
+    {
+        $actor = $this->actor();
+        $a = $this->make($actor);
+        $b = $this->make($actor);
+        $this->service->addItem($b, $this->line('B line'), $actor);
+        $bLine = $this->items->forPackage($b->id)[0];
+
+        try {
+            $this->service->updateItem($a, $bLine->id, $this->line('Hijacked'), $actor);
+            self::fail("a line of another package must not be editable through this one");
+        } catch (DomainRuleException) {
+            self::assertSame('B line', $this->items->forPackage($b->id)[0]->title);
+        }
+
+        $b = $this->service->changeStatus($b, 'archived', $actor);
+        try {
+            $this->service->updateItem($b, $bLine->id, $this->line('Too late'), $actor);
+            self::fail('edited an archived package');
+        } catch (DomainRuleException) {
+            self::assertSame('B line', $this->items->forPackage($b->id)[0]->title);
+        }
+
+        $this->expectException(AuthorizationException::class);
+        $this->service->updateItem($a, $bLine->id, $this->line('No rights'), $this->actor('read_only'));
+    }
+
     public function test_the_itinerary_is_capped(): void
     {
         $actor = $this->actor();

@@ -159,6 +159,15 @@ final class TourPackageController extends CrmController
         }, '#itinerary');
     }
 
+    public function updateItem(Request $request, string $package, string $item): Response
+    {
+        $model = $this->find($package);
+
+        return $this->run($model, 'Itinerary line saved.', function () use ($model, $request, $item): void {
+            $this->service->updateItem($model, (int) $item, (new TourPackageValidator())->item($request->only(['day_no', 'title', 'description'])), $this->currentUser());
+        }, '#itinerary');
+    }
+
     public function destroyItem(string $package, string $item): Response
     {
         $model = $this->find($package);

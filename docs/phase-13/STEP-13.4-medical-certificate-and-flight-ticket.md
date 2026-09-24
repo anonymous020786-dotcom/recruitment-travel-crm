@@ -24,3 +24,11 @@ end to end through the router with a real file entry — 302 back to the candida
 "Replace certificate" and the multipart form, and a post with no file changes nothing. Full suite: **1017 tests, 3 461 assertions**.
 
 Not done: itinerary line edit-in-place (package itinerary lines can be added and removed, not edited).
+
+## Also in this step: edit an itinerary line in place
+
+Package itinerary lines could only be added or removed; fixing a typo meant delete-and-retype (losing its position). Each line now has an
+**Edit** disclosure (day, title, details) → `PUT /tours/packages/{package}/items/{item}` → `TourPackageService::updateItem`. Guards: the line
+must belong to that package (a line of another package is refused and untouched), an archived package is read-only, and it needs
+`tours.packages.edit`. Audited (`item_updated`); the line keeps its position. Two new tests in `TourPackageServiceTest` (edit + clear day/details;
+wrong package / archived / read-only role). Full suite: **1019 tests, 3 472 assertions**. That closes the last known-gap item from Phase 8.

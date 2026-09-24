@@ -340,6 +340,7 @@ return static function (Router $router): void {
         $r->post('/tours/packages/{package}/publish', [TourPackageController::class, 'publish'])->middleware(['can:tours.packages.publish', 'throttle:write'])->name('tours.packages.publish');
         $r->delete('/tours/packages/{package}', [TourPackageController::class, 'destroy'])->middleware(['can:tours.packages.delete', 'throttle:write'])->name('tours.packages.destroy');
         $r->post('/tours/packages/{package}/items', [TourPackageController::class, 'storeItem'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.items.store');
+        $r->put('/tours/packages/{package}/items/{item}', [TourPackageController::class, 'updateItem'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.items.update');
         $r->delete('/tours/packages/{package}/items/{item}', [TourPackageController::class, 'destroyItem'])->middleware(['can:tours.packages.edit', 'throttle:write'])->name('tours.packages.items.destroy');
 
         // ---- Tour bookings (literal paths before the {booking} wildcard) ----

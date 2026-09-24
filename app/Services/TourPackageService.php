@@ -148,6 +148,19 @@ final class TourPackageService
         $this->audit->log('item_added', 'tours', 'tour_package', $package->id, null, ['item_id' => $id, 'day_no' => $data['day_no'], 'title' => $data['title']], null, $actor);
     }
 
+    /** @param array{day_no:?int,title:string,description:?string} $data from TourPackageValidator::item() */
+    public function updateItem(TourPackage $package, int $itemId, array $data, User $actor): void
+    {
+        $this->authorize('update', $package, $actor, 'tours.packages.edit');
+        $this->assertEditable($package);
+        if (!$this->items->exists($itemId, $package->id)) {
+            throw new DomainRuleException(DomainRuleException::RULE_VIOLATION, 'Itinerary line not found.', [], 404);
+        }
+
+        $this->items->update($itemId, $package->id, $data['day_no'], $data['title'], $data['description']);
+        $this->audit->log('item_updated', 'tours', 'tour_package', $package->id, null, ['item_id' => $itemId, 'day_no' => $data['day_no'], 'title' => $data['title']], null, $actor);
+    }
+
     public function removeItem(TourPackage $package, int $itemId, User $actor): void
     {
         $this->authorize('update', $package, $actor, 'tours.packages.edit');
