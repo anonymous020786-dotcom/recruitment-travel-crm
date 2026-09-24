@@ -17,8 +17,8 @@ $this->start('content');
             visas and travel.
         </p>
         <div class="mt-6 flex flex-wrap gap-3">
-            <a href="/jobs" class="btn btn-primary">Browse jobs</a>
-            <a href="/contact" class="btn btn-secondary">Talk to us</a>
+            <a href="/contact" class="btn btn-primary">Talk to us</a>
+            <a href="/about" class="btn btn-secondary">About us</a>
         </div>
     </div>
 </section>

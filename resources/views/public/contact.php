@@ -1,7 +1,7 @@
 <?php
 $this->layout('layouts.public', [
     'title' => 'Contact us',
-    'description' => 'Get in touch with ' . (string) config('seo.organization_name', config('app.name')) . '.',
+    'description' => 'Get in touch with ' . (string) config('seo.organization_name', config('app.name')) . ' — call, WhatsApp or send an enquiry about overseas jobs, recruitment and travel packages.',
     'canonical' => 'contact',
 ]);
 $this->start('content');

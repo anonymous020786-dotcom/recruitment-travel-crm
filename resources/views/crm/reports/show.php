@@ -11,7 +11,7 @@ $qs = match ($def['filter']) {
     'days'  => ['days' => $filters['days']],
     default => [],
 };
-$actions = '<a href="/reports/' . e_attr($key) . '?' . e_attr(http_build_query($qs + ['print' => 1])) . '" target="_blank" class="btn btn-secondary btn-sm">Print</a>';
+$actions = '<a href="/reports/' . e_attr($key) . '?' . e_attr(http_build_query($qs + ['print' => 1])) . '" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Print</a>';
 if ($canExport) {
     $actions .= ' <a href="/reports/' . e_attr($key) . '/csv?' . e_attr(http_build_query($qs)) . '" class="btn btn-primary btn-sm">Download CSV</a>';
 }

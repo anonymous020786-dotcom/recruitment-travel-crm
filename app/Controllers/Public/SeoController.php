@@ -36,8 +36,8 @@ final class SeoController extends Controller
             ['loc' => $base . '/', 'priority' => '1.0', 'changefreq' => 'weekly'],
             ['loc' => $base . '/about', 'priority' => '0.5', 'changefreq' => 'monthly'],
             ['loc' => $base . '/contact', 'priority' => '0.5', 'changefreq' => 'monthly'],
-            ['loc' => $base . '/jobs', 'priority' => '0.8', 'changefreq' => 'daily'],
-            ['loc' => $base . '/travel-packages', 'priority' => '0.7', 'changefreq' => 'weekly'],
+            // Public /jobs, /travel-packages and blog URLs are added here when those pages exist — a sitemap must only list
+            // URLs that answer 200 to an anonymous visitor (PageAuditTest checks this).
         ];
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"

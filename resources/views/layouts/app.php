@@ -53,7 +53,7 @@ $navMarkup = static function (array $nav, string $currentPath): string {
             <span class="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-xs font-bold text-white">CRM</span>
             <span class="text-sm font-semibold text-slate-900 truncate"><?= e((string) config('app.name')) ?></span>
         </div>
-        <nav class="flex flex-col gap-0.5 overflow-y-auto p-2" style="max-height: calc(100vh - 3.5rem)">
+        <nav aria-label="Main" class="flex flex-col gap-0.5 overflow-y-auto p-2" style="max-height: calc(100vh - 3.5rem)">
             <?= $navMarkup($nav, $currentPath) ?>
         </nav>
     </aside>
@@ -64,7 +64,7 @@ $navMarkup = static function (array $nav, string $currentPath): string {
             <button data-nav-toggle type="button" class="btn btn-ghost btn-sm lg:hidden" aria-label="Open navigation">
                 <?= component('icon', ['name' => 'menu', 'class' => 'h-5 w-5']) ?>
             </button>
-            <h1 class="truncate text-sm font-semibold text-slate-900"><?= e($title) ?></h1>
+            <p class="truncate text-sm font-semibold text-slate-900"><?= e($title) ?></p>
 
             <div class="ml-auto flex items-center gap-1">
                 <a href="/search" class="btn btn-ghost btn-sm" aria-label="Search"><?= component('icon', ['name' => 'search', 'class' => 'h-5 w-5']) ?></a>

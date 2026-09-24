@@ -9,7 +9,7 @@ $this->start('content');
 
 $base = '/payments/' . e_attr($payment->publicId);
 $m = static fn (string $v): string => e($payment->money($v));
-$actions = $canReceipt ? '<a href="' . $base . '/receipt" target="_blank" class="btn btn-secondary btn-sm">Receipt</a>' : '';
+$actions = $canReceipt ? '<a href="' . $base . '/receipt" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Receipt</a>' : '';
 ?>
 <?= component('page-header', [
     'title' => $payment->paymentNumber,

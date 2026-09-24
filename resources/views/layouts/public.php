@@ -11,8 +11,6 @@ $appName = (string) config('app.name');
 $canonical = rtrim((string) config('app.url', ''), '/') . '/' . ltrim($canonical ?? '', '/');
 $nav = [
     '/' => 'Home',
-    '/jobs' => 'Jobs',
-    '/travel-packages' => 'Travel',
     '/about' => 'About',
     '/contact' => 'Contact',
 ];
@@ -27,15 +25,22 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
     <meta name="description" content="<?= e_attr($description) ?>">
     <link rel="canonical" href="<?= e_attr($canonical) ?>">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="<?= e_attr($canonical) ?>">
     <meta property="og:site_name" content="<?= e_attr($appName) ?>">
     <meta property="og:title" content="<?= e_attr($title) ?>">
     <meta property="og:description" content="<?= e_attr($description) ?>">
     <?php if (!empty($ogImage)): ?><meta property="og:image" content="<?= e_attr($ogImage) ?>"><?php endif ?>
+    <?php $siteUrl = rtrim((string) config('app.url', ''), '/'); ?>
+    <script type="application/ld+json"><?= json_encode(['@context' => 'https://schema.org', '@graph' => [
+        ['@type' => 'Organization', 'name' => (string) config('seo.organization_name', $appName), 'url' => $siteUrl],
+        ['@type' => 'WebSite', 'name' => $appName, 'url' => $siteUrl],
+    ]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
     <link rel="stylesheet" href="<?= e_attr(asset('app.css')) ?>">
     <?= $this->partial('partials.integrations-head') ?>
     <?= $this->yield('head') ?>
 </head>
 <body class="flex min-h-full flex-col">
+<a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:ring-2 focus:ring-brand-500">Skip to content</a>
 
 <header class="border-b border-slate-200 bg-white">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
@@ -43,7 +48,7 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
             <span class="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-xs font-bold text-white">CRM</span>
             <span class="text-sm font-semibold text-slate-900"><?= e($appName) ?></span>
         </a>
-        <nav class="hidden gap-1 sm:flex">
+        <nav aria-label="Primary" class="hidden gap-1 sm:flex">
             <?php foreach ($nav as $href => $label): ?>
                 <a href="<?= e_url($href) ?>"
                    class="rounded-lg px-3 py-1.5 text-sm font-medium <?= ($href === '/' ? $current === '/' : str_starts_with($current, $href)) ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50' ?>">
@@ -55,17 +60,16 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
     </div>
 </header>
 
-<main class="flex-1">
+<main id="main" class="flex-1">
     <?= $this->yield('content') ?>
 </main>
 
 <footer class="mt-16 border-t border-slate-200 bg-white">
     <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:justify-between">
         <p>&copy; <?= date('Y') ?> <?= e((string) config('seo.organization_name', $appName)) ?>. All rights reserved.</p>
-        <nav class="flex gap-3">
+        <nav aria-label="Footer" class="flex gap-3">
             <a href="/about">About</a>
             <a href="/contact">Contact</a>
-            <a href="/jobs">Jobs</a>
         </nav>
     </div>
 </footer>
