@@ -144,6 +144,6 @@ dispatcher.
 
 ## 12. Backups
 
-- Set up hPanel automatic backups **and** a daily `mysqldump` via cron to
+- Set up hPanel automatic backups **and** enable the `backup` cron job (04:00 UTC — a verified PHP dump, no `mysqldump` needed) writing to
   `storage/private/backups/` with an **off-site copy** (see `docs/BACKUP-RESTORE.md`).
 - Test a restore into a staging database quarterly.

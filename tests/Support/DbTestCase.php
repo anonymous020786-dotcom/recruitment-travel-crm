@@ -21,6 +21,8 @@ abstract class DbTestCase extends TestCase
 {
     protected Db $db;
     protected Application $app;
+    /** @var array<string,mixed> the connection settings this test's Db was built from */
+    protected array $dbConfig = [];
 
     protected function setUp(): void
     {
@@ -40,6 +42,8 @@ abstract class DbTestCase extends TestCase
                 \PDO::ATTR_EMULATE_PREPARES => false,
             ],
         ];
+
+        $this->dbConfig = $config;
 
         try {
             $this->db = new Db($config);

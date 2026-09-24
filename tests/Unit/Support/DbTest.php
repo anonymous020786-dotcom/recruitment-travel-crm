@@ -106,6 +106,26 @@ final class DbTest extends TestCase
         $this->db->insertRow('widgets`;DROP TABLE widgets;--', ['name' => 'x']);
     }
 
+    public function test_floats_are_bound_exactly_not_rounded_to_eight_decimals(): void
+    {
+        // Regression: floats used to be bound with sprintf('%.8F'), so -5.5E-10 was stored as -0 and 0.1 + 0.2 as 0.3.
+        $this->db->unprepared('CREATE TABLE reals (id INTEGER PRIMARY KEY AUTOINCREMENT, v REAL)');
+        $values = [-5.5E-10, 1.0E+300, 0.1 + 0.2, 3.141592653589793, 1.0E-320, -0.75, 0.0];
+
+        foreach ($values as $v) {
+            $this->db->insertRow('reals', ['v' => $v]);
+        }
+        $stored = array_map(static fn (array $r): float => (float) $r['v'], $this->db->select('SELECT v FROM reals ORDER BY id'));
+
+        self::assertSame($values, $stored);
+    }
+
+    public function test_non_finite_floats_are_refused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->db->insertRow('widgets', ['name' => 'x', 'qty' => NAN]);
+    }
+
     public function test_cursor_streams_rows(): void
     {
         foreach (range(1, 5) as $i) {

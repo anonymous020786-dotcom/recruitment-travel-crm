@@ -354,7 +354,13 @@ final class Db
             return [$value->format('Y-m-d H:i:s'), PDO::PARAM_STR];
         }
         if (is_float($value)) {
-            return [rtrim(rtrim(sprintf('%.8F', $value), '0'), '.'), PDO::PARAM_STR];
+            if (!is_finite($value)) {
+                throw new \InvalidArgumentException('NaN and infinite numbers cannot be stored.');
+            }
+
+            // The shortest text that reads back as exactly this float. (It used to be sprintf('%.8F'), which silently
+            // cut everything past 8 decimals: -5.5E-10 was stored as -0.)
+            return [var_export($value, true), PDO::PARAM_STR];
         }
 
         return [(string) $value, PDO::PARAM_STR];
