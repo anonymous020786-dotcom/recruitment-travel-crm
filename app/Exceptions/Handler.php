@@ -125,6 +125,12 @@ final class Handler
             'X-Frame-Options'        => 'DENY',
             'X-Robots-Tag'           => 'noindex, nofollow',
             'Cache-Control'          => 'no-store, private',
+            'Permissions-Policy'     => 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+            'Cross-Origin-Opener-Policy'   => 'same-origin',
+            'Cross-Origin-Resource-Policy' => 'same-origin',
+            // Error pages ship their own small stylesheet and no scripts; nothing else may load or embed.
+            'Content-Security-Policy' => "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+                . " object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
         ];
 
         foreach ($baseline as $name => $value) {

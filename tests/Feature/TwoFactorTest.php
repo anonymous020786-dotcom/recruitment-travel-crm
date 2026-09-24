@@ -122,4 +122,23 @@ final class TwoFactorTest extends DbTestCase
 
         $this->db->affectingStatement('DELETE FROM email_log WHERE to_email = ?', [$this->user->email]);
     }
+
+    public function test_recovery_codes_are_never_hashed_with_a_missing_or_short_app_key(): void
+    {
+        $key = $this->app->config()->get('app.key');
+
+        try {
+            foreach (['', 'short'] as $bad) {
+                $this->app->config()->set('app.key', $bad);
+                try {
+                    $this->tf->regenerateRecoveryCodes($this->user);
+                    self::fail('hashed recovery codes with an unusable APP_KEY');
+                } catch (\RuntimeException $e) {
+                    self::assertStringContainsString('APP_KEY', $e->getMessage());
+                }
+            }
+        } finally {
+            $this->app->config()->set('app.key', $key);
+        }
+    }
 }

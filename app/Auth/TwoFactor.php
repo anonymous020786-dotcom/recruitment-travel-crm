@@ -206,7 +206,13 @@ final class TwoFactor
 
     private function hashCode(string $value): string
     {
-        return hash_hmac('sha256', $value, (string) $this->app->config()->get('app.key', 'k'));
+        $key = (string) $this->app->config()->get('app.key', '');
+        if (strlen($key) < 16) {
+            // never fall back to a guessable key: recovery codes are only as safe as this HMAC
+            throw new \RuntimeException('APP_KEY is missing or too short; refusing to hash 2FA recovery codes without it.');
+        }
+
+        return hash_hmac('sha256', $value, $key);
     }
 
     private function e(string $v): string

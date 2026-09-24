@@ -162,6 +162,7 @@ final class Response
     {
         if (!headers_sent()) {
             http_response_code($this->status);
+            header_remove('X-Powered-By'); // don't advertise the PHP version (expose_php can't be switched off at runtime)
 
             foreach ($this->headers as $name => $value) {
                 header($name . ': ' . $value, true);

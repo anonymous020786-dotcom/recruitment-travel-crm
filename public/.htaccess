@@ -40,6 +40,8 @@ Options -Indexes -MultiViews
     # Baseline headers (PHP layer sets the authoritative, per-group values)
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
+    # Don't advertise the PHP version.
+    Header always unset X-Powered-By
 </IfModule>
 
 <IfModule mod_deflate.c>

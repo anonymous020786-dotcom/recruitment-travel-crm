@@ -15,23 +15,25 @@
     RewriteCond %{HTTP:X-Forwarded-Proto} !https
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+    # ---- Deny direct access to every application directory (first, so nothing below can route around it).
+    # Keep this list equal to the top-level directories of the project except public/ — tests/Feature/WebServerConfigTest.php
+    # fails if a directory is missing. `.git` etc. are matched as directories, which the dotfile rule below cannot.
+    RewriteRule ^(app|bootstrap|config|database|cron|resources|routes|scripts|storage|tests|docs|vendor|node_modules|\.git|\.claude|\.phpunit\.cache)(/|$) - [F,L]
+
     # Already inside public/ — let it through.
     RewriteRule ^public/ - [L]
+
+    # Real asset requests map into public/assets. This must come BEFORE the catch-all below; after it, the rule could
+    # never match and every stylesheet/script would fall through to the app's 404 page.
+    RewriteRule ^assets/(.*)$ public/assets/$1 [L]
 
     # Serve the front controller for everything else.
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ public/index.php [L]
-
-    # Map real asset requests into public/assets.
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^assets/(.*)$ public/assets/$1 [L]
 </IfModule>
 
 Options -Indexes -MultiViews
-
-# ---- Deny direct access to every application directory -------------------
-RewriteRule ^(app|bootstrap|config|database|cron|resources|scripts|storage|tests|docs|vendor|node_modules)/ - [F,L]
 
 <FilesMatch "(?i)(^\.|\.(env|sql|sqlite|db|log|lock|ini|sh|bak|md|dist|yml|yaml|json)$|composer\.(json|lock)|package(-lock)?\.json)">
     Require all denied
