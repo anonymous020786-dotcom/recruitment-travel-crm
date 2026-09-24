@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Auth\BranchScope;
+use App\Exceptions\QueryException;
 use App\Models\Task;
 use App\Support\Db;
 
@@ -53,6 +54,32 @@ final class TaskRepository
     public function create(array $data): int
     {
         return (int) $this->db->insertRow('tasks', $data);
+    }
+
+    /**
+     * Creates a system task unless one with the same `dedupe_key` exists (cron re-runs stay idempotent).
+     *
+     * @param array<string,mixed> $data must include `dedupe_key`
+     * @return bool whether a task was created
+     */
+    public function createOnce(array $data): bool
+    {
+        try {
+            $this->db->insertRow('tasks', $data + ['source' => 'system']);
+
+            return true;
+        } catch (QueryException $e) {
+            return $e->isDuplicateKey() ? false : throw $e;
+        }
+    }
+
+    /** Whether a pending system-created task is already open against a record. */
+    public function hasPendingSystemTask(string $relatedType, int $relatedId): bool
+    {
+        return $this->db->exists(
+            "SELECT 1 FROM tasks WHERE related_type = :rt AND related_id = :rid AND source = 'system' AND status = 'pending'",
+            ['rt' => $relatedType, 'rid' => $relatedId],
+        );
     }
 
     public function markCompleted(int $id): int

@@ -74,6 +74,7 @@ final class RefundServiceTest extends DbTestCase
     protected function tearDown(): void
     {
         $like = "branch_id IN (SELECT id FROM branches WHERE code LIKE 'RFX-%')";
+        $this->db->affectingStatement("DELETE FROM tasks WHERE {$like}");
         $this->db->affectingStatement("DELETE FROM refunds WHERE {$like}");
         $this->db->affectingStatement("DELETE FROM receipts WHERE payment_id IN (SELECT id FROM payments WHERE {$like})");
         $this->db->affectingStatement("DELETE FROM payment_allocations WHERE payment_id IN (SELECT id FROM payments WHERE {$like})");
@@ -616,5 +617,50 @@ final class RefundServiceTest extends DbTestCase
 
         $svc->remindOverdue(gmdate('Y-m-d', strtotime('+8 days')));   // day 11 → week 1
         self::assertSame(2, $forInvoice(), 'a new week, a new reminder');
+    }
+
+    public function test_an_overdue_invoice_gets_one_collect_payment_task_for_accounts(): void
+    {
+        $manager = $this->actor('manager');
+        $accounts = $this->actor('accounts');
+        $inv = $this->dueIn($manager, -10);
+        $this->dueIn($manager, 5);                          // not overdue → no task
+        $svc = $this->app->get(PaymentReminderService::class);
+        $tasks = fn (): array => $this->db->select("SELECT * FROM tasks WHERE related_type = 'invoice' AND related_id = ?", [$inv->id]);
+
+        $svc->remindOverdue(gmdate('Y-m-d'));
+        $svc->remindOverdue(gmdate('Y-m-d'));               // idempotent
+        self::assertSame(1, (int) $this->db->selectValue("SELECT COUNT(*) FROM tasks WHERE branch_id = ? AND related_type = 'invoice'", [$this->branchA]), 'nothing for the invoice that is not due');
+        $svc->remindOverdue(gmdate('Y-m-d', strtotime('+8 days')));   // pending task already open → still one for this invoice
+
+        $rows = $tasks();
+        self::assertCount(1, $rows);
+        self::assertSame((int) $accounts->id, (int) $rows[0]['assigned_to'], 'accounts, not the creator');
+        self::assertSame($this->branchA, (int) $rows[0]['branch_id']);
+        self::assertSame('system', $rows[0]['source']);
+        self::assertSame('pending', $rows[0]['status']);
+        self::assertSame('high', $rows[0]['priority'], '10 days overdue');
+        self::assertSame(gmdate('Y-m-d'), $rows[0]['due_date']);
+        self::assertStringContainsString($inv->invoiceNumber, $rows[0]['title']);
+    }
+
+    public function test_the_task_falls_back_to_the_creator_and_reopens_a_month_later_once_done(): void
+    {
+        $manager = $this->actor('manager');                 // no accounts user in this branch
+        $inv = $this->dueIn($manager, -3);
+        $svc = $this->app->get(PaymentReminderService::class);
+
+        $svc->remindOverdue(gmdate('Y-m-d'));
+        $first = $this->db->selectOne("SELECT id, assigned_to, priority FROM tasks WHERE related_id = ? AND related_type = 'invoice'", [$inv->id]);
+        self::assertSame((int) $manager->id, (int) $first['assigned_to']);
+        self::assertSame('medium', $first['priority']);
+
+        $this->db->affectingStatement("UPDATE tasks SET status = 'completed' WHERE id = ?", [$first['id']]);
+        $svc->remindOverdue(gmdate('Y-m-d', strtotime('+10 days')));
+        self::assertSame(1, (int) $this->db->selectValue("SELECT COUNT(*) FROM tasks WHERE related_id = ? AND related_type = 'invoice'", [$inv->id]), 'completed, same 28-day span → not reopened');
+
+        $svc->remindOverdue(gmdate('Y-m-d', strtotime('+31 days')));   // day 34 → next span
+        self::assertSame(2, (int) $this->db->selectValue("SELECT COUNT(*) FROM tasks WHERE related_id = ? AND related_type = 'invoice'", [$inv->id]));
+        self::assertSame('urgent', $this->db->selectValue("SELECT priority FROM tasks WHERE related_id = ? AND status = 'pending'", [$inv->id]), '34 days overdue');
     }
 }

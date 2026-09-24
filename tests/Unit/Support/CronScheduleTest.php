@@ -64,6 +64,21 @@ final class CronScheduleTest extends TestCase
         self::assertSame('2026-09-21 06:30:00', $weekly->lastDueAt(self::at('2026-09-24 12:00:00'))?->format('Y-m-d H:i:s'));
     }
 
+    public function test_next_due_is_the_first_scheduled_minute_strictly_after_now(): void
+    {
+        $daily = CronSchedule::parse('0 9 * * *');
+        self::assertSame('2026-09-25 09:00:00', $daily->nextDueAt(self::at('2026-09-24 09:00:00'))?->format('Y-m-d H:i:s'), 'the current slot is not "next"');
+        self::assertSame('2026-09-24 09:00:00', $daily->nextDueAt(self::at('2026-09-24 08:59:59'))?->format('Y-m-d H:i:s'));
+
+        self::assertSame('2026-09-24 04:00:00', CronSchedule::parse('*/15 * * * *')->nextDueAt(self::at('2026-09-24 03:45:10'))?->format('Y-m-d H:i:s'));
+        self::assertSame('2026-09-28 06:30:00', CronSchedule::parse('30 6 * * 1')->nextDueAt(self::at('2026-09-24 12:00:00'))?->format('Y-m-d H:i:s'), 'next Monday');
+        self::assertNull(CronSchedule::parse('0 0 1 1 *')->nextDueAt(self::at('2026-09-24 12:00:00')), '8-day lookahead');
+
+        $ist = new \DateTimeImmutable('2026-09-24 14:30:00', new \DateTimeZone('Asia/Kolkata'));  // = 09:00 UTC
+        self::assertSame('2026-09-25 09:00:00', $daily->nextDueAt($ist)?->format('Y-m-d H:i:s'), 'non-UTC input is read as UTC');
+        self::assertSame('2026-09-24 09:00:00', $daily->lastDueAt($ist)?->format('Y-m-d H:i:s'));
+    }
+
     public function test_a_schedule_that_has_not_fired_within_the_lookback_gives_null(): void
     {
         self::assertNull(CronSchedule::parse('0 0 1 1 *')->lastDueAt(self::at('2026-09-24 12:00:00')), 'yearly job, 8-day lookback');

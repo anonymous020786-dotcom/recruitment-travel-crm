@@ -68,13 +68,30 @@ final class CronSchedule
      */
     public function lastDueAt(\DateTimeImmutable $now, int $lookbackMinutes = 8 * 1440): ?\DateTimeImmutable
     {
-        $t = $now->setTimezone(new \DateTimeZone('UTC'))->setTime((int) $now->format('G'), (int) $now->format('i'), 0);
+        $utc = $now->setTimezone(new \DateTimeZone('UTC'));
+        $t = $utc->setTime((int) $utc->format('G'), (int) $utc->format('i'), 0);
 
         for ($i = 0; $i <= $lookbackMinutes; $i++) {
             if ($this->matches($t)) {
                 return $t;
             }
             $t = $t->modify('-1 minute');
+        }
+
+        return null;
+    }
+
+    /** The first scheduled minute strictly after `$now`, or null if none within `$lookaheadMinutes` (default 8 days). */
+    public function nextDueAt(\DateTimeImmutable $now, int $lookaheadMinutes = 8 * 1440): ?\DateTimeImmutable
+    {
+        $utc = $now->setTimezone(new \DateTimeZone('UTC'));
+        $t = $utc->setTime((int) $utc->format('G'), (int) $utc->format('i'), 0)->modify('+1 minute');
+
+        for ($i = 0; $i <= $lookaheadMinutes; $i++) {
+            if ($this->matches($t)) {
+                return $t;
+            }
+            $t = $t->modify('+1 minute');
         }
 
         return null;

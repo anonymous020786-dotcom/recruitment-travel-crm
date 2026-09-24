@@ -27,4 +27,5 @@ return [
     ['label' => 'Reports',      'icon' => 'reports',      'path' => '/reports',        'permission' => 'reports.view'],
     ['label' => 'Tasks',        'icon' => 'tasks',        'path' => '/tasks',          'permission' => 'tasks.view'],
     ['label' => 'Admin',        'icon' => 'admin',        'path' => '/admin/users',    'permission' => 'users.view'],
+    ['label' => 'Scheduled jobs', 'icon' => 'admin',      'path' => '/admin/cron',     'permission' => 'system.console'],
 ];

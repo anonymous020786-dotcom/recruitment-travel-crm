@@ -36,6 +36,7 @@ return [
         'process-exports'      => ['script' => 'cron/process-exports.php',      'schedule' => '*/5 * * * *',  'ttl' => 280,  'batch' => 5],
         'dashboard-cache'      => ['script' => 'cron/dashboard-cache.php',      'schedule' => '*/10 * * * *', 'ttl' => 200,  'batch' => 0],
         'integrity-check'      => ['script' => 'cron/integrity-check.php',      'schedule' => '40 3 * * *',   'ttl' => 900,  'batch' => 0],
+        'cron-health'          => ['script' => 'cron/cron-health.php',          'schedule' => '*/15 * * * *', 'ttl' => 200,  'batch' => 0],
         'cleanup'              => ['script' => 'cron/cleanup.php',              'schedule' => '0 3 * * *',    'ttl' => 900,  'batch' => 0],
     ],
 

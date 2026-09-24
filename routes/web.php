@@ -10,6 +10,7 @@ use App\Controllers\Auth\WebAuthnLoginController;
 use App\Controllers\Crm\AccountController;
 use App\Controllers\Crm\ApplicationController;
 use App\Controllers\Crm\CandidateController;
+use App\Controllers\Crm\CronController;
 use App\Controllers\Crm\DashboardController;
 use App\Controllers\Crm\DocumentController;
 use App\Controllers\Crm\EmployerController;
@@ -360,6 +361,10 @@ return static function (Router $router): void {
         $r->get('/reports', [ReportController::class, 'index'])->middleware(['can:reports.view'])->name('reports.index');
         $r->get('/reports/{report}', [ReportController::class, 'show'])->middleware(['can:reports.view', 'throttle:dashboard'])->name('reports.show');
         $r->get('/reports/{report}/csv', [ReportController::class, 'csv'])->middleware(['can:reports.export', 'throttle:export'])->name('reports.csv');
+
+        // ---- Admin: scheduled jobs ----
+        $r->get('/admin/cron', [CronController::class, 'index'])->middleware(['can:system.console'])->name('admin.cron');
+        $r->get('/admin/cron/{job}', [CronController::class, 'show'])->middleware(['can:system.console'])->name('admin.cron.show');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');

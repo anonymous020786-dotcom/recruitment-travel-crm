@@ -159,6 +159,12 @@ return static function (Application $app): void {
         (int) $app->config()->get('app.dashboard_cache_seconds', 60),
     ));
     $app->singleton(\App\Services\IntegrityService::class);
+    $app->singleton(\App\Services\CronHealthService::class, static fn (Application $app): \App\Services\CronHealthService => new \App\Services\CronHealthService(
+        $app->get(Db::class),
+        (array) $app->config()->get('cron.jobs', []),
+        $app->get(\App\Repositories\UserRepository::class),
+        $app->get(NotificationService::class),
+    ));
     $app->singleton(\App\Services\DailyReportService::class, static fn (Application $app): \App\Services\DailyReportService => new \App\Services\DailyReportService(
         $app->get(\App\Repositories\DailyReportRepository::class),
         $app->get(\App\Repositories\UserRepository::class),
@@ -170,6 +176,7 @@ return static function (Application $app): void {
         $app->get(\App\Repositories\InvoiceRepository::class),
         $app->get(\App\Repositories\UserRepository::class),
         $app->get(\App\Notifications\NotificationService::class),
+        $app->get(\App\Repositories\TaskRepository::class),
         (int) $app->config()->get('finance.reminder_max_repeats', 8),
     ));
     $app->singleton(\App\Services\RefundService::class, static fn (Application $app): \App\Services\RefundService => new \App\Services\RefundService(
