@@ -111,23 +111,21 @@ Run `php scripts/clear.php` after any `.env`/`config/` change, then re-optimise.
 
 ## 10. Cron (hPanel → Cron Jobs)
 
-Add each job (adjust paths). If the plan allows only one entry, use the single
-dispatcher.
+**One line is enough.** The dispatcher reads the schedule of every job in `config/cron.php`, runs what is due (catching
+up anything missed) and records each run, so it works on plans that allow a single cron entry:
 
 ```
-*/15 * * * *   php ~/crm/cron/followups.php $CRON_SECRET
-0 2 * * *      php ~/crm/cron/document-expiry.php $CRON_SECRET
-10 2 * * *     php ~/crm/cron/passport-expiry.php $CRON_SECRET
-20 2 * * *     php ~/crm/cron/visa-expiry.php $CRON_SECRET
-0 * * * *      php ~/crm/cron/interview-reminders.php $CRON_SECRET
-0 9 * * *      php ~/crm/cron/payment-reminders.php $CRON_SECRET
-*/5 * * * *    php ~/crm/cron/process-email-queue.php $CRON_SECRET
-*/5 * * * *    php ~/crm/cron/process-exports.php $CRON_SECRET
-*/10 * * * *   php ~/crm/cron/dashboard-cache.php $CRON_SECRET
-0 3 * * *      php ~/crm/cron/cleanup.php $CRON_SECRET
+*/5 * * * *   php ~/crm/cron/dispatch.php $CRON_SECRET
 ```
-*(Cron scripts are delivered in Phase 1.11 — this is the target schedule.)*
 
+That covers all 15 jobs: follow-ups, document/passport/visa/medical expiry, interview and payment reminders, the email
+queue, exports, dashboard cache, daily report, integrity check, **cron-health** (alerts admins when a job fails, sticks or
+runs late), **backup** (04:00 UTC — see `docs/BACKUP-RESTORE.md`) and cleanup. Watch them on **/admin/cron**.
+
+If you prefer one line per job, use the `schedule` shown in `config/cron.php` for each `php ~/crm/cron/<job>.php $CRON_SECRET`
+(do not run both styles for the same job; the per-job lock makes it harmless but pointless).
+
+Set `DASHBOARD_CACHE_SECONDS=600` in `.env` so the dashboard warm-up job actually keeps the cache warm.
 ## 11. Verify (do all of these)
 
 | Check | Expected |
@@ -147,3 +145,25 @@ dispatcher.
 - Set up hPanel automatic backups **and** enable the `backup` cron job (04:00 UTC — a verified PHP dump, no `mysqldump` needed) writing to
   `storage/private/backups/` with an **off-site copy** (see `docs/BACKUP-RESTORE.md`).
 - Test a restore into a staging database quarterly.
+
+## 13. Dry-run before go-live
+
+Do this once on the real host with the real `.env`, in order. Stop at the first FAIL.
+
+1. **Preflight on the server** — `php scripts/preflight.php` checks PHP version/extensions/limits, production settings
+   (`APP_ENV`, `APP_DEBUG`, `APP_KEY`, https `APP_URL`, secure cookies, HSTS, cron secret, real mail), the database
+   (connects, utf8mb4, every migration applied and unchanged, reference data seeded), the cron ledger, the accounts
+   (an active admin, 2FA enrolled, no dev/test accounts) and the filesystem (writable storage, `.htaccess` guards,
+   built assets, no dev packages, optimised autoloader). Exit 0 = nothing failed; add `--strict` to make warnings fail too.
+2. **Preflight from outside** — from your own machine: `php scripts/preflight.php --url=https://your-domain` also proves
+   the internet cannot reach `.env`, `.git`, `vendor`, `config`, `app`, `database`, `docs`, `scripts`, `storage`, that the
+   session cookie is `Secure; HttpOnly`, the CSP is present, `X-Powered-By` is gone, and http redirects to https.
+3. **Backup + restore drill** — `php scripts/backup.php`, then create an empty scratch database in hPanel and
+   `php scripts/restore-drill.php --into=<scratch db>` (must say `DRILL PASSED`). Copy the backup file off the server.
+4. **Cron** — add the line in §10, wait 10 minutes, open **/admin/cron**: every job `ok` (or `never` only for jobs not yet
+   due), `cron-health` and `dashboard-cache` have run.
+5. **Smoke test** — the table in §11, plus: sign in as an admin, enrol 2FA, create a lead → convert → candidate → upload a
+   passport PDF and download it → invoice → record a payment → open the dashboard and a report → sign out.
+6. **Clean up** — delete any test data and test accounts, run `php scripts/preflight.php` once more, then announce.
+
+A failed check is never "probably fine": each one is there because skipping it caused (or would cause) an outage or a leak.
