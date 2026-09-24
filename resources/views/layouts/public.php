@@ -83,6 +83,7 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
             <a href="/about">About</a>
             <a href="/overseas-jobs">Jobs</a>
             <a href="/travel-packages">Travel</a>
+            <a href="/blog">Blog</a>
             <a href="/contact">Contact</a>
         </nav>
     </div>

@@ -6,12 +6,13 @@ namespace App\Controllers\Public;
 
 use App\Controllers\Controller;
 use App\Http\Response;
+use App\Repositories\BlogRepository;
 use App\Repositories\PublicCatalogRepository;
 
 /** robots.txt and sitemap.xml (static pages plus every open public job and active public package). */
 final class SeoController extends Controller
 {
-    public function __construct(private readonly PublicCatalogRepository $catalog)
+    public function __construct(private readonly PublicCatalogRepository $catalog, private readonly BlogRepository $blog)
     {
     }
 
@@ -40,6 +41,7 @@ final class SeoController extends Controller
             ['loc' => $base . '/contact', 'priority' => '0.5', 'changefreq' => 'monthly'],
             ['loc' => $base . '/overseas-jobs', 'priority' => '0.9', 'changefreq' => 'daily'],
             ['loc' => $base . '/travel-packages', 'priority' => '0.8', 'changefreq' => 'weekly'],
+            ['loc' => $base . '/blog', 'priority' => '0.6', 'changefreq' => 'weekly'],
         ];
         // Every open public job and active public package (a sitemap must only list URLs that answer 200 to an
         // anonymous visitor — PageAuditTest checks the static ones, the catalogue query only returns visible rows).
@@ -48,6 +50,10 @@ final class SeoController extends Controller
         }
         foreach ($this->catalog->packageSitemap() as $p) {
             $urls[] = ['loc' => $base . '/travel-packages/' . rawurlencode($p['slug']), 'priority' => '0.6', 'changefreq' => 'monthly', 'lastmod' => substr($p['updated_at'], 0, 10)];
+        }
+
+        foreach ($this->blog->sitemap() as $b) {
+            $urls[] = ['loc' => $base . '/blog/' . rawurlencode($b['slug']), 'priority' => '0.6', 'changefreq' => 'monthly', 'lastmod' => substr($b['updated_at'], 0, 10)];
         }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"

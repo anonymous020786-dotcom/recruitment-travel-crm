@@ -146,6 +146,30 @@ final class PublicFormat
         return $ld;
     }
 
+    /**
+     * schema.org BlogPosting for an article page.
+     *
+     * @param array<string,mixed> $post slug, title, published_at, updated_at, author_name?
+     * @return array<string,mixed>
+     */
+    public static function articleLd(array $post, string $orgName, string $pageUrl, string $summary): array
+    {
+        $ld = [
+            '@context'         => 'https://schema.org',
+            '@type'            => 'BlogPosting',
+            'headline'         => mb_substr((string) $post['title'], 0, 110),
+            'description'      => $summary,
+            'url'              => $pageUrl,
+            'mainEntityOfPage' => $pageUrl,
+            'datePublished'    => gmdate('c', strtotime((string) $post['published_at'] . ' UTC')),
+            'dateModified'     => gmdate('c', strtotime((string) $post['updated_at'] . ' UTC')),
+            'publisher'        => ['@type' => 'Organization', 'name' => $orgName],
+            'author'           => ['@type' => 'Organization', 'name' => $orgName],
+        ];
+
+        return $ld;
+    }
+
     /** JSON safe to place inside a <script type="application/ld+json"> element. */
     public static function json(array $data): string
     {

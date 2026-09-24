@@ -24,6 +24,7 @@ final class RouteAuditTest extends DbTestCase
     private const ANONYMOUS = [
         'GET /', 'GET /about', 'GET /robots.txt', 'GET /sitemap.xml', 'GET /contact', 'POST /contact',
         'GET /overseas-jobs', 'GET /overseas-jobs/{slug}', 'GET /overseas-jobs/{slug}/apply', 'POST /overseas-jobs/{slug}/apply',
+        'GET /blog', 'GET /blog/{slug}',
         'GET /travel-packages', 'GET /travel-packages/{slug}', 'GET /travel-packages/{slug}/enquire', 'POST /travel-packages/{slug}/enquire',
         'GET /health', 'GET /api/ping',
         'GET /login', 'POST /login', 'POST /login/passkey/options', 'POST /login/passkey',

@@ -176,6 +176,10 @@ return [
             'manage' => 'Manage roles and the permission matrix',
         ],
 
+        'blog' => [
+            'view' => 'View blog posts', 'manage' => 'Write, publish and archive blog posts',
+        ],
+
         'settings' => [
             'view' => 'View settings', 'manage' => 'Change settings',
         ],
@@ -209,7 +213,7 @@ return [
             'jobs.*',
             'applications.*', '!applications.view_all',
             'interviews.*', 'medical.*', 'visa.*', 'travel.*',
-            'tours.*',
+            'tours.*', 'blog.*',
             'invoices.*', 'payments.*', 'allocations.manage', 'refunds.*', 'receipts.*',
             'reports.view', 'reports.finance.view', 'reports.export',
             'communication.*', 'tasks.*', 'imports.run', 'exports.run',

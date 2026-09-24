@@ -1434,6 +1434,27 @@ CREATE TABLE public_enquiries (
     CONSTRAINT fk_public_enquiries_lead FOREIGN KEY (lead_id) REFERENCES leads (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Public blog (migration 0016): the author's text, the generated safe HTML, and the publishing state.
+CREATE TABLE blog_posts (
+    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    public_id     CHAR(26)        NOT NULL,
+    slug          VARCHAR(160)    NOT NULL,
+    title         VARCHAR(180)    NOT NULL,
+    excerpt       VARCHAR(300)    NULL,
+    body_source   MEDIUMTEXT      NOT NULL,
+    body_html     MEDIUMTEXT      NOT NULL,
+    status        ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
+    published_at  DATETIME        NULL,
+    author_id     BIGINT UNSIGNED NULL,
+    created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_blog_public_id (public_id),
+    UNIQUE KEY uq_blog_slug (slug),
+    KEY idx_blog_public (status, published_at),
+    CONSTRAINT fk_blog_author FOREIGN KEY (author_id) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =============================================================================
 -- END SCHEMA
 -- Migrations live in database/migrations/NNN_*.sql and are applied in order by

@@ -31,6 +31,7 @@ use App\Controllers\Crm\SearchController;
 use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
+use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\RoleAdminController;
 use App\Controllers\Crm\SettingsController;
 use App\Controllers\Crm\UserAdminController;
@@ -38,6 +39,7 @@ use App\Controllers\Crm\VisaController;
 use App\Controllers\Crm\LeadImportController;
 use App\Controllers\Crm\PasskeyController;
 use App\Controllers\HealthController;
+use App\Controllers\Public\BlogBoardController;
 use App\Controllers\Public\ContactController;
 use App\Controllers\Public\JobBoardController;
 use App\Controllers\Public\PackageBoardController;
@@ -59,6 +61,8 @@ return static function (Router $router): void {
         $r->get('/overseas-jobs/{slug}', [JobBoardController::class, 'show'])->name('jobs.show');
         $r->get('/travel-packages', [PackageBoardController::class, 'index'])->name('packages.index');
         $r->get('/travel-packages/{slug}', [PackageBoardController::class, 'show'])->name('packages.show');
+        $r->get('/blog', [BlogBoardController::class, 'index'])->name('blog.index');
+        $r->get('/blog/{slug}', [BlogBoardController::class, 'show'])->name('blog.show');
     });
 
     // ---- Public forms (session for flash/CSRF, not shared-cached) -------
@@ -421,6 +425,16 @@ return static function (Router $router): void {
         $r->get('/admin/roles/{role}', [RoleAdminController::class, 'show'])->middleware(['can:roles.manage'])->name('admin.roles.show');
         $r->put('/admin/roles/{role}', [RoleAdminController::class, 'update'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.roles.update');
         $r->post('/admin/roles/{role}/reset', [RoleAdminController::class, 'reset'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.roles.reset');
+
+        // ---- Admin: blog ----
+        $r->get('/admin/blog', [BlogController::class, 'index'])->middleware(['can:blog.view'])->name('admin.blog.index');
+        $r->get('/admin/blog/create', [BlogController::class, 'create'])->middleware(['can:blog.manage'])->name('admin.blog.create');
+        $r->post('/admin/blog', [BlogController::class, 'store'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.store');
+        $r->get('/admin/blog/{post}/edit', [BlogController::class, 'edit'])->middleware(['can:blog.manage'])->name('admin.blog.edit');
+        $r->put('/admin/blog/{post}', [BlogController::class, 'update'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.update');
+        $r->post('/admin/blog/{post}/publish', [BlogController::class, 'publish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.publish');
+        $r->post('/admin/blog/{post}/unpublish', [BlogController::class, 'unpublish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.unpublish');
+        $r->post('/admin/blog/{post}/archive', [BlogController::class, 'archive'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.archive');
 
         // ---- Admin: settings ----
         $r->get('/admin/settings', [SettingsController::class, 'index'])->middleware(['can:settings.view'])->name('admin.settings');
