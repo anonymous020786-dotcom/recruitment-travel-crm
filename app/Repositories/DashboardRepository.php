@@ -164,7 +164,7 @@ final class DashboardRepository
     /** Table / column names are interpolated (they cannot be bound), so only plain identifiers are allowed. */
     private function assertIdentifier(string $name): void
     {
-        if (preg_match('/^[a-z_][a-z0-9_]*$/i', $name) !== 1) {
+        if (preg_match('/^[a-z_][a-z0-9_]*$/iD', $name) !== 1) {
             throw new \InvalidArgumentException("Not an identifier: {$name}");
         }
     }

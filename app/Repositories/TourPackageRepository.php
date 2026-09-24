@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Support\Sql;
 use App\Models\TourPackage;
 use App\Support\Db;
 use App\Support\ListQuery;
@@ -63,7 +64,7 @@ final class TourPackageRepository
         $set = ['updated_at = UTC_TIMESTAMP()'];
         $bind = ['id' => $id];
         foreach ($changes as $col => $val) {
-            $set[] = "`{$col}` = :c_{$col}";
+            $set[] = Sql::assign($col, 'c_');
             $bind["c_{$col}"] = $val;
         }
 
@@ -81,7 +82,7 @@ final class TourPackageRepository
         $set = ['status = :to', 'updated_at = UTC_TIMESTAMP()'];
         $bind = ['id' => $id, 'from' => $from, 'to' => $to];
         foreach ($extra as $col => $val) {
-            $set[] = "`{$col}` = :c_{$col}";
+            $set[] = Sql::assign($col, 'c_');
             $bind["c_{$col}"] = $val;
         }
 

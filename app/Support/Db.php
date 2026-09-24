@@ -376,7 +376,7 @@ final class Db
     {
         // Identifiers come from repositories/seeders (never user input). Still,
         // reject anything that is not a plain identifier or dotted identifier.
-        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/', $name)) {
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/D', $name)) {
             throw new \InvalidArgumentException("Unsafe SQL identifier: {$name}");
         }
 

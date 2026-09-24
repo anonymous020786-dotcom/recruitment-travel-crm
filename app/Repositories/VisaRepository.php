@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Support\Sql;
 use App\Auth\BranchScope;
 use App\Models\VisaApplication;
 use App\Support\Db;
@@ -91,7 +92,7 @@ final class VisaRepository
         $cols = ['record_version = record_version + 1', 'updated_at = UTC_TIMESTAMP()'];
         $bind = ['id' => $id, 'ver' => $expectedVersion] + $branchBind;
         foreach ($set as $col => $val) {
-            $cols[] = "`{$col}` = :s_{$col}";
+            $cols[] = Sql::assign($col, 's_');
             $bind["s_{$col}"] = $val;
         }
 

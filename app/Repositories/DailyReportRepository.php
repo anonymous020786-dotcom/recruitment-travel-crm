@@ -79,7 +79,7 @@ final class DailyReportRepository
     private function assertIdentifiers(string ...$names): void
     {
         foreach ($names as $n) {
-            if (preg_match('/^[a-z_][a-z0-9_]*$/i', $n) !== 1) {
+            if (preg_match('/^[a-z_][a-z0-9_]*$/iD', $n) !== 1) {
                 throw new \InvalidArgumentException("Not an identifier: {$n}");
             }
         }

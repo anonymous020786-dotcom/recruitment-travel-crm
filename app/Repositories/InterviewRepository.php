@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Support\Sql;
 use App\Auth\BranchScope;
 use App\Models\Interview;
 use App\Support\Db;
@@ -97,7 +98,7 @@ final class InterviewRepository
         $cols = [];
         $bind = ['id' => $id];
         foreach ($set as $col => $val) {
-            $cols[] = "`{$col}` = :s_{$col}";
+            $cols[] = Sql::assign($col, 's_');
             $bind["s_{$col}"] = $val;
         }
 

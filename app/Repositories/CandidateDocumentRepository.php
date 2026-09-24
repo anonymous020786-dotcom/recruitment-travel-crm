@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Support\Sql;
 use App\Auth\BranchScope;
 use App\Models\CandidateDocument;
 use App\Support\Db;
@@ -82,7 +83,7 @@ final class CandidateDocumentRepository
         $set = ['record_version = record_version + 1', 'updated_at = UTC_TIMESTAMP()'];
         $bind = ['id' => $id, 'ver' => $expectedVersion];
         foreach ($changes as $col => $val) {
-            $set[] = "`{$col}` = :c_{$col}";
+            $set[] = Sql::assign($col, 'c_');
             $bind["c_{$col}"] = $val;
         }
 

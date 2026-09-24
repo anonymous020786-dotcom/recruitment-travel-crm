@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Support\Sql;
 use App\Auth\BranchScope;
 use App\Models\Invoice;
 use App\Support\Db;
@@ -110,7 +111,7 @@ final class InvoiceRepository
         $set = ['record_version = record_version + 1', 'updated_at = UTC_TIMESTAMP()'];
         $bind = ['id' => $id, 'ver' => $expectedVersion] + $branchBind;
         foreach ($changes as $col => $val) {
-            $set[] = "`{$col}` = :c_{$col}";
+            $set[] = Sql::assign($col, 'c_');
             $bind["c_{$col}"] = $val;
         }
 
@@ -264,7 +265,11 @@ final class InvoiceRepository
     {
         [$where, $bind] = $this->buildWhere($q, $scope);
 
-        $total = (int) $this->db->selectValue('SELECT COUNT(*) FROM invoices i JOIN persons p ON p.id = i.person_id WHERE ' . $where, $bind);
+        // persons is a foreign key: it only has to be joined when the search reads p.*
+        $total = (int) $this->db->selectValue(
+            'SELECT COUNT(*) FROM invoices i' . (Sql::references($where, 'p') ? ' JOIN persons p ON p.id = i.person_id' : '') . ' WHERE ' . $where,
+            $bind,
+        );
 
         $order = (self::SORT[$q->sort] ?? 'i.created_at') . ' ' . ($q->direction === 'asc' ? 'ASC' : 'DESC');
         $limit = $q->perPage;

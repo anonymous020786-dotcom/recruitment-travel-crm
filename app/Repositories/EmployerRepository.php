@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Support\Sql;
 use App\Auth\BranchScope;
 use App\Models\Employer;
 use App\Support\Db;
@@ -96,7 +97,7 @@ final class EmployerRepository
         $set = ['updated_at = UTC_TIMESTAMP()'];
         $bind = ['id' => $id] + $branchBind;
         foreach ($changes as $col => $val) {
-            $set[] = "`{$col}` = :c_{$col}";
+            $set[] = Sql::assign($col, 'c_');
             $bind["c_{$col}"] = $val;
         }
 

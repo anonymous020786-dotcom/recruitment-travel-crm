@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Support\Sql;
 use App\Auth\BranchScope;
 use App\Models\Candidate;
 use App\Support\Db;
@@ -104,7 +105,7 @@ final class CandidateRepository
         $set = ['record_version = record_version + 1', 'updated_at = UTC_TIMESTAMP()'];
         $bind = ['id' => $id, 'ver' => $expectedVersion] + $branchBind;
         foreach ($changes as $col => $val) {
-            $set[] = "`{$col}` = :c_{$col}";
+            $set[] = Sql::assign($col, 'c_');
             $bind["c_{$col}"] = $val;
         }
 
@@ -121,7 +122,7 @@ final class CandidateRepository
         [$where, $bind] = $this->buildWhere($q, $scope);
 
         $total = (int) $this->db->selectValue(
-            'SELECT COUNT(*) FROM candidates c JOIN persons p ON p.id = c.person_id WHERE ' . $where,
+            'SELECT COUNT(*) FROM candidates c' . (Sql::references($where, 'p') ? ' JOIN persons p ON p.id = c.person_id' : '') . ' WHERE ' . $where,
             $bind,
         );
 

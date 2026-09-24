@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Support\Sql;
 use App\Auth\BranchScope;
 use App\Models\Payment;
 use App\Support\Db;
@@ -105,7 +106,7 @@ final class PaymentRepository
         $set = ['record_version = record_version + 1', 'updated_at = UTC_TIMESTAMP()'];
         $bind = ['id' => $id, 'ver' => $expectedVersion] + $branchBind;
         foreach ($changes as $col => $val) {
-            $set[] = "`{$col}` = :c_{$col}";
+            $set[] = Sql::assign($col, 'c_');
             $bind["c_{$col}"] = $val;
         }
 
@@ -121,7 +122,7 @@ final class PaymentRepository
         [$where, $bind] = $this->buildWhere($q, $scope);
 
         $total = (int) $this->db->selectValue(
-            'SELECT COUNT(*) FROM payments pm JOIN persons p ON p.id = pm.person_id WHERE ' . $where,
+            'SELECT COUNT(*) FROM payments pm' . (Sql::references($where, 'p') ? ' JOIN persons p ON p.id = pm.person_id' : '') . ' WHERE ' . $where,
             $bind,
         );
 
