@@ -185,8 +185,8 @@ final class DocumentServiceTest extends DbTestCase
         $actor = $this->actor('manager');
         $candidate = $this->candidate($actor);
         $type = $this->types->findByKey('passport');
-        $file = $this->fakeFile('passport.pdf', $this->validPdf());
-        $file['size'] = ($type->maxSizeKb + 1) * 1024;
+        // the limit is checked against the real size on disk (a reported size can lie), so make the file genuinely big
+        $file = $this->fakeFile('passport.pdf', $this->validPdf() . str_repeat(' ', ($type->maxSizeKb + 1) * 1024));
 
         $this->expectException(ValidationException::class);
         $this->service->upload($candidate, $type->id, $file, null, null, $actor);

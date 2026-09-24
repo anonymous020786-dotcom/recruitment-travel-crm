@@ -57,8 +57,15 @@ final class DocumentUpload
         if ($tmpPath === '' || !is_file($tmpPath)) {
             throw new ValidationException(['file' => ['No file was uploaded.']]);
         }
+        // Fail closed: in production the path must be one PHP itself received over HTTP, never a path the
+        // request could have named. (Outside production a plain temp file is accepted so tests and scripts work.)
+        if ($this->app->isProduction() && !is_uploaded_file($tmpPath)) {
+            $this->logger->warning('Document upload rejected: not an HTTP upload');
 
-        $size = (int) ($file['size'] ?? filesize($tmpPath));
+            throw new ValidationException(['file' => ['No file was uploaded.']]);
+        }
+
+        $size = (int) filesize($tmpPath); // the real size on disk, not the client-reported one
         if ($size <= 0) {
             throw new ValidationException(['file' => ['The uploaded file is empty.']]);
         }
@@ -100,18 +107,19 @@ final class DocumentUpload
             mkdir($destDir, 0700, true);
         }
 
-        $moved = is_uploaded_file($tmpPath)
-            ? move_uploaded_file($tmpPath, $destAbsolute)
-            : copy($sourcePath, $destAbsolute);
+        // Store the bytes that were hashed and validated. For an image that is the re-encoded copy (metadata and
+        // trailing data stripped) — never the original upload, which used to be moved into place instead.
+        if ($sourcePath !== $tmpPath) {
+            $moved = copy($sourcePath, $destAbsolute);
+            @unlink($sourcePath);
+        } else {
+            $moved = is_uploaded_file($tmpPath) ? move_uploaded_file($tmpPath, $destAbsolute) : copy($tmpPath, $destAbsolute);
+        }
 
         if (!$moved) {
             throw new \RuntimeException('Could not store the uploaded document.');
         }
         @chmod($destAbsolute, 0600);
-
-        if ($sourcePath !== $tmpPath) {
-            @unlink($sourcePath);
-        }
 
         return [
             'storage_path' => $destRelative,
@@ -130,16 +138,26 @@ final class DocumentUpload
         return sprintf('storage/private/documents/%s/%s/%s/%s.%s', date('y'), date('m'), $shard, $ulid, $extension);
     }
 
-    /** Best-effort scan for tokens indicating embedded active content. Not a substitute for a real PDF parser. */
+    /**
+     * Best-effort scan for tokens indicating embedded active content or hidden content. Not a substitute for a
+     * real PDF parser: keys inside compressed object streams are invisible to it. The real defences are that a
+     * stored PDF is never executed or rendered server-side and is always served with nosniff.
+     *
+     * PDF names may hide characters as `#xx` (`/J#61vaScript` is `/JavaScript`), so those are decoded first,
+     * and a token only counts as a whole name (`/JS` matches, `/JSON` does not).
+     */
     private function assertPdfHasNoActiveContent(string $path): void
     {
         $contents = (string) file_get_contents($path);
-        foreach (['/JavaScript', '/JS', '/OpenAction', '/Launch'] as $token) {
-            if (str_contains($contents, $token)) {
-                $this->logger->warning('Document upload rejected: active content token in PDF', ['token' => $token]);
+        $contents = (string) preg_replace_callback('/#([0-9A-Fa-f]{2})/', static fn (array $m): string => chr((int) hexdec($m[1])), $contents);
 
-                throw new ValidationException(['file' => ['This PDF contains embedded active content and cannot be accepted.']]);
-            }
+        if (preg_match('#/(JavaScript|JS|OpenAction|Launch|RichMedia|EmbeddedFile|Encrypt)(?![A-Za-z0-9])|/AA\s*<<#', $contents, $m) === 1) {
+            $token = ($m[1] ?? '') !== '' ? $m[1] : 'AA'; // group 1 is unset when the /AA << alternative matched
+            $this->logger->warning('Document upload rejected: active or hidden content in PDF', ['token' => $token]);
+
+            throw new ValidationException(['file' => [$token === 'Encrypt'
+                ? 'Encrypted or password-protected PDFs cannot be accepted. Upload an unprotected copy.'
+                : 'This PDF contains embedded active content and cannot be accepted.']]);
         }
     }
 
@@ -159,6 +177,15 @@ final class DocumentUpload
 
             return $tmpPath;
         }
+
+        // Decoding allocates ~4 bytes per pixel *before* we could look at the size, so a tiny file that declares
+        // 30000 x 30000 pixels (a decompression bomb) would exhaust memory. Read the declared size from the header
+        // first and refuse anything that would not fit.
+        $info = @getimagesize($tmpPath);
+        if ($info === false) {
+            throw new ValidationException(['file' => ['That image could not be processed.']]);
+        }
+        $this->assertDecodable((int) $info[0], (int) $info[1]);
 
         $image = match ($mime) {
             'image/jpeg' => @imagecreatefromjpeg($tmpPath),
@@ -198,6 +225,38 @@ final class DocumentUpload
         }
 
         return $out;
+    }
+
+    /** @throws ValidationException when decoding a width x height image could not fit in the remaining memory */
+    private function assertDecodable(int $width, int $height): void
+    {
+        if ($width < 1 || $height < 1) {
+            throw new ValidationException(['file' => ['That image could not be processed.']]);
+        }
+
+        $need = $width * $height * 5;                  // 4 bytes/pixel for the bitmap plus working space
+        $limit = self::memoryLimitBytes();
+        if ($limit > 0 && memory_get_usage() + $need > (int) ($limit * 0.8)) {
+            $this->logger->warning('Document upload rejected: image too large to decode', ['width' => $width, 'height' => $height]);
+
+            throw new ValidationException(['file' => ['That image has too many pixels. Reduce its resolution and try again.']]);
+        }
+    }
+
+    private static function memoryLimitBytes(): int
+    {
+        $raw = trim((string) ini_get('memory_limit'));
+        if ($raw === '' || $raw === '-1') {
+            return 0; // unlimited
+        }
+        $n = (int) $raw;
+
+        return match (strtolower(substr($raw, -1))) {
+            'g' => $n * 1024 ** 3,
+            'm' => $n * 1024 ** 2,
+            'k' => $n * 1024,
+            default => $n,
+        };
     }
 
     private function uploadErrorMessage(int $code): string

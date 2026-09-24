@@ -92,6 +92,8 @@ final class LeadImportService
             throw new ValidationException(['branch_id' => ['Select a valid branch for this import.']]);
         }
 
+        $this->assertPlainTextUpload($file['tmp_name']);
+
         [$headers, $rows] = $this->parse($file);
         if (count($rows) === 0) {
             throw new ValidationException(['file' => ['The file has no data rows.']]);
@@ -331,7 +333,7 @@ final class LeadImportService
     {
         $dir = $this->app->basePath($relativeDir);
         if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+            mkdir($dir, 0700, true);
         }
         $dest = $relativeDir . '/' . Ulid::generate() . '.csv';
         $absolute = $this->app->basePath($dest);
@@ -343,8 +345,28 @@ final class LeadImportService
         if (!$moved) {
             throw new \RuntimeException('Could not store the uploaded file.');
         }
+        @chmod($absolute, 0600);
 
         return $dest;
+    }
+
+    /**
+     * The controller only checks the client-supplied name ends in `.csv`. This checks the bytes: a real HTTP upload
+     * in production, no NUL bytes (a binary file renamed .csv), and a text MIME type by content.
+     */
+    private function assertPlainTextUpload(string $path): void
+    {
+        if ($this->app->isProduction() && !is_uploaded_file($path)) {
+            throw new ValidationException(['file' => ['No file was uploaded.']]);
+        }
+
+        $head = (string) @file_get_contents($path, false, null, 0, 8192);
+        $mime = (string) finfo_file(finfo_open(FILEINFO_MIME_TYPE), $path);
+        $textual = str_starts_with($mime, 'text/') || in_array($mime, ['application/csv', 'inode/x-empty'], true);
+
+        if (str_contains($head, "\0") || !$textual) {
+            throw new ValidationException(['file' => ['That does not look like a CSV text file.']]);
+        }
     }
 
     private function writeReport(ImportBatch $batch): string
