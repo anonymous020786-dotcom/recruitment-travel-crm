@@ -21,6 +21,7 @@ use App\Controllers\Crm\InvoiceController;
 use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
+use App\Controllers\Crm\PaymentController;
 use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
@@ -333,6 +334,16 @@ return static function (Router $router): void {
         $r->put('/invoices/{invoice}', [InvoiceController::class, 'update'])->middleware(['can:invoices.edit', 'throttle:write'])->name('invoices.update');
         $r->post('/invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->middleware(['can:invoices.create', 'throttle:write'])->name('invoices.issue');
         $r->post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->middleware(['can:invoices.void', 'throttle:write'])->name('invoices.void');
+
+        // ---- Payments ----
+        $r->get('/payments', [PaymentController::class, 'index'])->middleware(['can:payments.view'])->name('payments.index');
+        $r->get('/invoices/{invoice}/payments/create', [PaymentController::class, 'create'])->middleware(['can:payments.create'])->name('payments.create');
+        $r->post('/invoices/{invoice}/payments', [PaymentController::class, 'store'])->middleware(['can:payments.create', 'throttle:write'])->name('payments.store');
+        $r->get('/payments/{payment}', [PaymentController::class, 'show'])->middleware(['can:payments.view'])->name('payments.show');
+        $r->get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->middleware(['can:receipts.view'])->name('payments.receipt');
+        $r->put('/payments/{payment}', [PaymentController::class, 'update'])->middleware(['can:payments.edit', 'throttle:write'])->name('payments.update');
+        $r->post('/payments/{payment}/allocate', [PaymentController::class, 'allocate'])->middleware(['can:allocations.manage', 'throttle:write'])->name('payments.allocate');
+        $r->post('/payments/{payment}/reverse', [PaymentController::class, 'reverse'])->middleware(['can:payments.reverse', 'throttle:write'])->name('payments.reverse');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');

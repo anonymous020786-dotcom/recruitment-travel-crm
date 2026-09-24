@@ -52,6 +52,28 @@ $refLink = $invoice->referenceNumber !== null
             <?= component('card', ['title' => 'Notes', 'body' => '<p class="whitespace-pre-line text-sm text-slate-600">' . e($invoice->notes) . '</p>']) ?>
         <?php endif ?>
 
+        <?php if ($payments !== null && ($payments !== [] || $canPay)): ?>
+            <div id="payments">
+                <?= component('card', ['title' => 'Payments', 'body' => (function () use ($payments, $canPay, $base, $invoice) {
+                    $html = $canPay ? '<p class="mb-3"><a href="' . $base . '/payments/create" class="btn btn-primary btn-sm">Record payment</a></p>' : '';
+                    if ($payments === []) {
+                        return $html . '<p class="text-sm text-slate-500">No payments yet.</p>';
+                    }
+                    $html .= '<ul class="divide-y divide-slate-100">';
+                    foreach ($payments as $p) {
+                        $reversed = $p['status'] === 'reversed';
+                        $html .= '<li class="flex items-center justify-between gap-2 py-2 text-sm"><div>'
+                            . '<a href="/payments/' . e_attr((string) $p['payment_public_id']) . '" class="font-mono font-medium text-slate-900">' . e((string) $p['payment_number']) . '</a>'
+                            . '<p class="text-xs text-slate-500">' . e(ucwords(str_replace('_', ' ', (string) $p['method']))) . ' · ' . e(substr((string) $p['paid_at'], 0, 10)) . '</p></div>'
+                            . '<span class="' . ($reversed ? 'text-slate-400 line-through' : 'font-medium text-slate-800') . '">' . e($invoice->money((string) $p['amount'])) . '</span>'
+                            . ($reversed ? component('badge', ['label' => 'Reversed', 'color' => 'red']) : '') . '</li>';
+                    }
+
+                    return $html . '</ul>';
+                })()]) ?>
+            </div>
+        <?php endif ?>
+
         <div id="history">
             <?= component('card', ['title' => 'Status history', 'body' => (function () use ($history, $label) {
                 $html = '<ol class="space-y-3 text-sm">';

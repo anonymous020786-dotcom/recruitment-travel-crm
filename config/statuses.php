@@ -157,4 +157,11 @@ return [
         'paid'           => ['issued', 'partially_paid'],
         'void'           => [],
     ],
+
+    // Payment. A payment is never edited or deleted; the only way to undo one is to
+    // reverse it (final), which releases everything it had been applied to.
+    'payment' => [
+        'recorded' => ['reversed'],
+        'reversed' => [],
+    ],
 ];

@@ -32,6 +32,7 @@ final class InvoiceController extends CrmController
         private readonly ApplicationRepository $applications,
         private readonly TourBookingRepository $bookings,
         private readonly InvoiceService $service,
+        private readonly \App\Repositories\PaymentAllocationRepository $allocations,
     ) {
     }
 
@@ -106,6 +107,8 @@ final class InvoiceController extends CrmController
             'invoice'   => $model,
             'lines'     => $this->lines->forInvoice($model->id),
             'history'   => $this->history->forInvoice($model->id),
+            'payments'  => can('payments.view') ? $this->allocations->forInvoice($model->id) : null,
+            'canPay'    => can('payments.create') && in_array($model->status, Invoice::COLLECTIBLE, true) && $model->outstandingMinor() > 0,
             'canEdit'   => can('edit', $model) && $model->isDraft(),
             'canIssue'  => can('issue', $model) && $model->isDraft(),
             'canVoid'   => can('void', $model) && $model->status !== 'void' && $model->status !== 'paid',

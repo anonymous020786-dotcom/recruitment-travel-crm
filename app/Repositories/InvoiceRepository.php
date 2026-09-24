@@ -58,6 +58,14 @@ final class InvoiceRepository
         return $row ? Invoice::fromRow($row) : null;
     }
 
+    public function findByNumber(string $invoiceNumber, BranchScope $scope): ?Invoice
+    {
+        [$branchSql, $bind] = $scope->whereClause('i.branch_id');
+        $row = $this->db->selectOne('SELECT ' . self::COLUMNS . ' ' . self::JOINS . " WHERE i.invoice_number = :n AND {$branchSql}", ['n' => $invoiceNumber] + $bind);
+
+        return $row ? Invoice::fromRow($row) : null;
+    }
+
     /** @return list<Invoice> invoices raised for one application / tour booking, newest first */
     public function forInvoiceable(string $type, int $id, BranchScope $scope): array
     {
@@ -109,6 +117,32 @@ final class InvoiceRepository
         return $this->db->affectingStatement(
             'UPDATE invoices SET ' . implode(', ', $set) . " WHERE id = :id AND record_version = :ver AND {$branchSql}",
             $bind,
+        );
+    }
+
+    /**
+     * Row-locks an invoice for the rest of the transaction and returns its money state, so two payments
+     * arriving together are applied one after the other against the true outstanding amount.
+     * The caller must be inside a transaction and must already have authorised access to the invoice.
+     *
+     * @return array{status:string,currency:string,person_id:int,grand_total:string,amount_paid:string,amount_refunded:string}|null
+     */
+    public function lockForPayment(int $id): ?array
+    {
+        $r = $this->db->selectOne('SELECT status, currency, person_id, grand_total, amount_paid, amount_refunded FROM invoices WHERE id = :id FOR UPDATE', ['id' => $id]);
+
+        return $r === null ? null : [
+            'status' => (string) $r['status'], 'currency' => (string) $r['currency'], 'person_id' => (int) $r['person_id'],
+            'grand_total' => (string) $r['grand_total'], 'amount_paid' => (string) $r['amount_paid'], 'amount_refunded' => (string) $r['amount_refunded'],
+        ];
+    }
+
+    /** Writes the result of a payment (or its reversal) onto a locked invoice and bumps its version. */
+    public function setPaymentState(int $id, string $amountPaid, string $status): void
+    {
+        $this->db->affectingStatement(
+            'UPDATE invoices SET amount_paid = :paid, status = :st, record_version = record_version + 1, updated_at = UTC_TIMESTAMP() WHERE id = :id',
+            ['paid' => $amountPaid, 'st' => $status, 'id' => $id],
         );
     }
 
