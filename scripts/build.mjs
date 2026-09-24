@@ -3,6 +3,8 @@
 //
 //   node scripts/build.mjs            production build (minified + hashed)
 //   node scripts/build.mjs --watch    rebuild CSS on change (no hashing)
+//   node scripts/build.mjs --check    build to a temp file and exit 1 if the committed CSS is out of date
+//                                     (a view uses a Tailwind class that was never compiled)
 
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -26,6 +28,21 @@ if (!existsSync(tailwindCli)) {
 }
 
 const watch = process.argv.includes('--watch');
+const check = process.argv.includes('--check');
+
+if (check) {
+    const tmp = join(buildDir, '.check.css');
+    execFileSync(process.execPath, [tailwindCli, '-i', inCss, '-o', tmp, '--minify'], { stdio: 'ignore' });
+    const fresh = createHash('sha256').update(readFileSync(tmp)).digest('hex');
+    const committed = existsSync(outCss) ? createHash('sha256').update(readFileSync(outCss)).digest('hex') : '';
+    unlinkSync(tmp);
+    if (fresh !== committed) {
+        console.error('public/assets/build/app.css is out of date — run: npm run build');
+        process.exit(1);
+    }
+    console.log('assets are up to date');
+    process.exit(0);
+}
 
 if (watch) {
     const p = spawn(process.execPath, [tailwindCli, '-i', inCss, '-o', outCss, '--watch'], { stdio: 'inherit' });

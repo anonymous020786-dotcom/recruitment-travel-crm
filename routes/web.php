@@ -27,6 +27,7 @@ use App\Controllers\Crm\NotificationController;
 use App\Controllers\Crm\PaymentController;
 use App\Controllers\Crm\RefundController;
 use App\Controllers\Crm\ReportController;
+use App\Controllers\Crm\SearchController;
 use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
@@ -381,6 +382,9 @@ return static function (Router $router): void {
         $r->get('/reports', [ReportController::class, 'index'])->middleware(['can:reports.view'])->name('reports.index');
         $r->get('/reports/{report}', [ReportController::class, 'show'])->middleware(['can:reports.view', 'throttle:dashboard'])->name('reports.show');
         $r->get('/reports/{report}/csv', [ReportController::class, 'csv'])->middleware(['can:reports.export', 'throttle:export'])->name('reports.csv');
+
+        // ---- Global search (each section is the module's own scoped search) ----
+        $r->get('/search', [SearchController::class, 'index'])->middleware(['can:search.global', 'throttle:dashboard'])->name('search');
 
         // ---- Own notifications (each user sees only their own) ----
         $r->get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

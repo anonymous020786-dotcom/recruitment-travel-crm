@@ -67,6 +67,13 @@ $navMarkup = static function (array $nav, string $currentPath): string {
             <p class="truncate text-sm font-semibold text-slate-900"><?= e($title) ?></p>
 
             <div class="ml-auto flex items-center gap-1">
+                <?php if (can('search.global')): ?>
+                <form method="get" action="/search" role="search" class="hidden sm:block">
+                    <label class="sr-only" for="topbar-search">Search</label>
+                    <input id="topbar-search" type="search" name="q" maxlength="60" placeholder="Search…" class="form-input h-8 w-44 py-1 text-sm lg:w-64" autocomplete="off">
+                </form>
+                <a href="/search" class="btn btn-ghost btn-sm sm:hidden" aria-label="Search"><?= component('icon', ['name' => 'search', 'class' => 'h-5 w-5']) ?></a>
+                <?php endif ?>
                 <?php $unread = $me !== null ? app(\App\Repositories\NotificationRepository::class)->unreadCount((int) $me->id) : 0; ?>
                 <a href="/notifications" class="btn btn-ghost btn-sm gap-1" aria-label="Notifications<?= $unread > 0 ? ', ' . $unread . ' unread' : '' ?>">
                     <?= component('icon', ['name' => 'bell', 'class' => 'h-5 w-5']) ?>
