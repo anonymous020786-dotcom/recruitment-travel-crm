@@ -29,6 +29,7 @@ final class PaymentController extends CrmController
         private readonly PaymentAllocationRepository $allocations,
         private readonly InvoiceRepository $invoices,
         private readonly PaymentService $service,
+        private readonly \App\Repositories\RefundRepository $refunds,
     ) {
     }
 
@@ -83,9 +84,22 @@ final class PaymentController extends CrmController
         $model = $this->find($payment);
         authorize('view', $model);
 
+        $allocations = $this->allocations->forPayment($model->id);
+        // What a refund can be taken from: each invoice the payment was applied to, plus any un-invoiced credit.
+        $targets = [];
+        foreach ($allocations as $a) {
+            $targets[$a['invoice_public_id']] = $a['invoice_number'];
+        }
+        if ($model->unallocatedMinor() > 0) {
+            $targets = ['' => 'Unallocated credit (' . $model->money($model->unallocated()) . ')'] + $targets;
+        }
+
         return view_response('crm.payments.show', [
             'payment'     => $model,
-            'allocations' => $this->allocations->forPayment($model->id),
+            'refunds'     => can('refunds.view') ? $this->refunds->forPayment($model->id) : [],
+            'canRefund'   => can('refunds.create') && $model->isRecorded() && $targets !== [],
+            'refundTargets' => $targets,
+            'allocations' => $allocations,
             'canAllocate' => can('allocate', $model) && $model->unallocatedMinor() > 0,
             'canReverse'  => can('reverse', $model) && $model->isRecorded(),
             'canEdit'     => can('edit', $model) && $model->isRecorded(),

@@ -71,6 +71,20 @@ final class Invoice
         );
     }
 
+    /**
+     * The status the money justifies for an invoice that has left draft: net received = paid − refunded;
+     * nothing left → issued, everything covered → paid, otherwise partially_paid. Draft / void never change here.
+     */
+    public static function statusFor(string $current, int $grandMinor, int $paidMinor, int $refundedMinor): string
+    {
+        if (!in_array($current, ['issued', 'partially_paid', 'paid'], true)) {
+            return $current;
+        }
+        $net = $paidMinor - $refundedMinor;
+
+        return $net <= 0 ? 'issued' : ($net >= $grandMinor ? 'paid' : 'partially_paid');
+    }
+
     public function isDraft(): bool
     {
         return $this->status === 'draft';

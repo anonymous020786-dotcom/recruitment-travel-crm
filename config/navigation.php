@@ -23,6 +23,7 @@ return [
     ['label' => 'Bookings',     'icon' => 'tours',        'path' => '/tours/bookings', 'permission' => 'tours.bookings.view'],
     ['label' => 'Invoices',     'icon' => 'invoices',     'path' => '/invoices',       'permission' => 'invoices.view'],
     ['label' => 'Payments',     'icon' => 'payments',     'path' => '/payments',       'permission' => 'payments.view'],
+    ['label' => 'Refunds',      'icon' => 'payments',     'path' => '/refunds',        'permission' => 'refunds.view'],
     ['label' => 'Reports',      'icon' => 'reports',      'path' => '/reports',        'permission' => 'reports.view'],
     ['label' => 'Tasks',        'icon' => 'tasks',        'path' => '/tasks',          'permission' => 'tasks.view'],
     ['label' => 'Admin',        'icon' => 'admin',        'path' => '/admin/users',    'permission' => 'users.view'],

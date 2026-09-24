@@ -34,6 +34,7 @@ final class Payment
         public readonly ?string $reversedReason,
         public readonly ?string $notes,
         public readonly string $allocated,
+        public readonly string $creditRefunded,
         public readonly ?string $receivedBy,
         public readonly int $recordVersion,
         public readonly string $createdAt,
@@ -61,6 +62,7 @@ final class Payment
             reversedReason: $r['reversed_reason'] ?? null,
             notes: $r['notes'] ?? null,
             allocated: (string) ($r['allocated'] ?? '0.00'),
+            creditRefunded: (string) ($r['credit_refunded'] ?? '0.00'),
             receivedBy: $r['received_by'] ?? null,
             recordVersion: (int) $r['record_version'],
             createdAt: (string) $r['created_at'],
@@ -72,10 +74,15 @@ final class Payment
         return $this->status === 'recorded';
     }
 
-    /** Money received but not yet applied to an invoice, in minor units (0 for a reversed payment). */
+    /**
+     * Money received but neither applied to an invoice nor (being) refunded as credit, in minor units
+     * (0 for a reversed payment).
+     */
     public function unallocatedMinor(): int
     {
-        return $this->isRecorded() ? max(0, Money::toMinor($this->amount) - Money::toMinor($this->allocated)) : 0;
+        return $this->isRecorded()
+            ? max(0, Money::toMinor($this->amount) - Money::toMinor($this->allocated) - Money::toMinor($this->creditRefunded))
+            : 0;
     }
 
     public function unallocated(): string

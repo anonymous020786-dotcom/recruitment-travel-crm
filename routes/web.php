@@ -22,6 +22,7 @@ use App\Controllers\Crm\LeadController;
 use App\Controllers\Crm\LeadExportController;
 use App\Controllers\Crm\MedicalController;
 use App\Controllers\Crm\PaymentController;
+use App\Controllers\Crm\RefundController;
 use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
@@ -327,6 +328,7 @@ return static function (Router $router): void {
 
         // ---- Invoices (literal paths before the {invoice} wildcard) ----
         $r->get('/invoices', [InvoiceController::class, 'index'])->middleware(['can:invoices.view'])->name('invoices.index');
+        $r->get('/invoices/aging', [InvoiceController::class, 'aging'])->middleware(['can:invoices.view'])->name('invoices.aging');
         $r->get('/invoices/create', [InvoiceController::class, 'create'])->middleware(['can:invoices.create'])->name('invoices.create');
         $r->post('/invoices', [InvoiceController::class, 'store'])->middleware(['can:invoices.create', 'throttle:write'])->name('invoices.store');
         $r->get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware(['can:invoices.view'])->name('invoices.show');
@@ -344,6 +346,14 @@ return static function (Router $router): void {
         $r->put('/payments/{payment}', [PaymentController::class, 'update'])->middleware(['can:payments.edit', 'throttle:write'])->name('payments.update');
         $r->post('/payments/{payment}/allocate', [PaymentController::class, 'allocate'])->middleware(['can:allocations.manage', 'throttle:write'])->name('payments.allocate');
         $r->post('/payments/{payment}/reverse', [PaymentController::class, 'reverse'])->middleware(['can:payments.reverse', 'throttle:write'])->name('payments.reverse');
+
+        // ---- Refunds ----
+        $r->get('/refunds', [RefundController::class, 'index'])->middleware(['can:refunds.view'])->name('refunds.index');
+        $r->post('/payments/{payment}/refunds', [RefundController::class, 'store'])->middleware(['can:refunds.create', 'throttle:write'])->name('refunds.store');
+        $r->get('/refunds/{refund}', [RefundController::class, 'show'])->middleware(['can:refunds.view'])->name('refunds.show');
+        $r->post('/refunds/{refund}/approve', [RefundController::class, 'approve'])->middleware(['can:refunds.approve', 'throttle:write'])->name('refunds.approve');
+        $r->post('/refunds/{refund}/reject', [RefundController::class, 'reject'])->middleware(['can:refunds.reject', 'throttle:write'])->name('refunds.reject');
+        $r->post('/refunds/{refund}/paid', [RefundController::class, 'markPaid'])->middleware(['can:refunds.mark_paid', 'throttle:write'])->name('refunds.paid');
 
         // ---- Jobs (literal paths before the {job} wildcard) ----
         $r->get('/jobs', [JobController::class, 'index'])->middleware(['can:jobs.view'])->name('jobs.index');

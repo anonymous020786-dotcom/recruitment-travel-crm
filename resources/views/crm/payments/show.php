@@ -2,6 +2,7 @@
 /**
  * @var \App\Models\Payment $payment @var list<array{invoice_id:int,invoice_public_id:string,invoice_number:string,amount:string}> $allocations
  * @var bool $canAllocate @var bool $canReverse @var bool $canEdit @var bool $canReceipt
+ * @var list<\App\Models\Refund> $refunds @var bool $canRefund @var array<string,string> $refundTargets
  */
 $this->layout('layouts.app', ['title' => $payment->paymentNumber, 'currentPath' => '/payments']);
 $this->start('content');
@@ -64,7 +65,43 @@ $actions = $canReceipt ? '<a href="' . $base . '/receipt" target="_blank" class=
         })()]) ?>
     </div>
 
-    <div class="space-y-4">
+    <div class="space-y-4" id="refunds">
+        <?php if ($refunds !== []): ?>
+            <?= component('card', ['title' => 'Refunds', 'body' => (function () use ($refunds) {
+                $color = ['pending' => 'amber', 'approved' => 'blue', 'paid' => 'green', 'rejected' => 'red'];
+                $html = '<ul class="divide-y divide-slate-100">';
+                foreach ($refunds as $r) {
+                    /** @var \App\Models\Refund $r */
+                    $html .= '<li class="flex items-center justify-between gap-2 py-2 text-sm"><div><a href="/refunds/' . e_attr($r->publicId) . '" class="font-mono font-medium text-slate-900">' . e($r->refundNumber) . '</a>'
+                        . '<p class="text-xs text-slate-500">' . e($r->money()) . ' · ' . e($r->invoiceNumber ?? 'credit') . '</p></div>'
+                        . component('badge', ['label' => $r->statusLabel(), 'color' => $color[$r->status] ?? 'slate']) . '</li>';
+                }
+
+                return $html . '</ul>';
+            })()]) ?>
+        <?php endif ?>
+
+        <?php if ($canRefund): ?>
+            <?= component('card', ['title' => 'Request a refund', 'body' => (function () use ($refundTargets, $base, $payment) {
+                $opts = '';
+                foreach ($refundTargets as $publicId => $label) {
+                    $opts .= '<option value="' . e_attr((string) $publicId) . '">' . e($label) . '</option>';
+                }
+                $methods = '';
+                foreach (\App\Models\Refund::METHODS as $k => $lbl) {
+                    $methods .= '<option value="' . e_attr($k) . '">' . e($lbl) . '</option>';
+                }
+
+                return '<form method="post" action="' . $base . '/refunds" class="space-y-2" data-once>' . csrf_field()
+                    . '<label class="text-xs text-slate-500">Take it from<select name="invoice" class="form-select mt-1 w-full">' . $opts . '</select></label>'
+                    . '<input type="number" name="amount" required min="0.01" step="0.01" placeholder="Amount (' . e($payment->currency) . ')" aria-label="Amount" class="form-input w-full">'
+                    . '<select name="method" aria-label="Refund method" class="form-select w-full">' . $methods . '</select>'
+                    . '<input type="text" name="reason" required minlength="3" maxlength="255" placeholder="Why? (required)" aria-label="Reason" class="form-input w-full">'
+                    . '<button class="btn btn-secondary btn-sm">Request refund</button></form>'
+                    . '<p class="mt-2 text-xs text-slate-400">A refund needs approval by someone else before it can be paid out.</p>';
+            })()]) ?>
+        <?php endif ?>
+
         <?php if ($canAllocate): ?>
             <?= component('card', ['title' => 'Allocate credit', 'body' => '<form method="post" action="' . $base . '/allocate" class="space-y-2" data-once>' . csrf_field()
                 . '<input type="hidden" name="record_version" value="' . (int) $payment->recordVersion . '">'

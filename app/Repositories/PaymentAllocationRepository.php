@@ -52,6 +52,12 @@ final class PaymentAllocationRepository
         );
     }
 
+    /** What a payment has applied to one invoice (2 dp string; "0" when none). */
+    public function amountFor(int $paymentId, int $invoiceId): string
+    {
+        return (string) $this->db->selectValue('SELECT COALESCE(SUM(amount), 0) FROM payment_allocations WHERE payment_id = :p AND invoice_id = :i', ['p' => $paymentId, 'i' => $invoiceId], '0');
+    }
+
     /** Total applied from a payment (regardless of its status; callers check that). */
     public function sumForPayment(int $paymentId): string
     {

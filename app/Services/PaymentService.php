@@ -160,7 +160,7 @@ final class PaymentService
                     continue;
                 }
                 $paid = max(0, Money::toMinor($locked['amount_paid']) - Money::toMinor($a['amount']));
-                $to = $this->statusAfter($locked['status'], Money::toMinor($locked['grand_total']), $paid, Money::toMinor($locked['amount_refunded']));
+                $to = Invoice::statusFor($locked['status'], Money::toMinor($locked['grand_total']), $paid, Money::toMinor($locked['amount_refunded']));
                 $this->invoices->setPaymentState($a['invoice_id'], Money::fromMinor($paid), $to);
                 if ($to !== $locked['status']) {
                     $this->invoiceHistory->append($a['invoice_id'], $locked['status'], $to, "Payment {$payment->paymentNumber} reversed", $actor->id);
@@ -274,7 +274,7 @@ final class PaymentService
         }
 
         $paid = Money::toMinor($locked['amount_paid']) + $minor;
-        $to = $this->statusAfter($locked['status'], Money::toMinor($locked['grand_total']), $paid, Money::toMinor($locked['amount_refunded']));
+        $to = Invoice::statusFor($locked['status'], Money::toMinor($locked['grand_total']), $paid, Money::toMinor($locked['amount_refunded']));
 
         $this->allocations->add($payment->id, $invoice->id, Money::fromMinor($minor), $actor->id);
         $this->invoices->setPaymentState($invoice->id, Money::fromMinor($paid), $to);
@@ -289,17 +289,6 @@ final class PaymentService
     private function outstandingMinor(array $locked): int
     {
         return max(0, Money::toMinor($locked['grand_total']) - (Money::toMinor($locked['amount_paid']) - Money::toMinor($locked['amount_refunded'])));
-    }
-
-    /** The invoice status the money justifies. Draft / void are never touched by payments. */
-    private function statusAfter(string $current, int $grandMinor, int $paidMinor, int $refundedMinor): string
-    {
-        if (!in_array($current, ['issued', 'partially_paid', 'paid'], true)) {
-            return $current;
-        }
-        $net = $paidMinor - $refundedMinor;
-
-        return $net <= 0 ? 'issued' : ($net >= $grandMinor ? 'paid' : 'partially_paid');
     }
 
     /** @return array<string,mixed> what the receipt says, frozen at the moment of receipt */

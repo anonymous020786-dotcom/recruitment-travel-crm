@@ -150,6 +150,29 @@ return static function (Application $app): void {
     $app->singleton(\App\Services\TourBookingService::class);
     $app->singleton(\App\Services\InvoiceService::class);
     $app->singleton(\App\Services\PaymentService::class);
+    $app->singleton(\App\Services\PaymentReminderService::class, static fn (Application $app): \App\Services\PaymentReminderService => new \App\Services\PaymentReminderService(
+        $app->get(\App\Repositories\InvoiceRepository::class),
+        $app->get(\App\Repositories\UserRepository::class),
+        $app->get(\App\Notifications\NotificationService::class),
+        (int) $app->config()->get('finance.reminder_max_repeats', 8),
+    ));
+    $app->singleton(\App\Services\RefundService::class, static fn (Application $app): \App\Services\RefundService => new \App\Services\RefundService(
+        $app->get(Db::class),
+        $app->get(\App\Repositories\RefundRepository::class),
+        $app->get(\App\Repositories\RefundHistoryRepository::class),
+        $app->get(\App\Repositories\PaymentRepository::class),
+        $app->get(\App\Repositories\PaymentAllocationRepository::class),
+        $app->get(\App\Repositories\InvoiceRepository::class),
+        $app->get(\App\Repositories\InvoiceHistoryRepository::class),
+        $app->get(\App\Repositories\UserRepository::class),
+        $app->get(\App\Domain\StatusMachine::class),
+        $app->get(\App\Support\Sequences::class),
+        $app->get(Gate::class),
+        $app->get(\App\Audit\AuditService::class),
+        $app->get(\App\Auth\BranchScopeResolver::class),
+        $app->get(\App\Notifications\NotificationService::class),
+        (bool) $app->config()->get('finance.allow_self_approval', false),
+    ));
     $app->singleton(\App\Services\ExpiryService::class, static fn (Application $app): \App\Services\ExpiryService => new \App\Services\ExpiryService(
         $app->get(Db::class),
         $app->get(\App\Repositories\VisaRepository::class),
@@ -189,6 +212,7 @@ return static function (Application $app): void {
         $gate->policy(\App\Models\TourBooking::class, \App\Policies\TourBookingPolicy::class);
         $gate->policy(\App\Models\Invoice::class, \App\Policies\InvoicePolicy::class);
         $gate->policy(\App\Models\Payment::class, \App\Policies\PaymentPolicy::class);
+        $gate->policy(\App\Models\Refund::class, \App\Policies\RefundPolicy::class);
 
         return $gate;
     });

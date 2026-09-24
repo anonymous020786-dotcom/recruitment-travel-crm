@@ -164,4 +164,13 @@ return [
         'recorded' => ['reversed'],
         'reversed' => [],
     ],
+
+    // Refund. Money leaves only at `paid`; `rejected` and `paid` are final. An approved
+    // refund can still be rejected (e.g. the cash is not available) until it is paid.
+    'refund' => [
+        'pending'  => ['approved', 'rejected'],
+        'approved' => ['paid', 'rejected'],
+        'paid'     => [],
+        'rejected' => [],
+    ],
 ];

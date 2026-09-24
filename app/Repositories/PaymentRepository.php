@@ -26,7 +26,8 @@ final class PaymentRepository
     private const COLUMNS = 'pm.id, pm.public_id, pm.payment_number, pm.receipt_number, pm.person_id, pm.branch_id, pm.amount, pm.currency,
         pm.method, pm.reference, pm.paid_at, pm.status, pm.reversed_reason, pm.notes, pm.record_version, pm.created_at,
         p.full_name AS customer_name, p.primary_phone AS customer_phone, u.name AS received_by,
-        (SELECT COALESCE(SUM(a.amount), 0) FROM payment_allocations a WHERE a.payment_id = pm.id) AS allocated';
+        (SELECT COALESCE(SUM(a.amount), 0) FROM payment_allocations a WHERE a.payment_id = pm.id) AS allocated,
+        (SELECT COALESCE(SUM(rf.amount), 0) FROM refunds rf WHERE rf.payment_id = pm.id AND rf.invoice_id IS NULL AND rf.status IN (\'pending\',\'approved\',\'paid\')) AS credit_refunded';
 
     private const JOINS = 'FROM payments pm JOIN persons p ON p.id = pm.person_id LEFT JOIN users u ON u.id = pm.created_by';
 
@@ -66,11 +67,17 @@ final class PaymentRepository
         $rows = $this->db->select(
             'SELECT ' . self::COLUMNS . ' ' . self::JOINS
             . " WHERE pm.person_id = :p AND pm.currency = :c AND pm.status = 'recorded' AND {$branchSql}
-                HAVING pm.amount > allocated ORDER BY pm.paid_at, pm.id",
+                HAVING pm.amount > allocated + credit_refunded ORDER BY pm.paid_at, pm.id",
             ['p' => $personId, 'c' => $currency] + $bind,
         );
 
         return array_map([Payment::class, 'fromRow'], $rows);
+    }
+
+    /** Row-locks a payment for the rest of the transaction (serialises refund requests and allocations against it). Caller is in a transaction. */
+    public function lockRow(int $id): void
+    {
+        $this->db->selectValue('SELECT id FROM payments WHERE id = :id FOR UPDATE', ['id' => $id]);
     }
 
     /** A refund that is still alive (requested, approved or paid) against this payment. */
@@ -145,7 +152,8 @@ final class PaymentRepository
             $bind['f_method'] = $method;
         }
         if ($q->filter('credit') === 'unallocated') {
-            $where[] = "pm.status = 'recorded' AND pm.amount > (SELECT COALESCE(SUM(a.amount), 0) FROM payment_allocations a WHERE a.payment_id = pm.id)";
+            $where[] = "pm.status = 'recorded' AND pm.amount > (SELECT COALESCE(SUM(a.amount), 0) FROM payment_allocations a WHERE a.payment_id = pm.id)
+                + (SELECT COALESCE(SUM(rf.amount), 0) FROM refunds rf WHERE rf.payment_id = pm.id AND rf.invoice_id IS NULL AND rf.status IN ('pending','approved','paid'))";
         }
         if ($q->hasSearch()) {
             $where[] = '(pm.payment_number = :s_pay OR pm.receipt_number = :s_rct OR p.full_name LIKE :s_name OR pm.reference LIKE :s_ref)';

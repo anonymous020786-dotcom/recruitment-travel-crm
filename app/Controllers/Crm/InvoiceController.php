@@ -48,6 +48,15 @@ final class InvoiceController extends CrmController
         ]);
     }
 
+    /** Receivables ageing: what is owed and how overdue it is, plus the biggest debtors. */
+    public function aging(): Response
+    {
+        return view_response('crm.invoices.aging', [
+            'aging'   => $this->invoices->aging($this->scope()),
+            'debtors' => $this->invoices->topDebtors($this->scope()),
+        ]);
+    }
+
     public function create(Request $request): Response
     {
         $type = (string) $request->input('type', 'application');

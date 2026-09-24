@@ -147,6 +147,95 @@ final class InvoiceRepository
     }
 
     /**
+     * Receivables ageing per currency: what is owed, split by how long past its due date it is.
+     * Only issued / partially-paid invoices with something outstanding count.
+     *
+     * @return list<array{currency:string,invoices:int,current:string,d1_30:string,d31_60:string,d61_90:string,d90_plus:string,total:string}>
+     */
+    public function aging(BranchScope $scope, ?string $today = null): array
+    {
+        [$branchSql, $bind] = $scope->whereClause('branch_id');
+        $owed = 'GREATEST(grand_total - (amount_paid - amount_refunded), 0)';
+        $rows = $this->db->select(
+            "SELECT currency, COUNT(*) AS invoices,
+                    SUM(CASE WHEN due_on IS NULL OR due_on >= :t0 THEN {$owed} ELSE 0 END) AS current_amt,
+                    SUM(CASE WHEN due_on < :t1 AND DATEDIFF(:t2, due_on) <= 30 THEN {$owed} ELSE 0 END) AS d1_30,
+                    SUM(CASE WHEN due_on < :t3 AND DATEDIFF(:t4, due_on) BETWEEN 31 AND 60 THEN {$owed} ELSE 0 END) AS d31_60,
+                    SUM(CASE WHEN due_on < :t5 AND DATEDIFF(:t6, due_on) BETWEEN 61 AND 90 THEN {$owed} ELSE 0 END) AS d61_90,
+                    SUM(CASE WHEN due_on < :t7 AND DATEDIFF(:t8, due_on) > 90 THEN {$owed} ELSE 0 END) AS d90_plus,
+                    SUM({$owed}) AS total
+             FROM invoices
+             WHERE status IN ('issued','partially_paid') AND {$owed} > 0 AND {$branchSql}
+             GROUP BY currency ORDER BY currency",
+            array_fill_keys(['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8'], $today ?? gmdate('Y-m-d')) + $bind,
+        );
+
+        return array_map(static fn (array $r): array => [
+            'currency' => (string) $r['currency'], 'invoices' => (int) $r['invoices'], 'current' => (string) $r['current_amt'],
+            'd1_30' => (string) $r['d1_30'], 'd31_60' => (string) $r['d31_60'], 'd61_90' => (string) $r['d61_90'],
+            'd90_plus' => (string) $r['d90_plus'], 'total' => (string) $r['total'],
+        ], $rows);
+    }
+
+    /**
+     * The customers who owe the most, per currency, biggest first.
+     *
+     * @return list<array{person_id:int,customer_name:string,currency:string,invoices:int,outstanding:string,overdue:string,oldest_due:?string}>
+     */
+    public function topDebtors(BranchScope $scope, int $limit = 15, ?string $today = null): array
+    {
+        [$branchSql, $bind] = $scope->whereClause('i.branch_id');
+        $limit = max(1, min($limit, 100));
+        $owed = 'GREATEST(i.grand_total - (i.amount_paid - i.amount_refunded), 0)';
+        $rows = $this->db->select(
+            "SELECT i.person_id, p.full_name AS customer_name, i.currency, COUNT(*) AS invoices, SUM({$owed}) AS outstanding,
+                    SUM(CASE WHEN i.due_on < :today THEN {$owed} ELSE 0 END) AS overdue, MIN(i.due_on) AS oldest_due
+             FROM invoices i JOIN persons p ON p.id = i.person_id
+             WHERE i.status IN ('issued','partially_paid') AND {$owed} > 0 AND {$branchSql}
+             GROUP BY i.person_id, p.full_name, i.currency ORDER BY outstanding DESC LIMIT {$limit}",
+            ['today' => $today ?? gmdate('Y-m-d')] + $bind,
+        );
+
+        return array_map(static fn (array $r): array => [
+            'person_id' => (int) $r['person_id'], 'customer_name' => (string) $r['customer_name'], 'currency' => (string) $r['currency'],
+            'invoices' => (int) $r['invoices'], 'outstanding' => (string) $r['outstanding'], 'overdue' => (string) $r['overdue'],
+            'oldest_due' => $r['oldest_due'] ?? null,
+        ], $rows);
+    }
+
+    /**
+     * Issued / partially-paid invoices past their due date that still owe money (system-wide; for the reminder cron).
+     *
+     * @return list<array{id:int,invoice_number:string,branch_id:int,created_by:?int,due_on:string,currency:string,outstanding:string,customer_name:string}>
+     */
+    public function overdueForReminder(string $today, int $limit = 1000): array
+    {
+        $limit = max(1, min($limit, 5000));
+        $owed = 'GREATEST(i.grand_total - (i.amount_paid - i.amount_refunded), 0)';
+        $rows = $this->db->select(
+            "SELECT i.id, i.invoice_number, i.branch_id, i.created_by, i.due_on, i.currency, {$owed} AS outstanding, p.full_name AS customer_name
+             FROM invoices i JOIN persons p ON p.id = i.person_id
+             WHERE i.status IN ('issued','partially_paid') AND i.due_on < :today AND {$owed} > 0 ORDER BY i.due_on, i.id LIMIT {$limit}",
+            ['today' => $today],
+        );
+
+        return array_map(static fn (array $r): array => [
+            'id' => (int) $r['id'], 'invoice_number' => (string) $r['invoice_number'], 'branch_id' => (int) $r['branch_id'],
+            'created_by' => isset($r['created_by']) ? (int) $r['created_by'] : null, 'due_on' => (string) $r['due_on'],
+            'currency' => (string) $r['currency'], 'outstanding' => (string) $r['outstanding'], 'customer_name' => (string) $r['customer_name'],
+        ], $rows);
+    }
+
+    /** Writes a paid refund onto a locked invoice (money went back, so more is owed again) and bumps its version. */
+    public function setRefundState(int $id, string $amountRefunded, string $status): void
+    {
+        $this->db->affectingStatement(
+            'UPDATE invoices SET amount_refunded = :ref, status = :st, record_version = record_version + 1, updated_at = UTC_TIMESTAMP() WHERE id = :id',
+            ['ref' => $amountRefunded, 'st' => $status, 'id' => $id],
+        );
+    }
+
+    /**
      * Money position of the visible branches, per currency (a total across currencies would be meaningless).
      *
      * @return list<array{currency:string,billed:string,collected:string,outstanding:string,overdue:string}>
