@@ -57,6 +57,18 @@ foreach ($flights as $f) {
     if ($f->notes) {
         $html .= '<p class="mt-1 whitespace-pre-line text-xs text-slate-500">' . e($f->notes) . '</p>';
     }
+    if ($f->ticketDocumentPublicId !== null) {
+        $html .= '<p class="mt-1 text-xs text-slate-600">Ticket: ' . (can('documents.view')
+            ? '<a class="text-brand-600 hover:underline" href="/documents/' . e_attr($f->ticketDocumentPublicId) . '/download">' . e($f->ticketDocumentName ?? 'download') . '</a>'
+            : e($f->ticketDocumentName ?? 'attached')) . '</p>';
+    }
+    if ($travel['canTickets'] && can('documents.upload') && in_array($f->status, ['booked', 'issued', 'changed'], true)) {
+        $fid = 'ticket-' . e_attr($f->publicId);
+        $html .= '<form method="post" action="' . $fb . '/ticket" enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2" data-once>' . csrf_field()
+            . '<label class="sr-only" for="' . $fid . '">Ticket file</label>'
+            . '<input id="' . $fid . '" type="file" name="file" required accept=".pdf,.jpg,.jpeg,.png" class="text-xs">'
+            . '<button class="btn btn-secondary btn-sm">' . ($f->ticketDocumentPublicId !== null ? 'Replace ticket' : 'Attach ticket') . '</button></form>';
+    }
 
     $moves = $travel['flightMoves'][$f->publicId] ?? [];
     if ($travel['canTickets'] && $f->isLive()) {

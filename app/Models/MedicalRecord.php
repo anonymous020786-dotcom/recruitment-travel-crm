@@ -33,6 +33,8 @@ final class MedicalRecord
         public readonly string $status,
         public readonly ?string $notes,
         public readonly string $createdAt,
+        public readonly ?string $certificatePublicId = null,
+        public readonly ?string $certificateName = null,
     ) {
     }
 
@@ -59,6 +61,8 @@ final class MedicalRecord
             status: (string) $r['status'],
             notes: $r['notes'] ?? null,
             createdAt: (string) $r['created_at'],
+            certificatePublicId: $r['doc_public_id'] ?? null,
+            certificateName: $r['doc_name'] ?? null,
         );
     }
 

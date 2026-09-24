@@ -37,6 +37,8 @@ final class FlightBooking
         public readonly string $status,
         public readonly ?string $notes,
         public readonly string $createdAt,
+        public readonly ?string $ticketDocumentPublicId = null,
+        public readonly ?string $ticketDocumentName = null,
     ) {
     }
 
@@ -67,6 +69,8 @@ final class FlightBooking
             status: (string) $r['status'],
             notes: $r['notes'] ?? null,
             createdAt: (string) $r['created_at'],
+            ticketDocumentPublicId: $r['doc_public_id'] ?? null,
+            ticketDocumentName: $r['doc_name'] ?? null,
         );
     }
 

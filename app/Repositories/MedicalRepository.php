@@ -29,15 +29,23 @@ final class MedicalRepository
     private const COLUMNS = 'm.id, m.public_id, m.candidate_id, m.application_id, m.medical_center, m.appointment_date, m.medical_date,
         m.report_date, m.result, m.expires_at, m.status, m.notes, m.created_at,
         c.public_id AS candidate_public_id, c.candidate_number, c.branch_id, p.full_name AS candidate_name,
-        a.public_id AS application_public_id, a.application_number';
+        a.public_id AS application_public_id, a.application_number,
+        d.public_id AS doc_public_id, d.original_name AS doc_name';
 
     private const JOINS = 'FROM medical_records m
         JOIN candidates c ON c.id = m.candidate_id
         JOIN persons p ON p.id = c.person_id
-        LEFT JOIN applications a ON a.id = m.application_id';
+        LEFT JOIN applications a ON a.id = m.application_id
+        LEFT JOIN candidate_documents d ON d.id = m.certificate_document_id';
 
     public function __construct(private readonly Db $db)
     {
+    }
+
+    /** Points the medical at its certificate (a candidate document). */
+    public function setCertificate(int $id, int $documentId): void
+    {
+        $this->db->affectingStatement('UPDATE medical_records SET certificate_document_id = :d WHERE id = :id', ['d' => $documentId, 'id' => $id]);
     }
 
     public function findById(int $id, BranchScope $scope): ?MedicalRecord

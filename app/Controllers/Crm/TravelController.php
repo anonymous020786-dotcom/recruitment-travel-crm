@@ -18,6 +18,7 @@ use App\Repositories\EmployerRepository;
 use App\Repositories\FlightRepository;
 use App\Repositories\PlacementRepository;
 use App\Repositories\TravelRepository;
+use App\Services\AttachmentService;
 use App\Services\TravelService;
 use App\Support\ListQuery;
 use App\Validators\TravelValidator;
@@ -34,6 +35,7 @@ final class TravelController extends CrmController
     ];
 
     public function __construct(
+        private readonly AttachmentService $attachments,
         private readonly TravelRepository $pipeline,
         private readonly PlacementRepository $placements,
         private readonly FlightRepository $flights,
@@ -77,6 +79,13 @@ final class TravelController extends CrmController
     {
         return $this->onFlight($flight, 'Flight updated.', function (FlightBooking $f) use ($request): void {
             $this->service->updateFlight($f, (new TravelValidator())->flight($request->only(self::FLIGHT_FIELDS)), $this->currentUser());
+        });
+    }
+
+    public function attachTicket(Request $request, string $flight): Response
+    {
+        return $this->onFlight($flight, 'Ticket attached to the flight and to the candidate\'s documents.', function (FlightBooking $f) use ($request): void {
+            $this->attachments->flightTicket($f, $request->file('file') ?? [], $this->currentUser());
         });
     }
 

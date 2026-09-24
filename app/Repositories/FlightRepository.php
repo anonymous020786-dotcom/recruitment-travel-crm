@@ -16,15 +16,23 @@ final class FlightRepository
         f.departure_airport, f.arrival_airport, f.departure_at, f.arrival_at, f.baggage_allowance, f.ticket_price, f.currency,
         f.status, f.notes, f.created_at,
         c.public_id AS candidate_public_id, c.candidate_number, c.branch_id, p.full_name AS candidate_name,
-        a.public_id AS application_public_id, a.application_number';
+        a.public_id AS application_public_id, a.application_number,
+        d.public_id AS doc_public_id, d.original_name AS doc_name';
 
     private const JOINS = 'FROM flight_bookings f
         JOIN candidates c ON c.id = f.candidate_id
         JOIN persons p ON p.id = c.person_id
-        LEFT JOIN applications a ON a.id = f.application_id';
+        LEFT JOIN applications a ON a.id = f.application_id
+        LEFT JOIN candidate_documents d ON d.id = f.ticket_document_id';
 
     public function __construct(private readonly Db $db)
     {
+    }
+
+    /** Points the flight at its ticket (a candidate document). */
+    public function setTicket(int $id, int $documentId): void
+    {
+        $this->db->affectingStatement('UPDATE flight_bookings SET ticket_document_id = :d WHERE id = :id', ['d' => $documentId, 'id' => $id]);
     }
 
     public function findById(int $id, BranchScope $scope): ?FlightBooking

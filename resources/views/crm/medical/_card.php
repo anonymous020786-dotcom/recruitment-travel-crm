@@ -55,6 +55,18 @@ foreach ($medical as $m) {
     if ($m->notes) {
         $html .= '<p class="mt-1 whitespace-pre-line text-xs text-slate-500">' . e($m->notes) . '</p>';
     }
+    if ($m->certificatePublicId !== null) {
+        $html .= '<p class="mt-1 text-xs text-slate-600">Certificate: ' . (can('documents.view')
+            ? '<a class="text-brand-600 hover:underline" href="/documents/' . e_attr($m->certificatePublicId) . '/download">' . e($m->certificateName ?? 'download') . '</a>'
+            : e($m->certificateName ?? 'attached')) . '</p>';
+    }
+    if (can('edit', $m) && can('documents.upload') && !in_array($m->status, ['pending', 'scheduled'], true)) {
+        $fid = 'cert-' . e_attr($m->publicId);
+        $html .= '<form method="post" action="' . $base . '/certificate" enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2" data-once>' . csrf_field()
+            . '<label class="sr-only" for="' . $fid . '">Certificate file</label>'
+            . '<input id="' . $fid . '" type="file" name="file" required accept=".pdf,.jpg,.jpeg,.png" class="text-xs">'
+            . '<button class="btn btn-secondary btn-sm">' . ($m->certificatePublicId !== null ? 'Replace certificate' : 'Attach certificate') . '</button></form>';
+    }
 
     if ($m->isOpen() && can('edit', $m)) {
         $html .= '<div class="mt-3 space-y-2 border-t border-slate-100 pt-3">';

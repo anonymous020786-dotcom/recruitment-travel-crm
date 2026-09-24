@@ -304,6 +304,7 @@ return static function (Router $router): void {
         $r->post('/candidates/{candidate}/medical', [MedicalController::class, 'store'])->middleware(['can:medical.create', 'throttle:write'])->name('medical.store');
         $r->post('/medical/{medical}/reschedule', [MedicalController::class, 'reschedule'])->middleware(['can:medical.edit', 'throttle:write'])->name('medical.reschedule');
         $r->post('/medical/{medical}/attended', [MedicalController::class, 'attended'])->middleware(['can:medical.edit', 'throttle:write'])->name('medical.attended');
+        $r->post('/medical/{medical}/certificate', [MedicalController::class, 'certificate'])->middleware(['can:medical.edit', 'can:documents.upload', 'throttle:upload'])->name('medical.certificate');
         $r->post('/medical/{medical}/result', [MedicalController::class, 'result'])->middleware(['can:medical.edit', 'throttle:write'])->name('medical.result');
         $r->delete('/medical/{medical}', [MedicalController::class, 'destroy'])->middleware(['can:medical.delete', 'throttle:write'])->name('medical.destroy');
 
@@ -319,6 +320,7 @@ return static function (Router $router): void {
         $r->get('/travel', [TravelController::class, 'index'])->middleware(['can:travel.view'])->name('travel.index');
         $r->get('/placements', [TravelController::class, 'placements'])->middleware(['can:travel.view'])->name('placements.index');
         $r->post('/applications/{application}/flights', [TravelController::class, 'bookFlight'])->middleware(['can:travel.tickets.manage', 'throttle:write'])->name('flights.store');
+        $r->post('/flights/{flight}/ticket', [TravelController::class, 'attachTicket'])->middleware(['can:travel.tickets.manage', 'can:documents.upload', 'throttle:upload'])->name('flights.ticket');
         $r->post('/flights/{flight}/status', [TravelController::class, 'flightStatus'])->middleware(['can:travel.tickets.manage', 'throttle:write'])->name('flights.status');
         $r->post('/flights/{flight}', [TravelController::class, 'updateFlight'])->middleware(['can:travel.tickets.manage', 'throttle:write'])->name('flights.update');
         $r->post('/applications/{application}/departure', [TravelController::class, 'departure'])->middleware(['can:travel.departure.manage', 'throttle:write'])->name('travel.departure');

@@ -13,6 +13,7 @@ use App\Models\MedicalRecord;
 use App\Repositories\ApplicationRepository;
 use App\Repositories\CandidateRepository;
 use App\Repositories\MedicalRepository;
+use App\Services\AttachmentService;
 use App\Services\MedicalService;
 use App\Support\ListQuery;
 use App\Validators\MedicalValidator;
@@ -25,6 +26,7 @@ final class MedicalController extends CrmController
         private readonly CandidateRepository $candidates,
         private readonly ApplicationRepository $applications,
         private readonly MedicalService $service,
+        private readonly AttachmentService $attachments,
     ) {
     }
 
@@ -85,6 +87,13 @@ final class MedicalController extends CrmController
     {
         return $this->act($medical, 'Medical result recorded.', function (MedicalRecord $m) use ($request): void {
             $this->service->recordResult($m, (new MedicalValidator())->result($request->only(['result', 'report_date', 'expires_at', 'notes'])), $this->currentUser());
+        });
+    }
+
+    public function certificate(Request $request, string $medical): Response
+    {
+        return $this->act($medical, 'Certificate attached to the medical and to the candidate\'s documents.', function (MedicalRecord $m) use ($request): void {
+            $this->attachments->medicalCertificate($m, $request->file('file') ?? [], $this->currentUser());
         });
     }
 
