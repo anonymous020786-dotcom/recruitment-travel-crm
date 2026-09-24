@@ -31,6 +31,7 @@ use App\Controllers\Crm\SearchController;
 use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
+use App\Controllers\Crm\RoleAdminController;
 use App\Controllers\Crm\UserAdminController;
 use App\Controllers\Crm\VisaController;
 use App\Controllers\Crm\LeadImportController;
@@ -413,6 +414,12 @@ return static function (Router $router): void {
         $r->post('/admin/users/{user}/temporary-password', [UserAdminController::class, 'temporaryPassword'])->middleware(['can:users.manage', 'confirm', 'throttle:write'])->name('admin.users.temp_password');
         $r->post('/admin/users/{user}/sign-out', [UserAdminController::class, 'signOut'])->middleware(['can:users.manage', 'throttle:write'])->name('admin.users.sign_out');
         $r->post('/admin/users/{user}/reset-2fa', [UserAdminController::class, 'resetTwoFactor'])->middleware(['can:users.manage', 'confirm', 'throttle:write'])->name('admin.users.reset_2fa');
+
+        // ---- Admin: roles & permissions (super admin only; writes need a fresh password confirmation) ----
+        $r->get('/admin/roles', [RoleAdminController::class, 'index'])->middleware(['can:roles.manage'])->name('admin.roles.index');
+        $r->get('/admin/roles/{role}', [RoleAdminController::class, 'show'])->middleware(['can:roles.manage'])->name('admin.roles.show');
+        $r->put('/admin/roles/{role}', [RoleAdminController::class, 'update'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.roles.update');
+        $r->post('/admin/roles/{role}/reset', [RoleAdminController::class, 'reset'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.roles.reset');
 
         // ---- Admin: scheduled jobs ----
         $r->get('/admin/cron', [CronController::class, 'index'])->middleware(['can:system.console'])->name('admin.cron');

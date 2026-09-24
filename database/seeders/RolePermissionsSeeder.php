@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Auth\PermissionMatrix;
 use App\Support\Seeder;
 
 /**
@@ -36,7 +37,7 @@ final class RolePermissionsSeeder extends Seeder
 
         foreach ($this->db->select('SELECT id, name FROM roles') as $role) {
             $tokens = (array) ($matrix[$role['name']] ?? []);
-            $desired = $this->resolveTokens($tokens, array_keys($allPermissions), $permByModule);
+            $desired = PermissionMatrix::resolve($tokens, array_keys($allPermissions), $permByModule);
 
             $desiredIds = [];
             foreach ($desired as $name) {
@@ -72,40 +73,5 @@ final class RolePermissionsSeeder extends Seeder
                 $role['name'], count($desiredIds), count($toAdd), count($toRemove),
             ));
         }
-    }
-
-    /**
-     * @param list<string> $tokens
-     * @param list<string> $allNames
-     * @param array<string,list<string>> $permByModule
-     * @return list<string>
-     */
-    private function resolveTokens(array $tokens, array $allNames, array $permByModule): array
-    {
-        $granted = [];
-        $revoked = [];
-
-        foreach ($tokens as $token) {
-            $revoke = str_starts_with($token, '!');
-            $token = ltrim($token, '!');
-
-            $names = match (true) {
-                $token === '*'             => $allNames,
-                str_ends_with($token, '.*') => $permByModule[substr($token, 0, -2)] ?? [],
-                default                     => [$token],
-            };
-
-            if ($revoke) {
-                foreach ($names as $n) {
-                    $revoked[$n] = true;
-                }
-            } else {
-                foreach ($names as $n) {
-                    $granted[$n] = true;
-                }
-            }
-        }
-
-        return array_keys(array_diff_key($granted, $revoked));
     }
 }
