@@ -30,6 +30,7 @@ use App\Controllers\Crm\ReportController;
 use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
+use App\Controllers\Crm\UserAdminController;
 use App\Controllers\Crm\VisaController;
 use App\Controllers\Crm\LeadImportController;
 use App\Controllers\Crm\PasskeyController;
@@ -391,6 +392,20 @@ return static function (Router $router): void {
         $r->get('/enquiries/{enquiry}', [EnquiryController::class, 'show'])->middleware(['can:public_enquiries.view'])->name('enquiries.show');
         $r->post('/enquiries/{enquiry}/status', [EnquiryController::class, 'status'])->middleware(['can:public_enquiries.convert', 'throttle:write'])->name('enquiries.status');
         $r->post('/enquiries/{enquiry}/convert', [EnquiryController::class, 'convert'])->middleware(['can:public_enquiries.convert', 'throttle:write'])->name('enquiries.convert');
+
+        // ---- Admin: users (literal paths before the {user} wildcard) ----
+        $r->get('/admin/users', [UserAdminController::class, 'index'])->middleware(['can:users.view'])->name('admin.users.index');
+        $r->get('/admin/users/create', [UserAdminController::class, 'create'])->middleware(['can:users.manage'])->name('admin.users.create');
+        $r->post('/admin/users', [UserAdminController::class, 'store'])->middleware(['can:users.manage', 'throttle:write'])->name('admin.users.store');
+        $r->get('/admin/users/{user}', [UserAdminController::class, 'show'])->middleware(['can:users.view'])->name('admin.users.show');
+        $r->get('/admin/users/{user}/edit', [UserAdminController::class, 'edit'])->middleware(['can:users.manage'])->name('admin.users.edit');
+        $r->put('/admin/users/{user}', [UserAdminController::class, 'update'])->middleware(['can:users.manage', 'throttle:write'])->name('admin.users.update');
+        $r->post('/admin/users/{user}/status', [UserAdminController::class, 'status'])->middleware(['can:users.manage', 'throttle:write'])->name('admin.users.status');
+        $r->post('/admin/users/{user}/unlock', [UserAdminController::class, 'unlock'])->middleware(['can:users.manage', 'throttle:write'])->name('admin.users.unlock');
+        $r->post('/admin/users/{user}/reset-link', [UserAdminController::class, 'resetLink'])->middleware(['can:users.manage', 'throttle:write'])->name('admin.users.reset_link');
+        $r->post('/admin/users/{user}/temporary-password', [UserAdminController::class, 'temporaryPassword'])->middleware(['can:users.manage', 'confirm', 'throttle:write'])->name('admin.users.temp_password');
+        $r->post('/admin/users/{user}/sign-out', [UserAdminController::class, 'signOut'])->middleware(['can:users.manage', 'throttle:write'])->name('admin.users.sign_out');
+        $r->post('/admin/users/{user}/reset-2fa', [UserAdminController::class, 'resetTwoFactor'])->middleware(['can:users.manage', 'confirm', 'throttle:write'])->name('admin.users.reset_2fa');
 
         // ---- Admin: scheduled jobs ----
         $r->get('/admin/cron', [CronController::class, 'index'])->middleware(['can:system.console'])->name('admin.cron');

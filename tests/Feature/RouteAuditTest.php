@@ -235,6 +235,7 @@ final class RouteAuditTest extends DbTestCase
         $exceptions = [
             'ExportRepository'      => 'the controller checks requested_by === the current user (404 otherwise)',
             'TourPackageRepository' => 'packages are an organisation-wide catalogue with no branch',
+            'UserAdminRepository'   => 'staff accounts are organisation-wide; every route needs users.view / users.manage and UserAdminService enforces who may act on whom (super admins, self, last super admin)',
         ];
         $unscoped = [];
 
