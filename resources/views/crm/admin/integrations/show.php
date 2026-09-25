@@ -9,6 +9,7 @@ $this->start('content');
 $tone = ['configured' => 'green', 'incomplete' => 'amber', 'off' => 'slate', 'empty' => 'slate'];
 $sourceLabel = ['saved' => 'Saved here', 'env' => 'From the .env file', 'none' => 'Not set'];
 ?>
+<?php $webhookUrl = $webhookUrl ?? null; $testable = $testable ?? false; ?>
 <?= component('page-header', [
     'title' => $def['label'],
     'subtitle' => $def['description'],
@@ -17,6 +18,15 @@ $sourceLabel = ['saved' => 'Saved here', 'env' => 'From the .env file', 'none' =
 ]) ?>
 
 <p class="mb-4"><?= component('badge', ['label' => $status['label'], 'color' => $tone[$status['state']] ?? 'slate', 'dot' => true]) ?></p>
+
+<?php if ($webhookUrl !== null): ?>
+    <div class="card card-body mb-4 max-w-2xl">
+        <p class="text-sm font-medium text-slate-900">Webhook URL</p>
+        <label class="sr-only" for="webhook-url">Webhook URL</label>
+        <input id="webhook-url" class="form-input mt-1" readonly value="<?= e_attr($webhookUrl) ?>" onfocus="this.select()">
+        <p class="mt-1 text-xs text-slate-500">Create a webhook with this address in the provider's dashboard, using the signing secret you save below. Payments are recorded only from signed messages.</p>
+    </div>
+<?php endif ?>
 
 <form method="post" action="/admin/integrations/<?= e_attr($key) ?>" class="card card-body max-w-2xl" autocomplete="off" data-once>
     <?= csrf_field() ?>
@@ -71,6 +81,9 @@ $sourceLabel = ['saved' => 'Saved here', 'env' => 'From the .env file', 'none' =
         <p class="mt-3 text-xs text-slate-500">Secrets are encrypted with the application key before they are stored and are never shown again. Saving asks you to confirm your password.</p>
     <?php endif ?>
 </form>
+<?php if ($canManage && $testable): ?>
+    <form method="post" action="/admin/integrations/<?= e_attr($key) ?>/test" class="mt-3"><?= csrf_field() ?><button type="submit" class="btn btn-secondary">Test connection</button> <span class="text-xs text-slate-500">uses the saved values</span></form>
+<?php endif ?>
 <?php if ($canManage): ?>
     <form id="reset-form" method="post" action="/admin/integrations/<?= e_attr($key) ?>/reset"><?= csrf_field() ?></form>
 <?php endif ?>

@@ -469,6 +469,7 @@ return static function (Router $router): void {
         $r->get('/admin/integrations', [IntegrationController::class, 'index'])->middleware(['can:integrations.view'])->name('admin.integrations.index');
         $r->get('/admin/integrations/{service}', [IntegrationController::class, 'show'])->middleware(['can:integrations.view'])->name('admin.integrations.show');
         $r->put('/admin/integrations/{service}', [IntegrationController::class, 'update'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.integrations.update');
+        $r->post('/admin/integrations/{service}/test', [IntegrationController::class, 'test'])->middleware(['can:integrations.manage', 'throttle:write'])->name('admin.integrations.test');
         $r->post('/admin/integrations/{service}/reset', [IntegrationController::class, 'reset'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.integrations.reset');
 
         // ---- Admin: storage (where documents live, cost estimate, move/lifecycle tools) ----

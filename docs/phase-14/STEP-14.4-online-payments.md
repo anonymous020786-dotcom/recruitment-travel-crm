@@ -1,5 +1,18 @@
 # Step 14.4 — Online payments (payment gateways)
 
+**Eight gateways: six Indian (Razorpay, PayU, Cashfree, PhonePe, CCAvenue, Paytm) plus Stripe and PayPal.** Each has a Test connection button and shows its webhook URL on Admin → Integrations → the gateway.
+
+| Gateway | Signature / integrity | Redirect style |
+|---|---|---|
+| Razorpay | HMAC-SHA256 (webhook body, return params) | hosted order |
+| PayU | SHA-512 request/response hash | auto-submitted form |
+| Cashfree | HMAC-SHA256 timestamp+body | hosted session |
+| PhonePe | X-VERIFY sha256 + salt index | redirect |
+| CCAvenue | AES-128-CBC encrypted payload + HMAC integrity tag | auto-submitted form |
+| Paytm | Paytm checksum (AES-128-CBC) | auto-submitted form |
+| PayPal | server-side capture + verify-webhook-signature | redirect |
+| Stripe | `t=…,v1=…` HMAC, 5-min replay window | hosted Checkout |
+
 Customers can pay an invoice online; the payment lands in the ledger automatically, exactly once. The framework and the first two adapters (**Razorpay**, **Stripe**) are in; the remaining adapters (PayU, Cashfree, PhonePe, CCAvenue, Paytm, PayPal) follow in later commits of this step and plug into the same framework.
 
 ## How it works
@@ -26,4 +39,4 @@ Admin → Integrations → the gateway → paste the keys (secrets are encrypted
 The adapters are written from each provider's public API documentation and are tested with request-shape checks, signature/hash verification (valid, forged, stale, tampered) and recorded responses — **not against live or sandbox accounts** (no keys here). Do a sandbox payment per gateway before going live.
 
 ## Tests
-`StripeRazorpayGatewayTest` (14) and `OnlinePaymentFlowTest` (22): link creation rules, the public page's privacy, checkout start, the whole webhook lifecycle (record once, replays, forgery, mismatch, unknown reference, creator lost permission, failed→retried, second payment, instalments), verified/tampered returns, the HTTP endpoints (no session/CSRF needed but a valid signature is), the invoice card, branch isolation, rate-limit buckets.
+`StripeRazorpayGatewayTest` (14), `PayuCashfreePhonepeGatewayTest` (17), `CcavenuePaytmPaypalGatewayTest` (19) and `OnlinePaymentFlowTest` (23): link creation rules, the public page's privacy, checkout start, the whole webhook lifecycle (record once, replays, forgery, mismatch, unknown reference, creator lost permission, failed→retried, second payment, instalments), verified/tampered returns, the HTTP endpoints (no session/CSRF needed but a valid signature is), the invoice card, branch isolation, rate-limit buckets.

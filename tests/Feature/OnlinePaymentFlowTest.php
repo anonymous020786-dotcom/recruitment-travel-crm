@@ -559,6 +559,30 @@ final class OnlinePaymentFlowTest extends GatewayTestCase
         self::assertSame(403, $this->code('POST', "/online-payments/{$id}/cancel", ['x' => '1']));
     }
 
+    public function test_the_super_admin_can_test_a_gateway_from_its_integrations_page_and_sees_the_webhook_url(): void
+    {
+        $this->actAs($this->user('super_admin'));
+
+        $page = $this->send('GET', '/admin/integrations/stripe')->getBody();
+        self::assertStringContainsString(rtrim((string) config('app.url'), '/') . '/webhooks/stripe', $page);
+        self::assertStringContainsString('Test connection', $page);
+        self::assertStringNotContainsString('sk_test_abcdefghijklmnop', $page);
+
+        $this->http->push(['status' => 200, 'json' => ['livemode' => false]]);
+        $res = $this->send('POST', '/admin/integrations/stripe/test', ['x' => '1']);
+        self::assertSame('/admin/integrations/stripe', $res->getHeader('Location'));
+        self::assertSame('https://api.stripe.com/v1/balance', $this->http->last()['url']);
+
+        $count = count($this->http->calls);
+        self::assertSame(302, $this->send('POST', '/admin/integrations/ga4/test', ['x' => '1'])->getStatus(), 'a tool with no live test says so, and makes no outside call');
+        self::assertCount($count, $this->http->calls);
+        self::assertSame(404, $this->code('POST', '/admin/integrations/nonsense/test', ['x' => '1']));
+        self::assertStringNotContainsString('Test connection', $this->send('GET', '/admin/integrations/ga4')->getBody());
+
+        $this->actAs($this->user('admin'));
+        self::assertSame(403, $this->code('POST', '/admin/integrations/stripe/test', ['x' => '1']));
+    }
+
     public function test_the_rate_limit_buckets_for_the_public_endpoints_exist(): void
     {
         $b = (array) $this->app->config()->get('rate_limits.buckets');

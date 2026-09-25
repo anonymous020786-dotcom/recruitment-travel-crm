@@ -19,6 +19,9 @@ final class GatewayRegistry
         'payu' => Gateways\PayU::class,
         'cashfree' => Gateways\Cashfree::class,
         'phonepe' => Gateways\PhonePe::class,
+        'ccavenue' => Gateways\CCAvenue::class,
+        'paytm' => Gateways\Paytm::class,
+        'paypal' => Gateways\PayPal::class,
         'stripe' => Gateways\Stripe::class,
     ];
 
