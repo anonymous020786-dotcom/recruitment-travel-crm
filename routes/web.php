@@ -33,6 +33,8 @@ use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
 use App\Controllers\Crm\AuditLogController;
 use App\Controllers\Crm\BlogController;
+use App\Controllers\Crm\BranchAdminController;
+use App\Controllers\Crm\LeadSourceAdminController;
 use App\Controllers\Crm\RoleAdminController;
 use App\Controllers\Crm\SettingsController;
 use App\Controllers\Crm\TaskController;
@@ -445,6 +447,21 @@ return static function (Router $router): void {
         $r->post('/admin/blog/{post}/publish', [BlogController::class, 'publish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.publish');
         $r->post('/admin/blog/{post}/unpublish', [BlogController::class, 'unpublish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.unpublish');
         $r->post('/admin/blog/{post}/archive', [BlogController::class, 'archive'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.archive');
+
+        // ---- Admin: branches and lead sources (organisation-level lists) ----
+        $r->get('/admin/branches', [BranchAdminController::class, 'index'])->middleware(['can:branches.view'])->name('admin.branches.index');
+        $r->get('/admin/branches/create', [BranchAdminController::class, 'create'])->middleware(['can:branches.manage'])->name('admin.branches.create');
+        $r->post('/admin/branches', [BranchAdminController::class, 'store'])->middleware(['can:branches.manage', 'throttle:write'])->name('admin.branches.store');
+        $r->get('/admin/branches/{branch}/edit', [BranchAdminController::class, 'edit'])->middleware(['can:branches.manage'])->name('admin.branches.edit');
+        $r->put('/admin/branches/{branch}', [BranchAdminController::class, 'update'])->middleware(['can:branches.manage', 'throttle:write'])->name('admin.branches.update');
+        $r->post('/admin/branches/{branch}/deactivate', [BranchAdminController::class, 'deactivate'])->middleware(['can:branches.manage', 'throttle:write'])->name('admin.branches.deactivate');
+        $r->post('/admin/branches/{branch}/reactivate', [BranchAdminController::class, 'reactivate'])->middleware(['can:branches.manage', 'throttle:write'])->name('admin.branches.reactivate');
+
+        $r->get('/admin/lead-sources', [LeadSourceAdminController::class, 'index'])->middleware(['can:settings.view'])->name('admin.lead_sources.index');
+        $r->post('/admin/lead-sources', [LeadSourceAdminController::class, 'store'])->middleware(['can:settings.manage', 'throttle:write'])->name('admin.lead_sources.store');
+        $r->put('/admin/lead-sources/{source}', [LeadSourceAdminController::class, 'rename'])->middleware(['can:settings.manage', 'throttle:write'])->name('admin.lead_sources.rename');
+        $r->post('/admin/lead-sources/{source}/toggle', [LeadSourceAdminController::class, 'toggle'])->middleware(['can:settings.manage', 'throttle:write'])->name('admin.lead_sources.toggle');
+        $r->post('/admin/lead-sources/{source}/move', [LeadSourceAdminController::class, 'move'])->middleware(['can:settings.manage', 'throttle:write'])->name('admin.lead_sources.move');
 
         // ---- Admin: audit log (read-only) ----
         $r->get('/admin/audit', [AuditLogController::class, 'index'])->middleware(['can:audit.view', 'throttle:dashboard'])->name('admin.audit');

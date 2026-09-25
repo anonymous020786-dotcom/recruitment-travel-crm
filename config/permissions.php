@@ -176,6 +176,10 @@ return [
             'manage' => 'Manage roles and the permission matrix',
         ],
 
+        'branches' => [
+            'view' => 'View branches', 'manage' => 'Create, edit and deactivate branches',
+        ],
+
         'blog' => [
             'view' => 'View blog posts', 'manage' => 'Write, publish and archive blog posts',
         ],
