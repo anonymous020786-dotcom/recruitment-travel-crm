@@ -55,7 +55,7 @@ $color = ['pending' => 'amber', 'approved' => 'blue', 'paid' => 'green', 'reject
                 <tr>
                     <td><a href="/refunds/<?= e_attr($r->publicId) ?>" class="font-mono text-sm font-medium text-slate-900"><?= e($r->refundNumber) ?></a></td>
                     <td class="text-slate-700"><?= e($r->customerName) ?></td>
-                    <td class="font-mono text-xs"><a href="/payments/<?= e_attr($r->paymentPublicId) ?>" class="text-brand-600 hover:underline"><?= e($r->paymentNumber) ?></a></td>
+                    <td class="font-mono text-xs"><a href="/payments/<?= e_attr($r->paymentPublicId) ?>" class="text-brand-600"><?= e($r->paymentNumber) ?></a></td>
                     <td class="font-mono text-xs text-slate-500"><?= e($r->invoiceNumber ?? 'credit') ?></td>
                     <td class="whitespace-nowrap font-medium text-slate-800"><?= e($r->money()) ?></td>
                     <td class="text-slate-600"><?= e($r->methodLabel()) ?></td>

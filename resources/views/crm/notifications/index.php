@@ -28,7 +28,7 @@ $this->start('content');
                 <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full <?= $isNew ? 'bg-brand-600' : 'bg-transparent' ?>" aria-hidden="true"></span>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm <?= $isNew ? 'font-semibold text-slate-900' : 'text-slate-700' ?>">
-                        <a href="/notifications/<?= (int) $n['id'] ?>/open" class="hover:underline"><?= e($n['title']) ?><?php if ($isNew): ?><span class="sr-only"> (unread)</span><?php endif ?></a>
+                        <a href="/notifications/<?= (int) $n['id'] ?>/open"><?= e($n['title']) ?><?php if ($isNew): ?><span class="sr-only"> (unread)</span><?php endif ?></a>
                     </p>
                     <?php if (!empty($n['body'])): ?><p class="mt-0.5 text-sm text-slate-500"><?= e($n['body']) ?></p><?php endif ?>
                 </div>

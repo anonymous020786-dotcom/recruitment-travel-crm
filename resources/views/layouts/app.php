@@ -123,7 +123,7 @@ $navMarkup = static function (array $nav, string $currentPath): string {
                 <?php else: ?>
                     Two-factor authentication is now required.
                 <?php endif ?>
-                <a href="/account/two-factor" class="font-semibold underline">Set it up now</a>.
+                <a href="/account/two-factor" class="font-semibold">Set it up now</a>.
             </div>
         <?php endif ?>
 

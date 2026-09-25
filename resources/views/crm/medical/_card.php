@@ -57,7 +57,7 @@ foreach ($medical as $m) {
     }
     if ($m->certificatePublicId !== null) {
         $html .= '<p class="mt-1 text-xs text-slate-600">Certificate: ' . (can('documents.view')
-            ? '<a class="text-brand-600 hover:underline" href="/documents/' . e_attr($m->certificatePublicId) . '/download">' . e($m->certificateName ?? 'download') . '</a>'
+            ? '<a class="text-brand-600" href="/documents/' . e_attr($m->certificatePublicId) . '/download">' . e($m->certificateName ?? 'download') . '</a>'
             : e($m->certificateName ?? 'attached')) . '</p>';
     }
     if (can('edit', $m) && can('documents.upload') && !in_array($m->status, ['pending', 'scheduled'], true)) {

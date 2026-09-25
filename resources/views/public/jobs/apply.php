@@ -9,7 +9,7 @@ $this->layout('layouts.public', [
 $this->start('content');
 ?>
 <section class="mx-auto max-w-xl px-4 py-12">
-    <p class="text-sm"><a href="/overseas-jobs/<?= e_attr($slug) ?>" class="text-brand-600 hover:underline">← Back to the job</a></p>
+    <p class="text-sm"><a href="/overseas-jobs/<?= e_attr($slug) ?>" class="text-brand-600">← Back to the job</a></p>
     <h1 class="mt-2 text-2xl font-bold text-slate-900">Apply: <?= e($job['title']) ?></h1>
     <p class="mt-1 text-sm text-slate-600"><?= e($job['country_name']) ?><?= !empty($job['city']) ? ' · ' . e($job['city']) : '' ?>. We will call you to take your application forward. Applying is free.</p>
 

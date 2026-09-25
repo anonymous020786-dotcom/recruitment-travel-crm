@@ -6,7 +6,7 @@
     :root { color-scheme: light; }
     body { @apply bg-slate-50 text-slate-800 antialiased; }
     a { @apply text-brand-600; }
-    a:hover { @apply text-brand-700 underline; }
+    a:hover { @apply text-brand-700; }
     h1, h2, h3 { @apply font-semibold text-slate-900; }
     :focus-visible { @apply outline-none ring-2 ring-brand-500 ring-offset-1; }
     [x-cloak] { display: none !important; }
@@ -74,3 +74,7 @@
     /* Skeleton -------------------------------------------- */
     .skeleton { @apply animate-pulse rounded bg-slate-200; }
 }
+
+/* No link is ever underlined — not at rest, on hover, on focus or once visited (focus keeps its ring). Placed outside the
+   layers and marked !important so no utility or third-party class can bring an underline back. */
+a, a:hover, a:focus, a:active, a:visited { text-decoration: none !important; }

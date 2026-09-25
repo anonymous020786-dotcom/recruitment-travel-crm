@@ -26,9 +26,9 @@ $base = '/applications/' . e_attr($app->publicId);
     <div class="lg:col-span-2 space-y-4">
         <?= component('card', ['title' => 'Summary', 'body' => (function () use ($app) {
             $rows = [
-                'Candidate' => '<a href="/candidates/' . e_attr($app->candidatePublicId) . '" class="text-brand-600 hover:underline">' . e($app->candidateName) . '</a> <span class="font-mono text-xs text-slate-400">' . e($app->candidateNumber) . '</span>',
-                'Job' => '<a href="/jobs/' . e_attr($app->jobPublicId) . '" class="text-brand-600 hover:underline">' . e($app->jobTitle) . '</a> <span class="font-mono text-xs text-slate-400">' . e($app->jobNumber) . '</span>',
-                'Employer' => '<a href="/employers/' . e_attr($app->employerPublicId) . '" class="text-brand-600 hover:underline">' . e($app->employerName) . '</a>',
+                'Candidate' => '<a href="/candidates/' . e_attr($app->candidatePublicId) . '" class="text-brand-600">' . e($app->candidateName) . '</a> <span class="font-mono text-xs text-slate-400">' . e($app->candidateNumber) . '</span>',
+                'Job' => '<a href="/jobs/' . e_attr($app->jobPublicId) . '" class="text-brand-600">' . e($app->jobTitle) . '</a> <span class="font-mono text-xs text-slate-400">' . e($app->jobNumber) . '</span>',
+                'Employer' => '<a href="/employers/' . e_attr($app->employerPublicId) . '" class="text-brand-600">' . e($app->employerName) . '</a>',
                 'Assigned to' => e($app->assignedToName ?? '—'),
                 'Applied' => e(substr($app->appliedAt, 0, 16)),
                 'Closed' => e($app->closedAt ? substr($app->closedAt, 0, 16) : '—'),

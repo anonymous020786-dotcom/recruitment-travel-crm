@@ -51,7 +51,7 @@ $this->start('content');
         <ul class="mt-6 grid gap-4 sm:grid-cols-2">
             <?php foreach ($rows as $j): ?>
                 <li class="card card-body">
-                    <h2 class="text-base font-semibold text-slate-900"><a href="/overseas-jobs/<?= e_attr($j['slug']) ?>" class="hover:underline"><?= e($j['title']) ?></a></h2>
+                    <h2 class="text-base font-semibold text-slate-900"><a href="/overseas-jobs/<?= e_attr($j['slug']) ?>"><?= e($j['title']) ?></a></h2>
                     <p class="mt-1 text-sm text-slate-600"><?= e($j['country_name']) ?><?= !empty($j['city']) ? ' · ' . e($j['city']) : '' ?> · <?= (int) $j['vacancies'] ?> vacanc<?= (int) $j['vacancies'] === 1 ? 'y' : 'ies' ?></p>
                     <?php if ($s = PublicFormat::salary($j['salary_min'], $j['salary_max'], $j['currency'])): ?><p class="mt-2 text-sm font-medium text-slate-800"><?= e($s) ?></p><?php endif ?>
                     <?php if (PublicFormat::benefits($j) !== []): ?><p class="mt-1 text-xs text-slate-500"><?= e(implode(' · ', PublicFormat::benefits($j))) ?></p><?php endif ?>

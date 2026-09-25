@@ -76,7 +76,7 @@ $color = ['active' => 'green', 'completed' => 'indigo', 'terminated' => 'red', '
                 <tr>
                     <td><a href="/candidates/<?= e_attr($p->candidatePublicId) ?>" class="font-medium text-slate-900"><?= e($p->candidateName) ?></a>
                         <span class="font-mono text-xs text-slate-400"><?= e($p->candidateNumber) ?></span></td>
-                    <td><a href="/employers/<?= e_attr($p->employerPublicId) ?>" class="text-brand-600 hover:underline"><?= e($p->employerName) ?></a></td>
+                    <td><a href="/employers/<?= e_attr($p->employerPublicId) ?>" class="text-brand-600"><?= e($p->employerName) ?></a></td>
                     <td class="text-slate-600"><?= e($p->jobTitle) ?></td>
                     <td class="whitespace-nowrap text-slate-600"><?= e($p->placedOn) ?></td>
                     <td class="whitespace-nowrap text-slate-600"><?= $p->monthlySalary !== null ? e(($p->currency ?? '') . ' ' . number_format((float) $p->monthlySalary, 2)) : '—' ?></td>

@@ -13,7 +13,7 @@ $label = static fn (string $s): string => ucwords(str_replace('_', ' ', $s));
 $m = static fn (string $v) => e($invoice->money($v));
 
 $refLink = $invoice->referenceNumber !== null
-    ? '<a href="' . ($invoice->type === 'application' ? '/applications/' : '/tours/bookings/') . e_attr((string) $invoice->referencePublicId) . '" class="text-brand-600 hover:underline">' . e($invoice->referenceNumber) . '</a>'
+    ? '<a href="' . ($invoice->type === 'application' ? '/applications/' : '/tours/bookings/') . e_attr((string) $invoice->referencePublicId) . '" class="text-brand-600">' . e($invoice->referenceNumber) . '</a>'
     : '—';
 ?>
 <?= component('page-header', [

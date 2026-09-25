@@ -13,7 +13,7 @@ $row = function (\App\Models\Followup $f): string {
     return '<li class="py-3">'
         . '<div class="flex flex-wrap items-start justify-between gap-2">'
         . '<div class="min-w-0">'
-        . '<a href="/leads/' . e_attr((string) $f->leadPublicId) . '#followups" class="font-medium text-slate-900 hover:underline">'
+        . '<a href="/leads/' . e_attr((string) $f->leadPublicId) . '#followups" class="font-medium text-slate-900">'
         . e((string) $f->leadName) . '</a> <span class="text-xs text-slate-400">' . e((string) $f->leadNumber) . '</span>'
         . '<p class="text-sm text-slate-600">' . e($f->subject ?: $f->channelLabel() . ' follow-up') . '</p>'
         . '<p class="text-xs text-slate-500">' . e($f->channelLabel()) . ' · due ' . e($f->dueLabel()) . '</p>'

@@ -25,7 +25,7 @@ $this->start('content');
             <section class="card" aria-labelledby="sec-<?= e_attr($s['key']) ?>">
                 <div class="flex items-baseline justify-between gap-3 border-b border-slate-100 px-4 py-3">
                     <h2 class="text-sm font-semibold text-slate-900" id="sec-<?= e_attr($s['key']) ?>"><?= e($s['title']) ?> <span class="font-normal text-slate-500">(<?= (int) $s['total'] ?>)</span></h2>
-                    <?php if ($s['total'] > count($s['hits'])): ?><a href="<?= e_attr($s['listUrl']) ?>" class="text-xs text-brand-600 hover:underline">See all <?= (int) $s['total'] ?><span class="sr-only"> <?= e(strtolower($s['title'])) ?></span></a><?php endif ?>
+                    <?php if ($s['total'] > count($s['hits'])): ?><a href="<?= e_attr($s['listUrl']) ?>" class="text-xs text-brand-600">See all <?= (int) $s['total'] ?><span class="sr-only"> <?= e(strtolower($s['title'])) ?></span></a><?php endif ?>
                 </div>
                 <ul class="divide-y divide-slate-100">
                     <?php foreach ($s['hits'] as $h): ?>

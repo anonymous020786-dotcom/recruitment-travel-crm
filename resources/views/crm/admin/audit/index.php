@@ -66,7 +66,7 @@ $label = static fn (string $s): string => ucwords(str_replace('_', ' ', $s));
                     <td class="text-sm text-slate-800"><?= $r['user_id'] === null ? '<span class="text-slate-500">System</span>' : e((string) ($r['user_name'] ?? 'Deleted user')) ?></td>
                     <td class="text-sm"><span class="font-medium text-slate-900"><?= e($label((string) $r['action'])) ?></span><span class="block text-xs text-slate-500"><?= e($label((string) $r['module'])) ?></span></td>
                     <td class="text-sm text-slate-700">
-                        <?= e((string) $r['record_type']) ?><?php if ($r['record_id'] !== null): ?> <a class="text-brand-600 hover:underline" href="/admin/audit?<?= e_attr(http_build_query(['record_type' => $r['record_type'], 'record_id' => $r['record_id'], 'from' => '2000-01-01', 'to' => gmdate('Y-m-d')])) ?>" title="Everything that happened to this record">#<?= e((string) $r['record_id']) ?></a><?php endif ?>
+                        <?= e((string) $r['record_type']) ?><?php if ($r['record_id'] !== null): ?> <a class="text-brand-600" href="/admin/audit?<?= e_attr(http_build_query(['record_type' => $r['record_type'], 'record_id' => $r['record_id'], 'from' => '2000-01-01', 'to' => gmdate('Y-m-d')])) ?>" title="Everything that happened to this record">#<?= e((string) $r['record_id']) ?></a><?php endif ?>
                     </td>
                     <td class="text-sm">
                         <?php if ($r['context'] || $r['old_pretty'] || $r['new_pretty'] || $r['ip']): ?>

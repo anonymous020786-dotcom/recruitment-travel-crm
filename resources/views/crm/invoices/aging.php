@@ -47,7 +47,7 @@ $m = static fn (string $cur, string $v): string => e($cur . ' ' . number_format(
                 . '<td class="whitespace-nowrap text-slate-600">' . e($d['oldest_due'] ?? '—') . '</td></tr>';
         }
 
-        return $html . '</tbody></table></div><p class="mt-3 text-xs text-slate-400">Open the <a href="/invoices?due=overdue" class="text-brand-600 hover:underline">overdue invoices</a> to chase them.</p>';
+        return $html . '</tbody></table></div><p class="mt-3 text-xs text-slate-400">Open the <a href="/invoices?due=overdue" class="text-brand-600">overdue invoices</a> to chase them.</p>';
     })()]) ?>
 <?php endif ?>
 <?php $this->stop(); ?>

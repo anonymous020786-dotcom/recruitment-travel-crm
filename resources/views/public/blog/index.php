@@ -25,7 +25,7 @@ $this->start('content');
         <ul class="mt-6 space-y-4">
             <?php foreach ($rows as $p): ?>
                 <li class="card card-body">
-                    <h2 class="text-lg font-semibold text-slate-900"><a href="/blog/<?= e_attr($p['slug']) ?>" class="hover:underline"><?= e($p['title']) ?></a></h2>
+                    <h2 class="text-lg font-semibold text-slate-900"><a href="/blog/<?= e_attr($p['slug']) ?>"><?= e($p['title']) ?></a></h2>
                     <p class="mt-1 text-xs text-slate-500"><time datetime="<?= e_attr(substr((string) $p['published_at'], 0, 10)) ?>"><?= e(date('j F Y', strtotime((string) $p['published_at'] . ' UTC'))) ?></time></p>
                     <p class="mt-2 text-sm text-slate-600"><?= e($p['excerpt'] ?: BlogFormatter::plainText((string) $p['body_html'], 200)) ?></p>
                     <p class="mt-3"><a class="btn btn-secondary btn-sm" href="/blog/<?= e_attr($p['slug']) ?>">Read article<span class="sr-only">: <?= e($p['title']) ?></span></a></p>

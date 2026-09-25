@@ -9,7 +9,7 @@ $this->layout('layouts.public', [
 $this->start('content');
 ?>
 <section class="mx-auto max-w-xl px-4 py-12">
-    <p class="text-sm"><a href="/travel-packages/<?= e_attr($slug) ?>" class="text-brand-600 hover:underline">← Back to the package</a></p>
+    <p class="text-sm"><a href="/travel-packages/<?= e_attr($slug) ?>" class="text-brand-600">← Back to the package</a></p>
     <h1 class="mt-2 text-2xl font-bold text-slate-900">Enquire: <?= e($pkg['name']) ?></h1>
     <p class="mt-1 text-sm text-slate-600"><?= e($pkg['destination']) ?>. Tell us when you would like to travel and how many people — we will call you with availability and the price.</p>
 

@@ -41,7 +41,7 @@ if ($canDelete && in_array($job->status, ['draft', 'closed', 'cancelled'], true)
         <?= component('card', ['title' => 'Details', 'body' => (function () use ($job, $countries) {
             $prov = ['none' => 'Not provided', 'provided' => 'Provided', 'allowance' => 'Allowance'];
             $rows = [
-                'Employer' => '<a href="/employers/' . e_attr($job->employerPublicId) . '" class="text-brand-600 hover:underline">' . e($job->employerName) . '</a>',
+                'Employer' => '<a href="/employers/' . e_attr($job->employerPublicId) . '" class="text-brand-600">' . e($job->employerName) . '</a>',
                 'Location' => e(trim(($job->city ? $job->city . ', ' : '') . ($countries[$job->country] ?? $job->country))),
                 'Vacancies' => (string) (int) $job->vacancies,
                 'Salary' => e($job->salaryLabel()),

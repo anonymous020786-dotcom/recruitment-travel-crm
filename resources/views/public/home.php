@@ -33,12 +33,12 @@ $latestPackages = $latestPackages ?? [];
     <div class="mx-auto max-w-6xl px-4 py-12">
         <div class="flex items-baseline justify-between gap-4">
             <h2 class="text-xl font-semibold text-slate-900">Latest overseas jobs</h2>
-            <a href="/overseas-jobs" class="text-sm text-brand-600 hover:underline">See all jobs</a>
+            <a href="/overseas-jobs" class="text-sm text-brand-600">See all jobs</a>
         </div>
         <ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <?php foreach ($latestJobs as $j): ?>
                 <li class="card card-body">
-                    <h3 class="text-base font-semibold text-slate-900"><a href="/overseas-jobs/<?= e_attr($j['slug']) ?>" class="hover:underline"><?= e($j['title']) ?></a></h3>
+                    <h3 class="text-base font-semibold text-slate-900"><a href="/overseas-jobs/<?= e_attr($j['slug']) ?>"><?= e($j['title']) ?></a></h3>
                     <p class="mt-1 text-sm text-slate-600"><?= e($j['country_name']) ?><?= !empty($j['city']) ? ' · ' . e($j['city']) : '' ?></p>
                     <?php if ($s = \App\Support\PublicFormat::salary($j['salary_min'], $j['salary_max'], $j['currency'])): ?><p class="mt-1 text-sm font-medium text-slate-800"><?= e($s) ?></p><?php endif ?>
                 </li>
@@ -53,12 +53,12 @@ $latestPackages = $latestPackages ?? [];
     <div class="mx-auto max-w-6xl px-4 py-12">
         <div class="flex items-baseline justify-between gap-4">
             <h2 class="text-xl font-semibold text-slate-900">Travel packages</h2>
-            <a href="/travel-packages" class="text-sm text-brand-600 hover:underline">See all packages</a>
+            <a href="/travel-packages" class="text-sm text-brand-600">See all packages</a>
         </div>
         <ul class="mt-4 grid gap-4 sm:grid-cols-3">
             <?php foreach ($latestPackages as $p): ?>
                 <li class="card card-body">
-                    <h3 class="text-base font-semibold text-slate-900"><a href="/travel-packages/<?= e_attr($p['slug']) ?>" class="hover:underline"><?= e($p['name']) ?></a></h3>
+                    <h3 class="text-base font-semibold text-slate-900"><a href="/travel-packages/<?= e_attr($p['slug']) ?>"><?= e($p['name']) ?></a></h3>
                     <p class="mt-1 text-sm text-slate-600"><?= e($p['destination']) ?><?php if ($d = \App\Support\PublicFormat::duration($p['duration_days'], $p['duration_nights'])): ?> · <?= e($d) ?><?php endif ?></p>
                     <?php if ($pr = \App\Support\PublicFormat::price($p['price'], $p['currency'])): ?><p class="mt-1 text-sm font-medium text-slate-800">From <?= e($pr) ?></p><?php endif ?>
                 </li>

@@ -35,7 +35,7 @@ $this->start('content');
         <ul class="mt-6 grid gap-4 sm:grid-cols-2">
             <?php foreach ($rows as $p): ?>
                 <li class="card card-body">
-                    <h2 class="text-base font-semibold text-slate-900"><a href="/travel-packages/<?= e_attr($p['slug']) ?>" class="hover:underline"><?= e($p['name']) ?></a></h2>
+                    <h2 class="text-base font-semibold text-slate-900"><a href="/travel-packages/<?= e_attr($p['slug']) ?>"><?= e($p['name']) ?></a></h2>
                     <p class="mt-1 text-sm text-slate-600"><?= e($p['destination']) ?><?php if ($d = PublicFormat::duration($p['duration_days'], $p['duration_nights'])): ?> · <?= e($d) ?><?php endif ?></p>
                     <?php if ($price = PublicFormat::price($p['price'], $p['currency'])): ?><p class="mt-2 text-sm font-medium text-slate-800">From <?= e($price) ?> per person</p><?php endif ?>
                     <?php if ($ex = PublicFormat::excerpt($p['inclusions_html'], 140)): ?><p class="mt-2 text-sm text-slate-600"><?= e($ex) ?></p><?php endif ?>

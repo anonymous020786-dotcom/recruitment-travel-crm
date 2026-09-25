@@ -39,7 +39,7 @@ if ($canDelete) {
                 'City' => e($employer->city ?? '—'),
                 'Address' => e($employer->address ?? '—'),
                 'Industry' => e($employer->industry ?? '—'),
-                'Website' => $employer->website ? '<a href="' . e_attr($employer->website) . '" rel="noopener noreferrer" target="_blank" class="text-brand-600 hover:underline">' . e($employer->website) . '</a>' : '—',
+                'Website' => $employer->website ? '<a href="' . e_attr($employer->website) . '" rel="noopener noreferrer" target="_blank" class="text-brand-600">' . e($employer->website) . '</a>' : '—',
                 'License number' => e($employer->licenseNumber ?? '—'),
                 'License expiry' => e($employer->licenseExpiry ?? '—'),
                 'Account owner' => e($employer->accountOwnerName ?? '—'),

@@ -28,7 +28,7 @@ $actions = $canEdit ? '<a href="' . $base . '/edit" class="btn btn-primary btn-s
         <?= component('card', ['title' => 'Trip', 'body' => (function () use ($booking) {
             $rows = [
                 'Package' => $booking->packagePublicId !== null
-                    ? '<a href="/tours/packages/' . e_attr($booking->packagePublicId) . '" class="text-brand-600 hover:underline">' . e((string) $booking->packageName) . '</a>'
+                    ? '<a href="/tours/packages/' . e_attr($booking->packagePublicId) . '" class="text-brand-600">' . e((string) $booking->packageName) . '</a>'
                     : 'Custom trip',
                 'Destination' => e($booking->packageDestination ?? '—'),
                 'Travel date' => e($booking->travelDate ?? '—'),
@@ -75,10 +75,10 @@ $actions = $canEdit ? '<a href="' . $base . '/edit" class="btn btn-primary btn-s
         <?= component('card', ['title' => 'Customer', 'body' => (function () use ($booking) {
             $html = '<p class="text-sm font-medium text-slate-900">' . e($booking->customerName) . '</p>';
             if ($booking->customerPhone) {
-                $html .= '<p class="text-sm text-slate-600"><a href="tel:' . e_attr(preg_replace('/[^0-9+]/', '', $booking->customerPhone) ?? '') . '" class="hover:underline">' . e($booking->customerPhone) . '</a></p>';
+                $html .= '<p class="text-sm text-slate-600"><a href="tel:' . e_attr(preg_replace('/[^0-9+]/', '', $booking->customerPhone) ?? '') . '">' . e($booking->customerPhone) . '</a></p>';
             }
             if ($booking->customerEmail) {
-                $html .= '<p class="text-sm text-slate-600"><a href="mailto:' . e_attr($booking->customerEmail) . '" class="hover:underline">' . e($booking->customerEmail) . '</a></p>';
+                $html .= '<p class="text-sm text-slate-600"><a href="mailto:' . e_attr($booking->customerEmail) . '">' . e($booking->customerEmail) . '</a></p>';
             }
 
             return $html;

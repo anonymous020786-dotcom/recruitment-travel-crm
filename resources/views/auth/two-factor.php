@@ -46,21 +46,21 @@ $initialMode = $method === 'email' ? 'email' : ($isPasskey ? 'recovery' : 'totp'
 
 <div class="mt-4 flex flex-col gap-1 text-center text-sm">
     <?php if ($isPasskey): ?>
-        <button type="button" data-reveal-fallback class="text-brand-600 hover:underline">Can't use your passkey?</button>
+        <button type="button" data-reveal-fallback class="text-brand-600">Can't use your passkey?</button>
     <?php endif ?>
     <?php if ($method !== 'email'): ?>
-        <button type="button" data-switch="totp" class="text-brand-600 hover:underline" hidden>Use authenticator app</button>
-        <button type="button" data-switch="email" class="text-brand-600 hover:underline" <?= $isPasskey ? 'hidden' : '' ?>>Email me a code instead</button>
+        <button type="button" data-switch="totp" class="text-brand-600" hidden>Use authenticator app</button>
+        <button type="button" data-switch="email" class="text-brand-600" <?= $isPasskey ? 'hidden' : '' ?>>Email me a code instead</button>
     <?php endif ?>
     <?php if (!$isPasskey): ?>
-        <button type="button" data-switch="recovery" class="text-brand-600 hover:underline">Use a recovery code</button>
+        <button type="button" data-switch="recovery" class="text-brand-600">Use a recovery code</button>
     <?php endif ?>
-    <a href="/login" class="text-slate-500 hover:underline">Cancel</a>
+    <a href="/login" class="text-slate-500">Cancel</a>
 </div>
 
 <form method="post" action="/two-factor/email" id="resend" class="mt-1 text-center text-sm" hidden>
     <?= csrf_field() ?>
-    <button type="submit" class="text-brand-600 hover:underline">Send a new code</button>
+    <button type="submit" class="text-brand-600">Send a new code</button>
 </form>
 
 <script nonce="<?= e_attr(nonce()) ?>">

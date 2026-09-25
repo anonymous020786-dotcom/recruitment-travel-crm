@@ -25,9 +25,9 @@ $v = '<input type="hidden" name="record_version" value="' . (int) $refund->recor
                 'Customer' => e($refund->customerName),
                 'Amount' => '<span class="font-semibold">' . e($refund->money()) . '</span>',
                 'Method' => e($refund->methodLabel()),
-                'Payment' => '<a href="/payments/' . e_attr($refund->paymentPublicId) . '" class="font-mono text-brand-600 hover:underline">' . e($refund->paymentNumber) . '</a>',
+                'Payment' => '<a href="/payments/' . e_attr($refund->paymentPublicId) . '" class="font-mono text-brand-600">' . e($refund->paymentNumber) . '</a>',
                 'Taken from' => $refund->invoiceNumber !== null
-                    ? 'Invoice <a href="/invoices/' . e_attr((string) $refund->invoicePublicId) . '" class="font-mono text-brand-600 hover:underline">' . e($refund->invoiceNumber) . '</a>'
+                    ? 'Invoice <a href="/invoices/' . e_attr((string) $refund->invoicePublicId) . '" class="font-mono text-brand-600">' . e($refund->invoiceNumber) . '</a>'
                     : 'Unallocated credit',
                 'Requested by' => e($refund->requestedBy ?? '—') . ' · ' . e(substr($refund->createdAt, 0, 16)),
                 'Approved by' => $refund->approvedBy ? e($refund->approvedBy) . ' · ' . e(substr((string) $refund->approvedAt, 0, 16)) : '—',

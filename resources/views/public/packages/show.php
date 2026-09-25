@@ -32,7 +32,7 @@ $facts = array_filter([
 $sections = ['inclusions_html' => 'What is included', 'exclusions_html' => 'What is not included', 'terms_html' => 'Terms'];
 ?>
 <article class="mx-auto max-w-3xl px-4 py-12">
-    <p class="text-sm"><a href="/travel-packages" class="text-brand-600 hover:underline">← All travel packages</a></p>
+    <p class="text-sm"><a href="/travel-packages" class="text-brand-600">← All travel packages</a></p>
     <h1 class="mt-2 text-2xl font-bold text-slate-900"><?= e($pkg['name']) ?></h1>
     <p class="mt-1 text-slate-600"><?= e($pkg['destination']) ?></p>
 

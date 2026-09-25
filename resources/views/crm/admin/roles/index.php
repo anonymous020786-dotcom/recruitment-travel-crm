@@ -19,7 +19,7 @@ $this->start('content');
                     <?php if ($r['description']): ?><p class="text-xs text-slate-500"><?= e($r['description']) ?></p><?php endif ?>
                 </td>
                 <td class="text-sm text-slate-700"><?= $r['name'] === 'super_admin' ? 'Everything' : number_format($r['permissions']) ?></td>
-                <td class="text-sm text-slate-700"><a class="text-brand-600 hover:underline" href="/admin/users?role=<?= e_attr($r['name']) ?>"><?= number_format($r['users']) ?></a></td>
+                <td class="text-sm text-slate-700"><a class="text-brand-600" href="/admin/users?role=<?= e_attr($r['name']) ?>"><?= number_format($r['users']) ?></a></td>
             </tr>
         <?php endforeach ?>
         </tbody>

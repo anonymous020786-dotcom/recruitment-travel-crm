@@ -57,7 +57,7 @@ $actions = $canReceipt ? '<a href="' . $base . '/receipt" target="_blank" rel="n
             }
             $html = '<ul class="divide-y divide-slate-100">';
             foreach ($allocations as $a) {
-                $html .= '<li class="flex items-center justify-between py-2 text-sm"><a href="/invoices/' . e_attr($a['invoice_public_id']) . '" class="font-mono font-medium text-brand-600 hover:underline">' . e($a['invoice_number']) . '</a>'
+                $html .= '<li class="flex items-center justify-between py-2 text-sm"><a href="/invoices/' . e_attr($a['invoice_public_id']) . '" class="font-mono font-medium text-brand-600">' . e($a['invoice_number']) . '</a>'
                     . '<span class="font-medium ' . ($payment->isRecorded() ? '' : 'text-slate-400 line-through') . '">' . $m($a['amount']) . '</span></li>';
             }
 

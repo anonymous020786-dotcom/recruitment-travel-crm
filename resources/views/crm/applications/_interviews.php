@@ -46,7 +46,7 @@ if ($interviews === []) {
         $bits = array_filter([
             $i->interviewer ? 'Interviewer: ' . e($i->interviewer) : null,
             $i->location ? 'Location: ' . e($i->location) : null,
-            $i->meetingLink ? 'Link: <a href="' . e_attr($i->meetingLink) . '" target="_blank" rel="noopener noreferrer" class="text-brand-600 hover:underline">join</a>' : null,
+            $i->meetingLink ? 'Link: <a href="' . e_attr($i->meetingLink) . '" target="_blank" rel="noopener noreferrer" class="text-brand-600">join</a>' : null,
         ]);
         if ($bits !== []) {
             $html .= '<p class="mt-1 text-slate-600">' . implode(' · ', $bits) . '</p>';

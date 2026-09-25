@@ -488,7 +488,7 @@ $this->start('content');
         <?= component('card', ['title' => 'Origin', 'body' =>
             $candidate->originLeadPublicId
                 ? '<p class="text-sm text-slate-600">Converted from lead</p>'
-                    . '<a href="/leads/' . e_attr($candidate->originLeadPublicId) . '" class="font-medium text-brand-600 hover:underline">' . e((string) $candidate->originLeadNumber) . '</a>'
+                    . '<a href="/leads/' . e_attr($candidate->originLeadPublicId) . '" class="font-medium text-brand-600">' . e((string) $candidate->originLeadNumber) . '</a>'
                 : '<p class="text-sm text-slate-500">No originating lead on record.</p>',
         ]) ?>
 

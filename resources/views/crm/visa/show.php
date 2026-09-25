@@ -34,9 +34,9 @@ $exp = $visa->expiryState();
     <div class="lg:col-span-2 space-y-4">
         <?= component('card', ['title' => 'Details', 'body' => (function () use ($visa, $countryName) {
             $rows = [
-                'Candidate' => '<a href="/candidates/' . e_attr($visa->candidatePublicId) . '#visa" class="text-brand-600 hover:underline">' . e($visa->candidateName) . '</a>',
+                'Candidate' => '<a href="/candidates/' . e_attr($visa->candidatePublicId) . '#visa" class="text-brand-600">' . e($visa->candidateName) . '</a>',
                 'Application' => $visa->applicationPublicId
-                    ? '<a href="/applications/' . e_attr($visa->applicationPublicId) . '" class="text-brand-600 hover:underline">' . e($visa->applicationNumber . ' · ' . $visa->jobTitle) . '</a>'
+                    ? '<a href="/applications/' . e_attr($visa->applicationPublicId) . '" class="text-brand-600">' . e($visa->applicationNumber . ' · ' . $visa->jobTitle) . '</a>'
                     : '—',
                 'Country' => e($countryName),
                 'Visa type' => e($visa->visaType ?? '—'),

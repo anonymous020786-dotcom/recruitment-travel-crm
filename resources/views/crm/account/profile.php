@@ -6,7 +6,7 @@ $this->start('content');
 <?= component('page-header', ['title' => 'Profile', 'breadcrumbs' => [['label' => 'Account'], ['label' => 'Profile']]]) ?>
 
 <div class="max-w-lg space-y-2 text-sm mb-4">
-    <a href="/account/security" class="text-brand-600 hover:underline">Password &amp; security &rarr;</a>
+    <a href="/account/security" class="text-brand-600">Password &amp; security &rarr;</a>
 </div>
 
 <form method="post" action="/account/profile" class="max-w-lg card card-body" data-once>

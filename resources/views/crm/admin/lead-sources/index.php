@@ -47,7 +47,7 @@ $btn = static fn (string $action, string $fields, string $label, string $cls = '
                         <?php if ($locked): ?><p class="text-xs text-slate-500">Used by the public enquiry inbox — cannot be renamed or switched off.</p><?php endif ?>
                     <?php endif ?>
                 </td>
-                <td class="text-sm text-slate-600"><a class="text-brand-600 hover:underline" href="/leads?source=<?= (int) $s['id'] ?>"><?= number_format($s['leads']) ?></a></td>
+                <td class="text-sm text-slate-600"><a class="text-brand-600" href="/leads?source=<?= (int) $s['id'] ?>"><?= number_format($s['leads']) ?></a></td>
                 <td><?= component('badge', ['label' => $s['is_active'] ? 'On' : 'Off', 'color' => $s['is_active'] ? 'green' : 'slate', 'dot' => true]) ?></td>
                 <?php if ($manage): ?>
                     <td class="text-right">

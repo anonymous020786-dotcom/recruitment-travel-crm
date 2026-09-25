@@ -26,7 +26,7 @@ $post = static fn (string $action, string $label, string $cls, string $confirm =
                 </td>
                 <td class="text-sm text-slate-600"><?= e(implode(', ', array_filter([(string) $b['city'], (string) $b['state'], (string) $b['country']]))) ?: '—' ?></td>
                 <td class="text-sm text-slate-600"><?= e((string) ($b['phone'] ?? '')) ?><?= $b['email'] ? '<p class="text-xs">' . e((string) $b['email']) . '</p>' : '' ?></td>
-                <td class="text-sm"><a class="text-brand-600 hover:underline" href="/admin/users"><?= number_format((int) $b['people']) ?></a></td>
+                <td class="text-sm"><a class="text-brand-600" href="/admin/users"><?= number_format((int) $b['people']) ?></a></td>
                 <td class="text-sm text-slate-600"><?= number_format((int) $b['leads']) ?></td>
                 <td><?= component('badge', ['label' => (bool) $b['is_active'] ? 'Active' : 'Inactive', 'color' => (bool) $b['is_active'] ? 'green' : 'slate', 'dot' => true]) ?></td>
                 <?php if ($manage): ?>

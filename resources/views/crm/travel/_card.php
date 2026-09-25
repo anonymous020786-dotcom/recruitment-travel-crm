@@ -59,7 +59,7 @@ foreach ($flights as $f) {
     }
     if ($f->ticketDocumentPublicId !== null) {
         $html .= '<p class="mt-1 text-xs text-slate-600">Ticket: ' . (can('documents.view')
-            ? '<a class="text-brand-600 hover:underline" href="/documents/' . e_attr($f->ticketDocumentPublicId) . '/download">' . e($f->ticketDocumentName ?? 'download') . '</a>'
+            ? '<a class="text-brand-600" href="/documents/' . e_attr($f->ticketDocumentPublicId) . '/download">' . e($f->ticketDocumentName ?? 'download') . '</a>'
             : e($f->ticketDocumentName ?? 'attached')) . '</p>';
     }
     if ($travel['canTickets'] && can('documents.upload') && in_array($f->status, ['booked', 'issued', 'changed'], true)) {

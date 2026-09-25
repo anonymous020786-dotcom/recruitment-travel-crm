@@ -69,7 +69,7 @@ $post = static fn (string $path, string $label, string $cls = 'btn-secondary', s
                 . ((bool) $u['two_factor_enabled'] ? $post($base . '/reset-2fa', 'Remove two-factor', 'btn-secondary', '', 'Remove two-factor authentication for this person?') : '')
                 . '</div>']) ?>
         <?php elseif ($isSelf): ?>
-            <?= component('card', ['title' => 'This is you', 'body' => '<p class="text-sm text-slate-600">Manage your own password and security from <a class="text-brand-600 hover:underline" href="/account/security">your account</a>. You cannot deactivate yourself or change your own role.</p>']) ?>
+            <?= component('card', ['title' => 'This is you', 'body' => '<p class="text-sm text-slate-600">Manage your own password and security from <a class="text-brand-600" href="/account/security">your account</a>. You cannot deactivate yourself or change your own role.</p>']) ?>
         <?php else: ?>
             <?= component('card', ['title' => 'Read only', 'body' => '<p class="text-sm text-slate-500">You cannot change this account.</p>']) ?>
         <?php endif ?>

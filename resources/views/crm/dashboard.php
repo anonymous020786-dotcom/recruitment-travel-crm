@@ -26,7 +26,7 @@ $bars = static function (array $rows, string $color = 'bg-brand-500', ?callable 
         $name = ucwords(str_replace('_', ' ', (string) $label));
         $link = $href !== null ? $href((string) $label) : null;
         $html .= '<li class="text-sm"><div class="flex items-baseline justify-between gap-2"><span class="text-slate-700">'
-            . ($link ? '<a href="' . e_attr($link) . '" class="hover:underline">' . e($name) . '</a>' : e($name)) . '</span>'
+            . ($link ? '<a href="' . e_attr($link) . '">' . e($name) . '</a>' : e($name)) . '</span>'
             . '<span class="font-medium tabular-nums text-slate-900">' . (int) $n . '</span></div>'
             . '<div class="mt-1 h-2 rounded bg-slate-100"><div class="h-2 rounded ' . $color . '" style="width:' . $pct . '%"></div></div></li>';
     }
@@ -91,7 +91,7 @@ $money = static fn (string $cur, string $v): string => e($cur . ' ' . number_for
 <?php if (!empty($snap['finance']['summary'])): ?>
     <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <?php foreach ($snap['finance']['summary'] as $s): $cur = (string) $s['currency']; ?>
-            <a href="/invoices" class="card card-body block no-underline hover:ring-brand-200">
+            <a href="/invoices" class="card card-body block hover:ring-brand-200">
                 <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Receivables · <?= e($cur) ?></p>
                 <p class="mt-1 text-2xl font-semibold text-slate-900"><?= $money($cur, (string) $s['outstanding']) ?> <span class="text-sm font-normal text-slate-500">outstanding</span></p>
                 <p class="mt-1 text-xs text-slate-500">Billed <?= $money($cur, (string) $s['billed']) ?> · collected 30 days <?= $money($cur, (string) ($snap['finance']['collected'][$cur] ?? '0')) ?>
@@ -107,7 +107,7 @@ $money = static fn (string $cur, string $v): string => e($cur . ' ' . number_for
             <?= component('card', ['title' => 'Needs attention', 'body' => (function () use ($snap) {
                 $html = '<ul class="divide-y divide-slate-100">';
                 foreach ($snap['attention'] as $a) {
-                    $html .= '<li class="flex items-center justify-between gap-2 py-2 text-sm"><a href="' . e_attr($a['href']) . '" class="text-slate-800 hover:underline">' . e($a['label']) . '</a>'
+                    $html .= '<li class="flex items-center justify-between gap-2 py-2 text-sm"><a href="' . e_attr($a['href']) . '" class="text-slate-800">' . e($a['label']) . '</a>'
                         . component('badge', ['label' => (string) $a['count'], 'color' => $a['tone'], 'dot' => true]) . '</li>';
                 }
 
@@ -157,7 +157,7 @@ $money = static fn (string $cur, string $v): string => e($cur . ' ' . number_for
                     $overdue = $f->isOverdue($today);
                     $rows .= '<li class="flex items-center justify-between gap-2 py-2 text-sm">'
                         . '<div class="min-w-0">'
-                        . '<a href="/leads/' . e_attr((string) $f->leadPublicId) . '#followups" class="font-medium text-slate-900 hover:underline">'
+                        . '<a href="/leads/' . e_attr((string) $f->leadPublicId) . '#followups" class="font-medium text-slate-900">'
                         . e((string) $f->leadName) . '</a>'
                         . '<p class="text-xs text-slate-500">' . e($f->subject ?: $f->channelLabel() . ' follow-up')
                         . ' · due ' . e($f->dueLabel()) . '</p></div>'

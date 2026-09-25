@@ -36,7 +36,7 @@ $facts = array_filter([
 ]);
 ?>
 <article class="mx-auto max-w-3xl px-4 py-12">
-    <p class="text-sm"><a href="/overseas-jobs" class="text-brand-600 hover:underline">← All overseas jobs</a></p>
+    <p class="text-sm"><a href="/overseas-jobs" class="text-brand-600">← All overseas jobs</a></p>
     <h1 class="mt-2 text-2xl font-bold text-slate-900"><?= e($job['title']) ?></h1>
     <p class="mt-1 text-slate-600"><?= e($place) ?></p>
 

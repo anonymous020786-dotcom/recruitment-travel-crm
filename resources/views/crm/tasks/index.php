@@ -100,7 +100,7 @@ $post = static fn (string $action, string $label, string $cls, string $back, str
                     </td>
                     <td class="text-sm text-slate-700"><?= e($t['assignee_name'] ?? '—') ?></td>
                     <td class="text-sm">
-                        <?php if (isset($links[(int) $t['id']])): ?><a class="text-brand-600 hover:underline" href="<?= e_attr($links[(int) $t['id']]) ?>"><?= e($typeLabel((string) $t['related_type'])) ?></a>
+                        <?php if (isset($links[(int) $t['id']])): ?><a class="text-brand-600" href="<?= e_attr($links[(int) $t['id']]) ?>"><?= e($typeLabel((string) $t['related_type'])) ?></a>
                         <?php elseif ($t['related_type'] !== 'none'): ?><span class="text-slate-500"><?= e($typeLabel((string) $t['related_type'])) ?></span>
                         <?php else: ?><span class="text-slate-400">—</span><?php endif ?>
                     </td>

@@ -25,7 +25,7 @@ $money = static fn (string $cur, string $v): string => e($cur . ' ' . number_for
                 <p class="mt-1 text-sm text-slate-600">Billed <span class="font-medium text-slate-900"><?= $money($s['currency'], $s['billed']) ?></span>
                     · collected <span class="font-medium text-slate-900"><?= $money($s['currency'], $s['collected']) ?></span></p>
                 <p class="mt-1 text-sm text-slate-600">Outstanding <span class="font-semibold text-slate-900"><?= $money($s['currency'], $s['outstanding']) ?></span>
-                    <?php if ((float) $s['overdue'] > 0): ?>· <a href="/invoices?due=overdue" class="font-medium text-red-600 hover:underline">overdue <?= $money($s['currency'], $s['overdue']) ?></a><?php endif ?></p>
+                    <?php if ((float) $s['overdue'] > 0): ?>· <a href="/invoices?due=overdue" class="font-medium text-red-600">overdue <?= $money($s['currency'], $s['overdue']) ?></a><?php endif ?></p>
             </div>
         <?php endforeach ?>
     </div>

@@ -36,7 +36,7 @@ foreach (($nextStatuses ?? []) as $s) {
     <?php if ($lead->isConverted()): ?>
         <?= component('badge', ['label' => 'Converted', 'color' => 'emerald', 'dot' => true]) ?>
         <?php if ($convertedCandidate !== null): ?>
-            <a href="/candidates/<?= e_attr($convertedCandidate->publicId) ?>" class="text-sm text-brand-600 hover:underline">
+            <a href="/candidates/<?= e_attr($convertedCandidate->publicId) ?>" class="text-sm text-brand-600">
                 View candidate <?= e($convertedCandidate->candidateNumber) ?>
             </a>
         <?php endif ?>

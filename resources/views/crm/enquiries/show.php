@@ -24,9 +24,9 @@ $wa = preg_replace('/\D+/', '', (string) $e['phone']);
         <?= component('card', ['title' => 'Enquiry', 'body' => (function () use ($e, $wa, $types) {
             $rows = [
                 'Name' => e($e['name']),
-                'Phone' => '<a href="tel:' . e_attr((string) $e['phone']) . '" class="text-brand-600 hover:underline">' . e($e['phone']) . '</a>'
-                    . ($wa !== '' && strlen($wa) >= 10 ? ' · <a href="https://wa.me/' . e_attr($wa) . '" target="_blank" rel="noopener" class="text-brand-600 hover:underline">WhatsApp</a>' : ''),
-                'Email' => !empty($e['email']) ? '<a href="mailto:' . e_attr((string) $e['email']) . '" class="text-brand-600 hover:underline">' . e($e['email']) . '</a>' : '—',
+                'Phone' => '<a href="tel:' . e_attr((string) $e['phone']) . '" class="text-brand-600">' . e($e['phone']) . '</a>'
+                    . ($wa !== '' && strlen($wa) >= 10 ? ' · <a href="https://wa.me/' . e_attr($wa) . '" target="_blank" rel="noopener" class="text-brand-600">WhatsApp</a>' : ''),
+                'Email' => !empty($e['email']) ? '<a href="mailto:' . e_attr((string) $e['email']) . '" class="text-brand-600">' . e($e['email']) . '</a>' : '—',
                 'Type' => e($types[$e['type']] ?? $e['type']),
             ];
             if (!empty($e['job_title'])) {
@@ -58,7 +58,7 @@ $wa = preg_replace('/\D+/', '', (string) $e['phone']);
     <div class="space-y-4">
         <?php if ($e['status'] === 'converted'): ?>
             <?= component('card', ['title' => 'Lead', 'body' => !empty($e['lead_public_id'])
-                ? '<p class="text-sm text-slate-700">This enquiry is now lead <a class="font-mono text-brand-600 hover:underline" href="/leads/' . e_attr((string) $e['lead_public_id']) . '">' . e($e['lead_number']) . '</a>.</p>'
+                ? '<p class="text-sm text-slate-700">This enquiry is now lead <a class="font-mono text-brand-600" href="/leads/' . e_attr((string) $e['lead_public_id']) . '">' . e($e['lead_number']) . '</a>.</p>'
                 : '<p class="text-sm text-slate-700">Converted to a lead that has since been removed.</p>']) ?>
         <?php else: ?>
             <?php if ($canConvert): ?>

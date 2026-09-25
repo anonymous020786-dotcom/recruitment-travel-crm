@@ -16,7 +16,7 @@ $this->start('content');
         <li>
             Scan the QR code, or enter this key manually:
             <div class="mt-1 font-mono text-base tracking-wider text-slate-900 bg-slate-50 rounded p-2 select-all"><?= e($display) ?></div>
-            <a href="<?= e_attr($uri) ?>" class="mt-1 inline-block text-xs text-brand-600 hover:underline">Open in app (mobile)</a>
+            <a href="<?= e_attr($uri) ?>" class="mt-1 inline-block text-xs text-brand-600">Open in app (mobile)</a>
         </li>
         <li>
             Enter the 6-digit code the app shows to confirm:
