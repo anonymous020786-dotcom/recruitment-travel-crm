@@ -35,6 +35,7 @@ use App\Controllers\Crm\AuditLogController;
 use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\RoleAdminController;
 use App\Controllers\Crm\SettingsController;
+use App\Controllers\Crm\TaskController;
 use App\Controllers\Crm\UserAdminController;
 use App\Controllers\Crm\VisaController;
 use App\Controllers\Crm\LeadImportController;
@@ -406,6 +407,14 @@ return static function (Router $router): void {
         $r->get('/enquiries/{enquiry}', [EnquiryController::class, 'show'])->middleware(['can:public_enquiries.view'])->name('enquiries.show');
         $r->post('/enquiries/{enquiry}/status', [EnquiryController::class, 'status'])->middleware(['can:public_enquiries.convert', 'throttle:write'])->name('enquiries.status');
         $r->post('/enquiries/{enquiry}/convert', [EnquiryController::class, 'convert'])->middleware(['can:public_enquiries.convert', 'throttle:write'])->name('enquiries.convert');
+
+        // ---- Tasks (literal paths before the {task} wildcard) ----
+        $r->get('/tasks', [TaskController::class, 'index'])->middleware(['can:tasks.view'])->name('tasks.index');
+        $r->get('/tasks/create', [TaskController::class, 'create'])->middleware(['can:tasks.create'])->name('tasks.create');
+        $r->post('/tasks', [TaskController::class, 'store'])->middleware(['can:tasks.create', 'throttle:write'])->name('tasks.store');
+        $r->post('/tasks/{task}/complete', [TaskController::class, 'complete'])->middleware(['can:tasks.complete', 'throttle:write'])->name('tasks.complete');
+        $r->post('/tasks/{task}/cancel', [TaskController::class, 'cancel'])->middleware(['can:tasks.edit', 'throttle:write'])->name('tasks.cancel');
+        $r->post('/tasks/{task}/reassign', [TaskController::class, 'reassign'])->middleware(['can:tasks.assign', 'throttle:write'])->name('tasks.reassign');
 
         // ---- Admin: users (literal paths before the {user} wildcard) ----
         $r->get('/admin/users', [UserAdminController::class, 'index'])->middleware(['can:users.view'])->name('admin.users.index');

@@ -275,6 +275,9 @@ foreach ([['Kapoor family', 4, 0], ['Rohit & Sneha', 2, 1], ['Dhanraj Traders gr
     }
 }
 
+require __DIR__ . '/demo/tasks.php';
+$say('tasks: ' . (int) $db->selectValue('SELECT COUNT(*) FROM tasks'));
+
 $say("\nDone. Sign in with any of these (password: " . PASSWORD . "):");
 foreach (array_keys($staff) as $key) {
     $say(sprintf('  demo.%s@example.test', $key));

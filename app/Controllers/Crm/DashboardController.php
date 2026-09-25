@@ -6,6 +6,7 @@ namespace App\Controllers\Crm;
 
 use App\Http\Response;
 use App\Repositories\LeadFollowupRepository;
+use App\Repositories\TaskRepository;
 use App\Services\DashboardService;
 
 /**
@@ -17,6 +18,7 @@ final class DashboardController extends CrmController
     public function __construct(
         private readonly LeadFollowupRepository $followups,
         private readonly DashboardService $dashboard,
+        private readonly TaskRepository $tasks,
     ) {
     }
 
@@ -32,6 +34,7 @@ final class DashboardController extends CrmController
                 $this->followups->pendingForUser($user->id, $scope, 'today', 25),
             ),
             'snap'           => $this->dashboard->snapshot($user, $scope),
+            'taskCounts'     => can('tasks.view') ? $this->tasks->countsForAssignee($user->id) : null,
         ]);
     }
 }

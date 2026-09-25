@@ -8,6 +8,7 @@ $this->layout('layouts.app', ['title' => 'Dashboard', 'currentPath' => '/dashboa
 $this->start('content');
 
 $followupCounts = $followupCounts ?? ['overdue' => 0, 'today' => 0, 'upcoming' => 0];
+$taskCounts = $taskCounts ?? null;
 $dueFollowups = $dueFollowups ?? [];
 $snap = $snap ?? [];
 $months = (array) ($snap['months'] ?? []);
@@ -60,6 +61,13 @@ $money = static fn (string $cur, string $v): string => e($cur . ' ' . number_for
         'href' => '/followups', 'hint' => $followupCounts['overdue'] > 0 ? 'Needs attention' : 'All clear',
     ]) ?>
     <?= component('stat', ['label' => 'Follow-ups due today', 'value' => (int) $followupCounts['today'], 'href' => '/followups']) ?>
+    <?php if ($taskCounts !== null): ?>
+        <?= component('stat', [
+            'label' => 'My tasks overdue', 'value' => $taskCounts['overdue'], 'href' => '/tasks?tab=overdue',
+            'hint' => $taskCounts['overdue'] > 0 ? 'Needs attention' : ($taskCounts['open'] . ' open'),
+        ]) ?>
+        <?= component('stat', ['label' => 'My tasks due today', 'value' => $taskCounts['today'], 'href' => '/tasks?tab=today']) ?>
+    <?php endif ?>
     <?php if (isset($snap['leads'])): ?>
         <?= component('stat', ['label' => 'Open leads', 'value' => (int) $snap['leads']['open'], 'href' => '/leads']) ?>
     <?php endif ?>

@@ -108,7 +108,7 @@ final class HtmlMinifyPagesTest extends DbTestCase
     private static function staffPages(): array
     {
         return ['/dashboard', '/leads', '/candidates', '/employers', '/jobs', '/applications', '/invoices', '/reports', '/reports/recruitment-funnel',
-            '/admin/users', '/admin/roles', '/admin/roles/counselor', '/admin/settings', '/admin/audit', '/admin/blog', '/admin/blog/create', '/tours/packages', '/search?q=a'];
+            '/admin/users', '/admin/roles', '/admin/roles/counselor', '/admin/settings', '/admin/audit', '/admin/blog', '/admin/blog/create', '/tours/packages', '/tasks', '/tasks/create', '/search?q=a'];
     }
 
     public function test_public_pages_render_identically_after_minifying_and_get_smaller(): void

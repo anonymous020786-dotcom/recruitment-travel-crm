@@ -103,6 +103,8 @@ final class NotificationRepository
             $url = '/enquiries/' . $linkId;
         } elseif ($linkType === 'export') {
             $url = '/exports';
+        } elseif ($linkType === 'task') {
+            $url = '/tasks';
         } elseif ($linkType !== null && $linkId !== null && isset(self::LINK_TARGETS[$linkType])) {
             [$table, $prefix] = self::LINK_TARGETS[$linkType];
             $pid = $this->db->selectValue("SELECT public_id FROM {$table} WHERE id = :id", ['id' => $linkId]);

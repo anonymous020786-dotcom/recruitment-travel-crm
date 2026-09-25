@@ -29,6 +29,7 @@ final class Task
         public readonly string $status,
         public readonly ?string $completedAt,
         public readonly string $createdAt,
+        public readonly ?int $createdBy = null,
     ) {
     }
 
@@ -51,6 +52,7 @@ final class Task
             status: (string) $r['status'],
             completedAt: $r['completed_at'] ?? null,
             createdAt: (string) $r['created_at'],
+            createdBy: isset($r['created_by']) ? (int) $r['created_by'] : null,
         );
     }
 
