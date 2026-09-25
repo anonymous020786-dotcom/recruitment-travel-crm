@@ -123,9 +123,15 @@ CREATE TABLE user_permissions (
     user_id         BIGINT UNSIGNED NOT NULL,
     permission_id   BIGINT UNSIGNED NOT NULL,
     effect          ENUM('allow','deny') NOT NULL DEFAULT 'allow',
+    expires_at      DATETIME        NULL,               -- NULL = until removed (migration 0022)
+    note            VARCHAR(200)    NULL,
+    granted_by      BIGINT UNSIGNED NULL,
+    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, permission_id),
+    KEY idx_up_expiry (expires_at),
     CONSTRAINT fk_up_user       FOREIGN KEY (user_id)       REFERENCES users (id)       ON DELETE CASCADE,
-    CONSTRAINT fk_up_permission FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE CASCADE
+    CONSTRAINT fk_up_permission FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE CASCADE,
+    CONSTRAINT fk_up_granted_by FOREIGN KEY (granted_by)    REFERENCES users (id)       ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Persistent server-side session store (DB-backed; shared hosting friendly).

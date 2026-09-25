@@ -36,6 +36,7 @@ use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\BranchAdminController;
 use App\Controllers\Crm\IntegrationController;
 use App\Controllers\Crm\SecurityController;
+use App\Controllers\Crm\UserPermissionController;
 use App\Controllers\Crm\LeadSourceAdminController;
 use App\Controllers\Crm\OnlinePaymentController;
 use App\Controllers\Crm\RoleAdminController;
@@ -446,6 +447,11 @@ return static function (Router $router): void {
         $r->post('/admin/users/{user}/sign-out', [UserAdminController::class, 'signOut'])->middleware(['can:users.manage', 'throttle:write'])->name('admin.users.sign_out');
         $r->post('/admin/users/{user}/reset-2fa', [UserAdminController::class, 'resetTwoFactor'])->middleware(['can:users.manage', 'confirm', 'throttle:write'])->name('admin.users.reset_2fa');
 
+        // ---- Admin: per-user permission overrides (super admin; the same power as editing the role matrix) ----
+        $r->get('/admin/users/{user}/permissions', [UserPermissionController::class, 'show'])->middleware(['can:roles.manage'])->name('admin.users.permissions');
+        $r->post('/admin/users/{user}/permissions', [UserPermissionController::class, 'store'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.users.permissions.store');
+        $r->post('/admin/users/{user}/permissions/remove', [UserPermissionController::class, 'remove'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.users.permissions.remove');
+        $r->post('/admin/users/{user}/permissions/reset', [UserPermissionController::class, 'reset'])->middleware(['can:roles.manage', 'confirm', 'throttle:write'])->name('admin.users.permissions.reset');
         // ---- Admin: roles & permissions (super admin only; writes need a fresh password confirmation) ----
         $r->get('/admin/roles', [RoleAdminController::class, 'index'])->middleware(['can:roles.manage'])->name('admin.roles.index');
         $r->get('/admin/roles/{role}', [RoleAdminController::class, 'show'])->middleware(['can:roles.manage'])->name('admin.roles.show');

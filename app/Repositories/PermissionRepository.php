@@ -31,7 +31,7 @@ class PermissionRepository
         $rows = $this->db->select(
             'SELECT p.name, up.effect FROM user_permissions up
              JOIN permissions p ON p.id = up.permission_id
-             WHERE up.user_id = :uid',
+             WHERE up.user_id = :uid AND (up.expires_at IS NULL OR up.expires_at > UTC_TIMESTAMP())',
             ['uid' => $userId],
         );
 

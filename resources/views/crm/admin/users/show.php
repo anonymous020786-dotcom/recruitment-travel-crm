@@ -66,6 +66,7 @@ $post = static fn (string $path, string $label, string $cls = 'btn-secondary', s
                 . ((bool) $u['is_active'] ? $post($base . '/reset-link', 'Email a password reset link') . $post($base . '/temporary-password', 'Issue a temporary password', 'btn-secondary', '', 'Set a new temporary password and sign the person out?') : '')
                 . '<p class="text-xs text-slate-500">' . (int) $sessionCount . ' active session' . ($sessionCount === 1 ? '' : 's') . '</p>'
                 . ($sessionCount > 0 ? $post($base . '/sign-out', 'Sign out everywhere') : '')
+                . (can('roles.manage') && $u['role_name'] !== 'super_admin' ? '<a class="btn btn-secondary btn-sm" href="' . $base . '/permissions">Individual permissions</a>' : '')
                 . ((bool) $u['two_factor_enabled'] ? $post($base . '/reset-2fa', 'Remove two-factor', 'btn-secondary', '', 'Remove two-factor authentication for this person?') : '')
                 . '</div>']) ?>
         <?php elseif ($isSelf): ?>
