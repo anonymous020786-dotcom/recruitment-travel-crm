@@ -1456,6 +1456,18 @@ CREATE TABLE blog_posts (
     CONSTRAINT fk_blog_author FOREIGN KEY (author_id) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Credentials/switches for third-party services (migration 0019); secret values are AES-256-GCM encrypted.
+CREATE TABLE integration_credentials (
+    service     VARCHAR(40)     NOT NULL,
+    field       VARCHAR(60)     NOT NULL,
+    value       TEXT            NOT NULL,
+    is_secret   TINYINT(1)      NOT NULL DEFAULT 0,
+    updated_by  BIGINT UNSIGNED NULL,
+    updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (service, field),
+    CONSTRAINT fk_integration_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =============================================================================
 -- END SCHEMA
 -- Migrations live in database/migrations/NNN_*.sql and are applied in order by

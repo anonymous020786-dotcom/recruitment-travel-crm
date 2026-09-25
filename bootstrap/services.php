@@ -121,6 +121,7 @@ return static function (Application $app): void {
     ));
 
     $app->singleton(\App\Support\Totp::class);
+    $app->singleton(\App\Integrations\Credentials::class);
     $app->singleton(\App\Support\Encryptor::class, static fn (Application $app) => new \App\Support\Encryptor(
         (string) $app->config()->get('app.key', ''),
     ));

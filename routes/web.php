@@ -34,6 +34,7 @@ use App\Controllers\Crm\TravelController;
 use App\Controllers\Crm\AuditLogController;
 use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\BranchAdminController;
+use App\Controllers\Crm\IntegrationController;
 use App\Controllers\Crm\LeadSourceAdminController;
 use App\Controllers\Crm\RoleAdminController;
 use App\Controllers\Crm\SettingsController;
@@ -447,6 +448,12 @@ return static function (Router $router): void {
         $r->post('/admin/blog/{post}/publish', [BlogController::class, 'publish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.publish');
         $r->post('/admin/blog/{post}/unpublish', [BlogController::class, 'unpublish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.unpublish');
         $r->post('/admin/blog/{post}/archive', [BlogController::class, 'archive'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.archive');
+
+        // ---- Admin: integrations (super admin only; secrets are write-only; writes need a fresh password confirmation) ----
+        $r->get('/admin/integrations', [IntegrationController::class, 'index'])->middleware(['can:integrations.view'])->name('admin.integrations.index');
+        $r->get('/admin/integrations/{service}', [IntegrationController::class, 'show'])->middleware(['can:integrations.view'])->name('admin.integrations.show');
+        $r->put('/admin/integrations/{service}', [IntegrationController::class, 'update'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.integrations.update');
+        $r->post('/admin/integrations/{service}/reset', [IntegrationController::class, 'reset'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.integrations.reset');
 
         // ---- Admin: branches and lead sources (organisation-level lists) ----
         $r->get('/admin/branches', [BranchAdminController::class, 'index'])->middleware(['can:branches.view'])->name('admin.branches.index');

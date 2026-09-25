@@ -83,6 +83,15 @@ if ((bool) $config->get('session.secure', true)) {
 
 $app->boot();
 
+// ---- Credentials saved in Admin → Integrations override config/.env (Turnstile, mail, analytics…). One small query;
+// silently skipped before the table exists (fresh install) or when the database is unreachable.
+if (\PHP_SAPI !== 'cli' || !\defined('SKIP_CREDENTIAL_OVERLAY')) {
+    try {
+        $app->get(\App\Integrations\Credentials::class)->applyToConfig();
+    } catch (\Throwable) {
+    }
+}
+
 // ---- Error / exception handlers ------------------------------------------
 (require __DIR__ . '/handlers.php')($app);
 

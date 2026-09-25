@@ -176,6 +176,10 @@ return [
             'manage' => 'Manage roles and the permission matrix',
         ],
 
+        'integrations' => [
+            'view' => 'View integrations and their status (secrets stay masked)', 'manage' => 'Set, rotate and clear API keys and secrets',
+        ],
+
         'branches' => [
             'view' => 'View branches', 'manage' => 'Create, edit and deactivate branches',
         ],
@@ -205,6 +209,7 @@ return [
         'admin' => [
             '*',
             '!roles.manage',   // only super_admin edits the permission matrix
+            '!integrations.*', // only super_admin sees or changes API keys and secrets
         ],
 
         'manager' => [
