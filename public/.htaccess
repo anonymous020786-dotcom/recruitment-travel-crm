@@ -34,8 +34,13 @@ Options -Indexes -MultiViews
 
 # ---- Long-lived caching for versioned static assets -----------------------
 <IfModule mod_headers.c>
-    <FilesMatch "\.(?i:css|js|mjs|woff2?|png|jpe?g|webp|avif|gif|svg|ico)$">
+    # The content-hashed build files (app.<hash>.css/js, and their .br/.gz copies) never change under the same name.
+    <FilesMatch "^app\.[0-9a-f]{10}\.(?i:css|js)(\.br|\.gz)?$">
         Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    # Everything else (images, fonts…) keeps its name when replaced, so cache it for a month, not forever.
+    <FilesMatch "\.(?i:woff2?|png|jpe?g|webp|avif|gif|svg|ico)$">
+        Header set Cache-Control "public, max-age=2592000"
     </FilesMatch>
     # Baseline headers (PHP layer sets the authoritative, per-group values)
     Header always set X-Content-Type-Options "nosniff"
@@ -46,6 +51,33 @@ Options -Indexes -MultiViews
 
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+# ---- Pre-compressed assets ---------------------------------------------------
+# `npm run build` writes app.<hash>.css/js next to .br (Brotli, level 11) and .gz (gzip, level 9) copies. When the browser
+# accepts the encoding and the copy exists, serve it as-is: smaller than on-the-fly compression and no CPU per request.
+<IfModule mod_rewrite.c>
+    RewriteCond %{HTTP:Accept-Encoding} \bbr\b
+    RewriteCond %{REQUEST_FILENAME}.br -f
+    RewriteRule ^(.+)\.(css|js)$ $1.$2.br [L,E=SERVE_BR:1]
+
+    RewriteCond %{HTTP:Accept-Encoding} \bgzip\b
+    RewriteCond %{REQUEST_FILENAME}.gz -f
+    RewriteRule ^(.+)\.(css|js)$ $1.$2.gz [L,E=SERVE_GZ:1]
+</IfModule>
+<IfModule mod_mime.c>
+    <FilesMatch "\.css\.(br|gz)$">
+        ForceType text/css
+    </FilesMatch>
+    <FilesMatch "\.js\.(br|gz)$">
+        ForceType application/javascript
+    </FilesMatch>
+</IfModule>
+<IfModule mod_headers.c>
+    Header set Content-Encoding br env=SERVE_BR
+    Header set Content-Encoding gzip env=SERVE_GZ
+    Header append Vary Accept-Encoding env=SERVE_BR
+    Header append Vary Accept-Encoding env=SERVE_GZ
 </IfModule>
 
 # ---- Block hidden/backup/source files that should never be served ---------

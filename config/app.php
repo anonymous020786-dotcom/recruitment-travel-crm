@@ -25,6 +25,9 @@ return [
         'bypass_roles' => ['super_admin'],
     ],
 
+    // Minify rendered HTML (whitespace and comments only — never <pre>, <textarea>, <script> or <style>). Skipped when APP_DEBUG is on.
+    'minify_html' => Env::bool('HTML_MINIFY', true),
+
     'trusted_proxies' => Env::list('TRUSTED_PROXIES'),
 
     // How long a dashboard snapshot (per branch scope + widget set) is reused, in seconds. 0 = never cache.

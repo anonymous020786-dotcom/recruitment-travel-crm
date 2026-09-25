@@ -97,6 +97,55 @@ final class WebServerConfigTest extends TestCase
         }
     }
 
+    // ---- static assets: minified, hashed, pre-compressed, cached correctly ------------------------------------------
+
+    public function test_the_built_assets_are_minified_hashed_and_have_precompressed_copies_that_match(): void
+    {
+        $dir = TEST_ROOT . '/public/assets/build';
+        $manifest = json_decode(self::read('public/assets/build/manifest.json'), true);
+        self::assertIsArray($manifest);
+
+        foreach (['app.css' => 'css', 'app.js' => 'js'] as $key => $ext) {
+            $name = $manifest[$key] ?? '';
+            self::assertMatchesRegularExpression('/^app\.[0-9a-f]{10}\.' . $ext . '$/', $name);
+            $raw = (string) file_get_contents("{$dir}/{$name}");
+            self::assertSame(substr(hash('sha256', $raw), 0, 10), substr($name, 4, 10), "{$name} is named after its own content");
+
+            self::assertFileExists("{$dir}/{$name}.gz");
+            self::assertSame($raw, gzdecode((string) file_get_contents("{$dir}/{$name}.gz")), "{$name}.gz decompresses to exactly the served file");
+            self::assertFileExists("{$dir}/{$name}.br");
+            self::assertLessThan(strlen($raw) * 0.6, filesize("{$dir}/{$name}.br"), "{$name}.br is a real Brotli copy, much smaller");
+            self::assertLessThan(filesize("{$dir}/{$name}.gz"), filesize("{$dir}/{$name}.br"), 'Brotli beats gzip');
+        }
+
+        // the script really is minified: far smaller than its source, no comment banner, no line-per-statement layout
+        $js = (string) file_get_contents("{$dir}/{$manifest['app.js']}");
+        self::assertLessThan(filesize(TEST_ROOT . '/resources/js/app.js') * 0.65, strlen($js));
+        self::assertStringNotContainsString('CRM front-end behaviours', $js);
+        self::assertLessThan(5, substr_count($js, "\n"));
+        // only the current build is left behind
+        $left = array_filter(scandir($dir) ?: [], static fn (string $n): bool => preg_match('/^app\.[0-9a-f]{10}\./', $n) === 1);
+        self::assertCount(6, $left, 'stale hashed files from older builds were removed');
+    }
+
+    public function test_the_public_htaccess_serves_precompressed_assets_and_caches_only_hashed_files_forever(): void
+    {
+        $h = self::read('public/.htaccess');
+
+        self::assertMatchesRegularExpression('/RewriteCond %\{HTTP:Accept-Encoding\} \\\\bbr\\\\b\s+RewriteCond %\{REQUEST_FILENAME\}\.br -f\s+RewriteRule \^\(\.\+\)\\\.\(css\|js\)\$ \$1\.\$2\.br \[L,E=SERVE_BR:1\]/', $h);
+        self::assertMatchesRegularExpression('/RewriteCond %\{HTTP:Accept-Encoding\} \\\\bgzip\\\\b\s+RewriteCond %\{REQUEST_FILENAME\}\.gz -f\s+RewriteRule/', $h);
+        self::assertStringContainsString('Header set Content-Encoding br env=SERVE_BR', $h);
+        self::assertStringContainsString('Header set Content-Encoding gzip env=SERVE_GZ', $h);
+        self::assertStringContainsString('Header append Vary Accept-Encoding env=SERVE_BR', $h);
+        self::assertMatchesRegularExpression('/ForceType text\/css/', $h);
+        self::assertMatchesRegularExpression('/ForceType application\/javascript/', $h);
+
+        // immutable (a year) is reserved for content-hashed names; anything a person can replace under the same name gets a month
+        self::assertMatchesRegularExpression('/<FilesMatch "\^app\\\\\.\[0-9a-f\]\{10\}[^"]*">\s+Header set Cache-Control "public, max-age=31536000, immutable"/', $h);
+        self::assertStringContainsString('Header set Cache-Control "public, max-age=2592000"', $h);
+        self::assertSame(1, substr_count($h, 'immutable'), 'only one rule may mark files immutable');
+    }
+
     public function test_every_storage_directory_that_holds_runtime_files_is_denied_by_its_own_htaccess(): void
     {
         foreach (['storage', 'storage/private', 'storage/imports', 'storage/exports'] as $dir) {

@@ -11,6 +11,7 @@ use App\Http\Middleware\Enforce2fa;
 use App\Http\Middleware\EnforceHttps;
 use App\Http\Middleware\ForceJson;
 use App\Http\Middleware\MaintenanceGuard;
+use App\Http\Middleware\MinifyHtml;
 use App\Http\Middleware\Passthrough;
 use App\Http\Middleware\RateLimit;
 use App\Http\Middleware\RecallRemember;
@@ -50,9 +51,11 @@ final class Kernel
      */
     public array $groups = [
         'web.public' => [
+            MinifyHtml::class,
             SecurityHeaders::class . ':public',
         ],
         'web.crm' => [
+            MinifyHtml::class,
             SecurityHeaders::class . ':crm',
             StartSession::class,
             RecallRemember::class,
