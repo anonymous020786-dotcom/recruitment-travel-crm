@@ -8,7 +8,7 @@ declare(strict_types=1);
  * Only keys listed here are editable or readable through `setting()`. A field left empty falls back to its default:
  * `default` (a literal) or `config` (the value in that config key, i.e. what the environment file says).
  *
- *   type   string | text | email | phone | int
+ *   type   string | text | email | phone | url | int   (url: an https:// address or a site path to an image)
  *   max    longest text (string/text/email/phone) — min/max for `int`
  *   public true → stored with is_public = 1 (shown on the public website)
  *
@@ -46,6 +46,11 @@ return [
         ],
         'business.address' => [
             'group' => 'business', 'label' => 'Office address', 'type' => 'text', 'max' => 400, 'public' => true,
+        ],
+        'business.share_image' => [
+            'group' => 'business', 'label' => 'Link-preview image', 'type' => 'url', 'max' => 300, 'public' => true,
+            'default' => '/assets/og-default.png',
+            'help' => 'The picture shown when a page is shared on WhatsApp, Facebook or LinkedIn. Use a https:// address or a site path such as /assets/my-card.jpg — a PNG, JPG or WebP about 1200×630. Empty uses the standard card.',
         ],
         'business.hours' => [
             'group' => 'business', 'label' => 'Opening hours', 'type' => 'string', 'max' => 160, 'public' => true,

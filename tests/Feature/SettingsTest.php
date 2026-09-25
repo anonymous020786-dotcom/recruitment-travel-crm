@@ -305,4 +305,56 @@ final class SettingsTest extends DbTestCase
         self::assertStringNotContainsString('wa.me', $contact);
         self::assertStringNotContainsString('<dl', $contact);
     }
+    // ---- the link-preview image ------------------------------------------------------------------------------
+
+    public function test_every_public_page_has_a_link_preview_image_and_the_shipped_card_is_a_real_1200_by_630_png(): void
+    {
+        $file = TEST_ROOT . '/public/assets/og-default.png';
+        self::assertFileExists($file);
+        $size = getimagesize($file);
+        self::assertSame([1200, 630, IMAGETYPE_PNG], [$size[0], $size[1], $size[2]]);
+
+        $this->actAs(null);
+        $base = rtrim((string) config('app.url'), '/');
+        foreach (['/', '/about', '/contact', '/overseas-jobs', '/travel-packages', '/blog'] as $path) {
+            $page = $this->send('GET', $path)->getBody();
+            self::assertStringContainsString('<meta property="og:image" content="' . $base . '/assets/og-default.png">', $page, $path);
+            self::assertStringContainsString('name="twitter:card" content="summary_large_image"', $page, $path);
+            self::assertStringContainsString('property="og:image:width" content="1200"', $page, $path);
+        }
+    }
+
+    public function test_the_image_can_be_replaced_from_settings(): void
+    {
+        $actor = $this->model($this->user('admin'));
+        $this->actAs(null);
+        $base = rtrim((string) config('app.url'), '/');
+
+        $this->service()->update(['business.share_image' => 'https://cdn.example.com/cards/share.JPG'], $actor);
+        $page = $this->send('GET', '/')->getBody();
+        self::assertStringContainsString('property="og:image" content="https://cdn.example.com/cards/share.JPG"', $page);
+        self::assertStringNotContainsString('og:image:width', $page, 'the size is only claimed for the shipped card');
+
+        $this->service()->update(['business.share_image' => '/assets/my-card.webp'], $actor);
+        self::assertStringContainsString('property="og:image" content="' . $base . '/assets/my-card.webp"', $this->send('GET', '/about')->getBody());
+
+        $this->service()->update(['business.share_image' => ''], $actor);
+        self::assertStringContainsString($base . '/assets/og-default.png', $this->send('GET', '/')->getBody());
+    }
+
+    public function test_only_https_or_site_paths_to_an_image_are_accepted_as_the_image(): void
+    {
+        $actor = $this->model($this->user('admin'));
+
+        foreach (['javascript:alert(1).png', 'http://cdn.example.com/x.png', '//evil.example/x.png', 'https://cdn.example.com/x.svg',
+            'https://cdn.example.com/x.png?v=1', "https://cdn.example.com/\"onload=x.png", 'data:image/png;base64,AAAA.png', 'x.png', "/ok.png\nInjected: 1"] as $bad) {
+            try {
+                $this->service()->update(['business.share_image' => $bad], $actor);
+                self::fail('accepted ' . json_encode($bad));
+            } catch (ValidationException $e) {
+                self::assertArrayHasKey('business.share_image', $e->errors());
+            }
+        }
+        self::assertNull($this->stored('business.share_image'));
+    }
 }

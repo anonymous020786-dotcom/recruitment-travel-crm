@@ -190,6 +190,12 @@ final class SettingsService
                 }
 
                 return [$text, null];
+            case 'url':
+                if (mb_strlen($text) > $max || preg_match('#^(?:https://[^\s<>"\'\\\\]+|/(?!/)[^\s<>"\'\\\\]*)\.(?:png|jpe?g|webp|gif)$#iD', $text) !== 1) {
+                    return [null, "{$label} must be a https:// address or a site path ending in .png, .jpg, .webp or .gif."];
+                }
+
+                return [$text, null];
             case 'text':
                 break;
             default:

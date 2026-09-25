@@ -32,7 +32,16 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
     <meta property="og:site_name" content="<?= e_attr($appName) ?>">
     <meta property="og:title" content="<?= e_attr($title) ?>">
     <meta property="og:description" content="<?= e_attr($description) ?>">
-    <?php if (!empty($ogImage)): ?><meta property="og:image" content="<?= e_attr($ogImage) ?>"><?php endif ?>
+    <?php
+    // The picture in link previews: a page's own image, else the one set in Admin → Settings, else the shipped default card.
+    $shareBase = rtrim((string) config('app.url', ''), '/');
+    $shareImage = (string) ($ogImage ?? '') !== '' ? (string) $ogImage : (string) setting('business.share_image', '/assets/og-default.png');
+    $shareImage = str_starts_with($shareImage, '/') ? $shareBase . $shareImage : $shareImage;
+    ?>
+    <meta property="og:image" content="<?= e_attr($shareImage) ?>">
+    <meta property="og:image:alt" content="<?= e_attr((string) setting('business.name', $appName)) ?>">
+    <?php if ($shareImage === $shareBase . '/assets/og-default.png'): ?><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><?php endif ?>
+    <meta name="twitter:card" content="summary_large_image">
     <?php
     $siteUrl = rtrim((string) config('app.url', ''), '/');
     $bizPhone = (string) setting('business.phone', '');
