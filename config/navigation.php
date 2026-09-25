@@ -28,6 +28,7 @@ return [
     ['label' => 'Reports',      'icon' => 'reports',      'path' => '/reports',        'permission' => 'reports.view'],
     ['label' => 'Tasks',        'icon' => 'tasks',        'path' => '/tasks',          'permission' => 'tasks.view'],
     ['label' => 'Admin',        'icon' => 'admin',        'path' => '/admin/users',    'permission' => 'users.view'],
+    ['label' => 'Audit log',    'icon' => 'admin',        'path' => '/admin/audit',    'permission' => 'audit.view'],
     ['label' => 'Blog',         'icon' => 'admin',        'path' => '/admin/blog',     'permission' => 'blog.view'],
     ['label' => 'Roles',        'icon' => 'admin',        'path' => '/admin/roles',    'permission' => 'roles.manage'],
     ['label' => 'Settings',     'icon' => 'admin',        'path' => '/admin/settings', 'permission' => 'settings.view'],

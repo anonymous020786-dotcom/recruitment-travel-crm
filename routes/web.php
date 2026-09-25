@@ -31,6 +31,7 @@ use App\Controllers\Crm\SearchController;
 use App\Controllers\Crm\TourBookingController;
 use App\Controllers\Crm\TourPackageController;
 use App\Controllers\Crm\TravelController;
+use App\Controllers\Crm\AuditLogController;
 use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\RoleAdminController;
 use App\Controllers\Crm\SettingsController;
@@ -435,6 +436,9 @@ return static function (Router $router): void {
         $r->post('/admin/blog/{post}/publish', [BlogController::class, 'publish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.publish');
         $r->post('/admin/blog/{post}/unpublish', [BlogController::class, 'unpublish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.unpublish');
         $r->post('/admin/blog/{post}/archive', [BlogController::class, 'archive'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.archive');
+
+        // ---- Admin: audit log (read-only) ----
+        $r->get('/admin/audit', [AuditLogController::class, 'index'])->middleware(['can:audit.view', 'throttle:dashboard'])->name('admin.audit');
 
         // ---- Admin: settings ----
         $r->get('/admin/settings', [SettingsController::class, 'index'])->middleware(['can:settings.view'])->name('admin.settings');

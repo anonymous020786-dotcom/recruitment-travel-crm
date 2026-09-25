@@ -26,6 +26,7 @@ final class SqlSafetyTest extends TestCase
         'order'        => 'SORT allow-list lookup + fixed direction (ListQuery)',
         'limit'        => 'int-typed parameter',
         'offset'       => 'int-typed parameter',
+        'cap'          => 'AuditLogRepository::COUNT_CAP + 1, an int built from a constant',
         'owed'         => 'constant SQL expression',
         'in'           => 'list of :placeholders',
         'table'        => 'repository/service constant, or config table name',

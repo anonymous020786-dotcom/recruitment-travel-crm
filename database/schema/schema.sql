@@ -1287,7 +1287,8 @@ CREATE TABLE activity_logs (
     PRIMARY KEY (id),
     KEY idx_activity_record (record_type, record_id, created_at),
     KEY idx_activity_user_time (user_id, created_at),
-    KEY idx_activity_module_time (module, created_at)
+    KEY idx_activity_module_time (module, created_at),
+    KEY idx_activity_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
