@@ -209,7 +209,7 @@ final class ReportServiceTest extends DbTestCase
         $keys = static fn (array $cat): array => array_merge(...array_map(static fn (array $g): array => array_column($g, 'key'), array_values($cat)));
 
         self::assertEqualsCanonicalizing(
-            ['lead-sources', 'applications-by-employer', 'placements', 'expiring-documents', 'flights', 'tour-packages', 'collections', 'payments-register', 'invoices-register', 'refunds-register', 'overdue-invoices'],
+            ['lead-sources', 'recruitment-funnel', 'applications-by-employer', 'placements', 'expiring-documents', 'flights', 'tour-packages', 'collections', 'payments-register', 'invoices-register', 'refunds-register', 'overdue-invoices'],
             $keys($this->reports->catalogFor($manager)),
         );
 
@@ -249,6 +249,64 @@ final class ReportServiceTest extends DbTestCase
         }
     }
 
+    // ---- the recruitment funnel ------------------------------------
+
+    private function moved(Application $a, User $by, string ...$statuses): void
+    {
+        foreach ($statuses as $to) {
+            $this->db->insertRow('application_status_history', ['application_id' => $a->id, 'from_status' => null, 'to_status' => $to, 'changed_by' => $by->id]);
+        }
+    }
+
+    public function test_the_funnel_counts_who_reached_each_stage_even_if_they_moved_on_or_dropped_out(): void
+    {
+        $manager = $this->actor('manager');
+        $c = $this->lead($manager, $this->branchA, null, true);
+
+        $placed = $this->application($manager, $c, 'RPX Fun 1');
+        $this->moved($placed, $manager, 'shortlisted', 'interview_completed', 'selected', 'offer_accepted', 'medical_completed', 'visa_approved', 'departed');
+        $this->db->affectingStatement("UPDATE applications SET status = 'placed' WHERE id = ?", [$placed->id]);
+
+        $scheduled = $this->application($manager, $c, 'RPX Fun 2');
+        $this->moved($scheduled, $manager, 'shortlisted', 'interview_scheduled');
+        $this->db->affectingStatement("UPDATE applications SET status = 'interview_scheduled' WHERE id = ?", [$scheduled->id]);
+
+        $rejected = $this->application($manager, $c, 'RPX Fun 3');
+        $this->moved($rejected, $manager, 'shortlisted', 'interview_completed', 'rejected');
+        $this->db->affectingStatement("UPDATE applications SET status = 'rejected' WHERE id = ?", [$rejected->id]);
+
+        $this->application($manager, $c, 'RPX Fun 4');   // still just applied
+
+        // outside the period, and in another branch: neither may be counted
+        $old = $this->application($manager, $c, 'RPX Fun 5');
+        $this->db->affectingStatement("UPDATE applications SET applied_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 200 DAY), status = 'placed' WHERE id = ?", [$old->id]);
+        $other = $this->actor('manager', $this->branchB);
+        $cB = $this->lead($other, $this->branchB, null, true);
+        $this->db->affectingStatement("UPDATE applications SET status = 'placed' WHERE id = ?", [$this->application($other, $cB, 'RPX Fun 6')->id]);
+
+        $rows = $this->rowsOf('recruitment-funnel', $manager);
+
+        self::assertSame(
+            [['Applied', 4, '100.0', ''], ['Shortlisted', 3, '75.0', '75.0'], ['Interviewed', 2, '50.0', '66.7'], ['Selected by employer', 1, '25.0', '50.0'],
+                ['Offer accepted', 1, '25.0', '100.0'], ['Medical completed', 1, '25.0', '100.0'], ['Visa approved', 1, '25.0', '100.0'],
+                ['Departed', 1, '25.0', '100.0'], ['Placed', 1, '25.0', '100.0']],
+            $rows,
+        );
+        self::assertSame(1, $this->rowsOf('recruitment-funnel', $other)[0][1], 'the other branch sees only its own application');
+    }
+
+    public function test_an_empty_period_gives_a_zero_funnel_not_an_error(): void
+    {
+        $manager = $this->actor('manager');
+
+        $rows = $this->rowsOf('recruitment-funnel', $manager, ['from' => '2001-01-01', 'to' => '2001-01-31']);
+
+        self::assertCount(9, $rows);
+        foreach ($rows as $r) {
+            self::assertSame(0, $r[1]);
+            self::assertSame('0.0', $r[2]);
+        }
+    }
     // ---- the reports -----------------------------------------------
 
     public function test_every_report_returns_the_right_rows_for_the_viewers_branch_only(): void

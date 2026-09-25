@@ -35,6 +35,47 @@ final class ReportRepository
         );
     }
 
+    /**
+     * The recruitment funnel for applications made in the range: how many reached each milestone. An application "reached"
+     * a milestone if it ever had that status (its history) or has it now, so an application that has moved on still counts.
+     *
+     * @return array{applied:int,shortlisted:int,interviewed:int,selected:int,offer_accepted:int,medical_done:int,visa_approved:int,departed:int,placed:int}
+     */
+    public function funnel(BranchScope $scope, string $from, string $to): array
+    {
+        [$branchSql, $bind] = $scope->whereClause('a.branch_id');
+
+        $row = $this->db->selectOne(
+            "SELECT COUNT(*) AS applied,
+                    COALESCE(SUM(f.shortlisted), 0) AS shortlisted, COALESCE(SUM(f.interviewed), 0) AS interviewed,
+                    COALESCE(SUM(f.selected), 0) AS selected, COALESCE(SUM(f.offer_accepted), 0) AS offer_accepted,
+                    COALESCE(SUM(f.medical_done), 0) AS medical_done, COALESCE(SUM(f.visa_approved), 0) AS visa_approved,
+                    COALESCE(SUM(f.departed), 0) AS departed, COALESCE(SUM(f.placed), 0) AS placed
+             FROM (
+                 SELECT a.id,
+                        MAX(a.status = 'shortlisted' OR h.to_status = 'shortlisted') AS shortlisted,
+                        MAX(a.status = 'interview_completed' OR h.to_status = 'interview_completed') AS interviewed,
+                        MAX(a.status = 'selected' OR h.to_status = 'selected') AS selected,
+                        MAX(a.status = 'offer_accepted' OR h.to_status = 'offer_accepted') AS offer_accepted,
+                        MAX(a.status = 'medical_completed' OR h.to_status = 'medical_completed') AS medical_done,
+                        MAX(a.status = 'visa_approved' OR h.to_status = 'visa_approved') AS visa_approved,
+                        MAX(a.status = 'departed' OR h.to_status = 'departed') AS departed,
+                        MAX(a.status = 'placed' OR h.to_status = 'placed') AS placed
+                 FROM applications a LEFT JOIN application_status_history h ON h.application_id = a.id
+                 WHERE a.applied_at >= :from AND a.applied_at < DATE_ADD(:to, INTERVAL 1 DAY) AND {$branchSql}
+                 GROUP BY a.id
+             ) f",
+            ['from' => $from, 'to' => $to] + $bind,
+        ) ?? [];
+
+        $out = [];
+        foreach (['applied', 'shortlisted', 'interviewed', 'selected', 'offer_accepted', 'medical_done', 'visa_approved', 'departed', 'placed'] as $k) {
+            $out[$k] = (int) ($row[$k] ?? 0);
+        }
+
+        return $out;
+    }
+
     /** Applications made in the range, per employer, split by where they ended up. */
     public function applicationsByEmployer(BranchScope $scope, string $from, string $to): \Generator
     {

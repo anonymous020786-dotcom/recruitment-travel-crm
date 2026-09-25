@@ -35,6 +35,11 @@ final class ReportService
             'description' => 'Where leads come from and how many convert into candidates (by the date the lead was created).',
             'columns' => ['Source', 'Leads', 'Converted', 'Conversion %'], 'numeric' => [1, 2, 3],
         ],
+        'recruitment-funnel' => [
+            'title' => 'Recruitment funnel', 'group' => 'Recruitment', 'permission' => 'applications.view', 'filter' => 'range',
+            'description' => 'Of the applications made in the period, how many reached each stage — from shortlisting through interview, offer, medical and visa to departure and placement — and where the drop-offs are.',
+            'columns' => ['Stage', 'Applications', '% of all applied', '% of previous stage'], 'numeric' => [1, 2, 3],
+        ],
         'applications-by-employer' => [
             'title' => 'Applications by employer', 'group' => 'Recruitment', 'permission' => 'applications.view', 'filter' => 'range',
             'description' => 'For each employer, the applications made in the period and where they stand now.',
@@ -165,6 +170,17 @@ final class ReportService
                 foreach ($this->repo->leadSources($scope, $f['from'], $f['to']) as $r) {
                     $n = (int) $r['leads'];
                     yield [$r['source'], $n, (int) $r['converted'], $n > 0 ? number_format((int) $r['converted'] / $n * 100, 1) : '0.0'];
+                }
+                break;
+            case 'recruitment-funnel':
+                $stages = ['applied' => 'Applied', 'shortlisted' => 'Shortlisted', 'interviewed' => 'Interviewed', 'selected' => 'Selected by employer', 'offer_accepted' => 'Offer accepted', 'medical_done' => 'Medical completed', 'visa_approved' => 'Visa approved', 'departed' => 'Departed', 'placed' => 'Placed'];
+                $counts = $this->repo->funnel($scope, $f['from'], $f['to']);
+                $first = $counts['applied'];
+                $previous = $first;
+                foreach ($stages as $k => $label) {
+                    $n = $counts[$k];
+                    yield [$label, $n, $first > 0 ? number_format($n / $first * 100, 1) : '0.0', $k === 'applied' ? '' : ($previous > 0 ? number_format($n / $previous * 100, 1) : '0.0')];
+                    $previous = $n;
                 }
                 break;
             case 'applications-by-employer':
