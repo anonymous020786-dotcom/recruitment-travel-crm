@@ -16,6 +16,9 @@ final class GatewayRegistry
     /** @var array<string,class-string<Gateway>> */
     public const ADAPTERS = [
         'razorpay' => Gateways\Razorpay::class,
+        'payu' => Gateways\PayU::class,
+        'cashfree' => Gateways\Cashfree::class,
+        'phonepe' => Gateways\PhonePe::class,
         'stripe' => Gateways\Stripe::class,
     ];
 

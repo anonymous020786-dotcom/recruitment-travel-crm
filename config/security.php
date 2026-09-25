@@ -73,7 +73,8 @@ return [
             "style-src"   => ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
             "script-src"  => ["'self'", "'nonce-{nonce}'"],
             "connect-src" => ["'self'"],
-            "form-action" => ["'self'"],
+            // The pay page auto-submits a signed form to these gateways' hosted checkouts (PayU, CCAvenue, Paytm).
+            "form-action" => ["'self'", 'https://secure.payu.in', 'https://test.payu.in', 'https://secure.ccavenue.com', 'https://test.ccavenue.com', 'https://securegw.paytm.in', 'https://securegw-stage.paytm.in'],
         ],
     ],
 
