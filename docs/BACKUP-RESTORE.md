@@ -77,3 +77,13 @@ Writing it found two real defects that no other test could see: (1) the `Db` lay
 silently turning `-5.5E-10` into `-0` (fixed at the source, now round-trip exact); (2) `PharData::compress()` on this
 PHP build produced a "valid" `.tar.gz` that held the file names but none of the contents (replaced by our own gzip
 stream plus a byte-for-byte read-back). Both would have produced backups that looked fine and restored wrong.
+
+## Off-site copy to S3 / Cloudflare R2 (automatic)
+
+When a bucket is configured and chosen under **Admin → Integrations → Document storage**, `cron/backup.php` also uploads each night's
+database dump and documents archive to the bucket under `backups/`, verifies each copy (size read back with a HEAD) and deletes remote
+backups older than *Keep off-site backups for (days)* (default 30). A failed copy is logged and never fails the local backup.
+Apply the bucket lifecycle rules from **Admin → Storage → Apply cost-saving rules** as well so the bucket enforces the same retention.
+
+Documents that live in the bucket are **not** in the local documents archive (they are not on the server). Protect them with the
+provider's own features: enable bucket **versioning** (S3) / object versioning + Bucket Locks (R2) if you need point-in-time recovery.

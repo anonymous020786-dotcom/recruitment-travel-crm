@@ -115,6 +115,18 @@ return [
         ],
 
         // ---- File storage -----------------------------------------------------------------------------
+        'storage' => [
+            'label' => 'Document storage', 'group' => 'storage', 'docs' => '',
+            'description' => 'Where newly uploaded documents are kept, and how they are delivered. Existing documents stay where they are until moved (Admin → Storage).',
+            'fields' => [
+                'driver' => ['label' => 'Store new uploads on', 'type' => 'select', 'options' => ['private' => 'This server (default)', 's3' => 'Amazon S3', 'r2' => 'Cloudflare R2'], 'help' => 'The chosen provider must be configured below first; otherwise uploads stay on the server.'],
+                'delivery' => ['label' => 'Delivering downloads', 'type' => 'select', 'options' => ['redirect' => 'Signed link straight from the bucket (saves server bandwidth)', 'proxy' => 'Through this server'], 'help' => 'Access is checked and logged either way.'],
+                'link_seconds' => ['label' => 'Signed link lifetime (seconds)', 'type' => 'number', 'help' => '30–3600, default 120. Short is safer.'],
+                'infrequent_after_days' => ['label' => 'Move to cheaper storage after (days)', 'type' => 'number', 'help' => 'Used by “Apply cost-saving rules”. Minimum 30. Default 90.'],
+                'archive_after_days' => ['label' => 'Archive tier after (days, Amazon S3 only)', 'type' => 'number', 'help' => 'Glacier Instant Retrieval: still instant to open, a fraction of the price. Default 365.'],
+                'backup_retention_days' => ['label' => 'Keep off-site backups for (days)', 'type' => 'number', 'help' => 'Backups copied to the bucket are deleted after this long. Default 30.'],
+            ],
+        ],
         's3' => [
             'label' => 'Amazon S3', 'group' => 'storage', 'docs' => 'https://docs.aws.amazon.com/AmazonS3/latest/API/',
             'description' => 'Private object storage for documents, backups and exports. Use an IAM user limited to one bucket.',

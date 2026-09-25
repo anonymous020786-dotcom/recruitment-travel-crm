@@ -29,6 +29,7 @@ return [
     ['label' => 'Tasks',        'icon' => 'tasks',        'path' => '/tasks',          'permission' => 'tasks.view'],
     ['label' => 'Admin',        'icon' => 'admin',        'path' => '/admin/users',    'permission' => 'users.view'],
     ['label' => 'Integrations', 'icon' => 'admin',        'path' => '/admin/integrations', 'permission' => 'integrations.view'],
+    ['label' => 'Storage',      'icon' => 'admin',        'path' => '/admin/storage',  'permission' => 'integrations.view'],
     ['label' => 'Branches',     'icon' => 'admin',        'path' => '/admin/branches', 'permission' => 'branches.view'],
     ['label' => 'Lead sources', 'icon' => 'admin',        'path' => '/admin/lead-sources', 'permission' => 'settings.view'],
     ['label' => 'Audit log',    'icon' => 'admin',        'path' => '/admin/audit',    'permission' => 'audit.view'],

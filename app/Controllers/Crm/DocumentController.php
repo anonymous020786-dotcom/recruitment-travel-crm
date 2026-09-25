@@ -15,6 +15,7 @@ use App\Models\CandidateDocument;
 use App\Repositories\CandidateDocumentRepository;
 use App\Repositories\CandidateRepository;
 use App\Services\DocumentService;
+use App\Storage\ObjectStorage;
 use App\Support\DocumentUpload;
 
 /**
@@ -30,6 +31,7 @@ final class DocumentController extends CrmController
         private readonly CandidateDocumentRepository $documents,
         private readonly DocumentService $service,
         private readonly DocumentUpload $upload,
+        private readonly ObjectStorage $objects,
     ) {
     }
 
@@ -168,6 +170,10 @@ final class DocumentController extends CrmController
             abort(403);
         }
 
+        if (ObjectStorage::isRemote($doc->storageDisk)) {
+            return $this->serveFromBucket($request, $doc, $action);
+        }
+
         $absolute = $this->upload->absolutePath($doc->storagePath);
         if (!is_file($absolute)) {
             abort(404, 'The file for this document is no longer available.');
@@ -184,6 +190,42 @@ final class DocumentController extends CrmController
             'Content-Type' => $doc->mimeType,
             'Content-Disposition' => $disposition,
             'Content-Length' => (string) filesize($absolute),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    /**
+     * A document that lives in an S3/R2 bucket. Access was authorised above and is logged here, before any byte moves.
+     * A download is answered with a redirect to a signed link that expires in seconds (the bytes never touch this server); a
+     * preview — or any request when the super admin chose "through this server" — is streamed through, so it stays inside the
+     * page's own origin.
+     */
+    private function serveFromBucket(Request $request, CandidateDocument $doc, string $action): Response
+    {
+        $this->service->logAccess($doc, $this->currentUser(), $action, $request->ipBinary());
+        $name = $this->sanitizeFilename($doc->originalName);
+        $inline = $action === 'preview' && in_array($doc->mimeType, ['application/pdf', 'image/jpeg', 'image/png'], true);
+
+        if ($action === 'download' && $this->objects->deliveryMode() === 'redirect') {
+            $url = $this->objects->signedUrl($doc->storageDisk, $doc->storagePath, $name, $doc->mimeType);
+            if ($url !== null) {
+                return Response::redirect($url, 302, allowExternal: true)->withHeaders(['Cache-Control' => 'no-store', 'Referrer-Policy' => 'no-referrer']);
+            }
+        }
+
+        $tmp = $this->objects->fetchToTemp($doc->storageDisk, $doc->storagePath);
+        if ($tmp === null) {
+            abort(503, 'The file store is temporarily unavailable. Please try again in a moment.');
+        }
+
+        return Response::stream(static function () use ($tmp): void {
+            readfile($tmp);
+            @unlink($tmp);
+        }, 200, [
+            'Content-Type' => $doc->mimeType,
+            'Content-Disposition' => ($inline ? 'inline' : 'attachment') . '; filename="' . $name . '"',
+            'Content-Length' => (string) filesize($tmp),
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store',
         ]);

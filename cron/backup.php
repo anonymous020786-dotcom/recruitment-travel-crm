@@ -11,6 +11,7 @@ declare(strict_types=1);
 use App\Support\Application;
 use App\Support\BackupManager;
 use App\Support\CronRunner;
+use App\Storage\OffsiteBackup;
 use App\Support\Logger;
 
 /** @var Application $app */
@@ -23,7 +24,16 @@ return CronRunner::finish($app->get(CronRunner::class)->run('backup', 1700, func
         $app->basePath('storage/private/documents'),
         $app->get(Logger::class),
     ))->run();
-    $progress(1 + ($r['files'] !== null ? 1 : 0));
 
-    return 1 + ($r['files'] !== null ? 1 : 0);
+    // Copy the new files to the storage bucket too (when one is configured). A failure here is logged and shown in the
+    // cron output but does not fail the backup itself, which has already succeeded and is verified.
+    $offsite = $app->get(OffsiteBackup::class)->push($app->basePath('storage/private/backups'), $r);
+    if ($offsite['failed'] !== []) {
+        $app->get(Logger::class)->error('off-site backup incomplete: {files}', ['files' => implode(', ', $offsite['failed'])]);
+    }
+
+    $n = 1 + ($r['files'] !== null ? 1 : 0);
+    $progress($n);
+
+    return $n;
 }));

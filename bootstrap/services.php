@@ -122,6 +122,11 @@ return static function (Application $app): void {
 
     $app->singleton(\App\Support\Totp::class);
     $app->singleton(\App\Integrations\Credentials::class);
+    $app->singleton(\App\Storage\Transport::class, static fn (): \App\Storage\Transport => new \App\Storage\CurlTransport());
+    $app->singleton(\App\Storage\ObjectStorage::class);
+    $app->singleton(\App\Storage\OffsiteBackup::class, static fn (Application $app): \App\Storage\OffsiteBackup => new \App\Storage\OffsiteBackup(
+        $app->get(\App\Storage\ObjectStorage::class), $app->get(\App\Integrations\Credentials::class), $app->get(Logger::class),
+    ));
     $app->singleton(\App\Support\Encryptor::class, static fn (Application $app) => new \App\Support\Encryptor(
         (string) $app->config()->get('app.key', ''),
     ));

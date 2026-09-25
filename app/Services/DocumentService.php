@@ -17,7 +17,9 @@ use App\Models\User;
 use App\Repositories\CandidateDocumentRepository;
 use App\Repositories\ChecklistRepository;
 use App\Repositories\DocumentTypeRepository;
+use App\Storage\ObjectStorage;
 use App\Support\DocumentUpload;
+use App\Support\Logger;
 use App\Support\Ulid;
 
 /**
@@ -37,6 +39,8 @@ final class DocumentService
         private readonly AuditService $audit,
         private readonly StatusMachine $statuses,
         private readonly ChecklistRepository $checklist,
+        private readonly ObjectStorage $objects,
+        private readonly Logger $logger,
     ) {
     }
 
@@ -59,11 +63,13 @@ final class DocumentService
         }
 
         $stored = $this->upload->store($file, $type->allowedMime, $type->maxSizeKb);
+        $disk = $this->placeOnActiveDisk($stored);
 
         $id = $this->documents->create([
             'public_id'        => Ulid::generate(),
             'candidate_id'     => $candidate->id,
             'document_type_id' => $type->id,
+            'storage_disk'     => $disk,
             'storage_path'     => $stored['storage_path'],
             'original_name'    => mb_substr((string) ($file['name'] ?? 'document'), 0, 200),
             'mime_type'        => $stored['mime_type'],
@@ -119,6 +125,42 @@ final class DocumentService
             'document_id' => $documentId, 'original_name' => $document->originalName,
         ], null, null, $actor);
 
+        $this->removeFile($document);
+    }
+
+    /**
+     * Push a freshly stored file to the chosen bucket (when one is configured) and drop the server copy. If the bucket cannot be
+     * reached the file simply stays on the server disk — a document is never lost or refused because of a storage outage.
+     *
+     * @param array{storage_path:string,mime_type:string,extension:string,size_bytes:int,sha256:string} $stored
+     */
+    private function placeOnActiveDisk(array $stored): string
+    {
+        $disk = $this->objects->activeDisk();
+        if (!ObjectStorage::isRemote($disk)) {
+            return ObjectStorage::LOCAL;
+        }
+        $absolute = $this->upload->absolutePath($stored['storage_path']);
+        if ($this->objects->put($disk, $stored['storage_path'], $absolute, $stored['mime_type'], $stored['sha256'])) {
+            @unlink($absolute);
+
+            return $disk;
+        }
+        $this->logger->warning('document kept on the server disk: {disk} was unreachable', ['disk' => $disk]);
+
+        return ObjectStorage::LOCAL;
+    }
+
+    /** Delete a document's bytes from wherever they live. */
+    private function removeFile(CandidateDocument $document): void
+    {
+        if (ObjectStorage::isRemote($document->storageDisk)) {
+            if (!$this->objects->delete($document->storageDisk, $document->storagePath)) {
+                $this->logger->warning('document {id} could not be deleted from {disk}', ['id' => $document->id, 'disk' => $document->storageDisk]);
+            }
+
+            return;
+        }
         @unlink($this->upload->absolutePath($document->storagePath));
     }
 

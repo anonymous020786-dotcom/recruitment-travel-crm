@@ -37,6 +37,7 @@ final class CandidateDocument
         public readonly int $recordVersion,
         public readonly string $createdAt,
         public readonly string $updatedAt,
+        public readonly string $storageDisk = 'private',
     ) {
     }
 
@@ -68,6 +69,7 @@ final class CandidateDocument
             recordVersion: (int) $r['record_version'],
             createdAt: (string) $r['created_at'],
             updatedAt: (string) $r['updated_at'],
+            storageDisk: (string) ($r['storage_disk'] ?? 'private'),
         );
     }
 

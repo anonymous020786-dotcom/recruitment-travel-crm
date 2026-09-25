@@ -38,6 +38,7 @@ use App\Controllers\Crm\IntegrationController;
 use App\Controllers\Crm\LeadSourceAdminController;
 use App\Controllers\Crm\RoleAdminController;
 use App\Controllers\Crm\SettingsController;
+use App\Controllers\Crm\StorageController;
 use App\Controllers\Crm\TaskController;
 use App\Controllers\Crm\UserAdminController;
 use App\Controllers\Crm\VisaController;
@@ -454,6 +455,12 @@ return static function (Router $router): void {
         $r->get('/admin/integrations/{service}', [IntegrationController::class, 'show'])->middleware(['can:integrations.view'])->name('admin.integrations.show');
         $r->put('/admin/integrations/{service}', [IntegrationController::class, 'update'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.integrations.update');
         $r->post('/admin/integrations/{service}/reset', [IntegrationController::class, 'reset'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.integrations.reset');
+
+        // ---- Admin: storage (where documents live, cost estimate, move/lifecycle tools) ----
+        $r->get('/admin/storage', [StorageController::class, 'index'])->middleware(['can:integrations.view'])->name('admin.storage');
+        $r->post('/admin/storage/test', [StorageController::class, 'test'])->middleware(['can:integrations.manage', 'throttle:write'])->name('admin.storage.test');
+        $r->post('/admin/storage/lifecycle', [StorageController::class, 'lifecycle'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.storage.lifecycle');
+        $r->post('/admin/storage/migrate', [StorageController::class, 'migrate'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.storage.migrate');
 
         // ---- Admin: branches and lead sources (organisation-level lists) ----
         $r->get('/admin/branches', [BranchAdminController::class, 'index'])->middleware(['can:branches.view'])->name('admin.branches.index');

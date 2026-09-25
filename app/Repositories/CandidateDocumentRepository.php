@@ -20,7 +20,7 @@ final class CandidateDocumentRepository
 {
     private const COLUMNS = "d.id, d.public_id, d.candidate_id, d.document_type_id,
         dt.key_name AS type_key, dt.label AS type_label,
-        d.storage_path, d.original_name, d.mime_type, d.extension, d.size_bytes, d.sha256,
+        d.storage_disk, d.storage_path, d.original_name, d.mime_type, d.extension, d.size_bytes, d.sha256,
         d.status, d.rejection_reason, d.issued_on, d.expires_at,
         d.uploaded_by, u.name AS uploader_name, d.verified_by, v.name AS verifier_name, d.verified_at,
         d.record_version, d.created_at, d.updated_at";
