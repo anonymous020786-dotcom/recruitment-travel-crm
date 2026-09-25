@@ -40,6 +40,7 @@ return CronRunner::finish($app->get(CronRunner::class)->run('cleanup', 600, func
     $progress($app->get(PasswordResetRepository::class)->pruneExpired());
     $progress($app->get(LoginAttemptRepository::class)->pruneOlderThan(45));
     $progress($app->get(MailQueue::class)->prune(30));
+    $progress($app->get(\App\Security\IpRules::class)->pruneExpired());
 
     $progress($db->affectingStatement(
         "DELETE FROM cron_runs WHERE started_at < (UTC_TIMESTAMP() - INTERVAL 30 DAY)",

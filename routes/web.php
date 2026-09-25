@@ -35,6 +35,7 @@ use App\Controllers\Crm\AuditLogController;
 use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\BranchAdminController;
 use App\Controllers\Crm\IntegrationController;
+use App\Controllers\Crm\SecurityController;
 use App\Controllers\Crm\LeadSourceAdminController;
 use App\Controllers\Crm\OnlinePaymentController;
 use App\Controllers\Crm\RoleAdminController;
@@ -466,6 +467,20 @@ return static function (Router $router): void {
         $r->post('/online-payments/{link}/cancel', [OnlinePaymentController::class, 'cancel'])->middleware(['can:payments.create', 'throttle:payments.write'])->name('online_payments.cancel');
 
         // ---- Admin: integrations (super admin only; secrets are write-only; writes need a fresh password confirmation) ----
+        // ---- Admin: security centre (super admin; every change needs a fresh password confirmation) ----
+        $r->get('/admin/security', [SecurityController::class, 'index'])->middleware(['can:security.view', 'throttle:dashboard'])->name('admin.security');
+        $r->get('/admin/security/rate-limits', [SecurityController::class, 'rateLimits'])->middleware(['can:security.view'])->name('admin.security.rate_limits');
+        $r->put('/admin/security/rate-limits', [SecurityController::class, 'saveRateLimits'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.security.rate_limits.save');
+        $r->post('/admin/security/rate-limits/reset', [SecurityController::class, 'resetRateLimits'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.security.rate_limits.reset');
+        $r->get('/admin/security/policy', [SecurityController::class, 'policy'])->middleware(['can:security.view'])->name('admin.security.policy');
+        $r->put('/admin/security/policy', [SecurityController::class, 'savePolicy'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.security.policy.save');
+        $r->get('/admin/security/ip-rules', [SecurityController::class, 'ipRules'])->middleware(['can:security.view'])->name('admin.security.ip_rules');
+        $r->post('/admin/security/ip-rules', [SecurityController::class, 'addIpRule'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.security.ip_rules.add');
+        $r->post('/admin/security/ip-rules/{id}/remove', [SecurityController::class, 'removeIpRule'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.security.ip_rules.remove');
+        $r->get('/admin/security/sessions', [SecurityController::class, 'sessions'])->middleware(['can:security.view'])->name('admin.security.sessions');
+        $r->post('/admin/security/sessions/revoke', [SecurityController::class, 'revokeSession'])->middleware(['can:security.manage', 'throttle:write'])->name('admin.security.sessions.revoke');
+        $r->post('/admin/security/sessions/sign-out-others', [SecurityController::class, 'signOutEveryoneElse'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.security.sessions.sign_out_others');
+        $r->post('/admin/security/users/{user}/sign-out', [SecurityController::class, 'signOutUser'])->middleware(['can:security.manage', 'throttle:write'])->name('admin.security.users.sign_out');
         $r->get('/admin/integrations', [IntegrationController::class, 'index'])->middleware(['can:integrations.view'])->name('admin.integrations.index');
         $r->get('/admin/integrations/{service}', [IntegrationController::class, 'show'])->middleware(['can:integrations.view'])->name('admin.integrations.show');
         $r->put('/admin/integrations/{service}', [IntegrationController::class, 'update'])->middleware(['can:integrations.manage', 'confirm', 'throttle:write'])->name('admin.integrations.update');

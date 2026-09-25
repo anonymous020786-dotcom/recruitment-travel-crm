@@ -1304,6 +1304,35 @@ CREATE TABLE settings (
     PRIMARY KEY (key_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Security centre (migration 0021): panel overrides of rate limits / 2FA policy, and IP allow/block rules.
+CREATE TABLE security_settings (
+    name        VARCHAR(60)     NOT NULL,
+    value       VARCHAR(500)    NOT NULL,
+    updated_by  BIGINT UNSIGNED NULL,
+    updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (name),
+    CONSTRAINT fk_secset_user FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE ip_rules (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    effect          ENUM('block','allow') NOT NULL DEFAULT 'block',
+    cidr            VARCHAR(50)     NOT NULL,           -- as the admin typed it, normalised (1.2.3.4 or 10.0.0.0/8)
+    ip_from         VARBINARY(16)   NOT NULL,
+    ip_to           VARBINARY(16)   NOT NULL,
+    note            VARCHAR(200)    NULL,
+    source          ENUM('manual','auto') NOT NULL DEFAULT 'manual',
+    expires_at      DATETIME        NULL,               -- NULL = until removed
+    last_blocked_at DATETIME        NULL,
+    created_by      BIGINT UNSIGNED NULL,
+    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_ip_rules_cidr (effect, cidr),
+    KEY idx_ip_rules_range (ip_from, ip_to),
+    KEY idx_ip_rules_expiry (expires_at),
+    CONSTRAINT fk_iprules_user FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE countries (
     code        CHAR(2)         NOT NULL,              -- ISO-3166-1 alpha-2
     name        VARCHAR(90)     NOT NULL,

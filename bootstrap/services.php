@@ -122,6 +122,8 @@ return static function (Application $app): void {
 
     $app->singleton(\App\Support\Totp::class);
     $app->singleton(\App\Integrations\Credentials::class);
+    $app->singleton(\App\Security\SecurityPolicy::class);
+    $app->singleton(\App\Security\IpRules::class);
     $app->singleton(\App\Storage\Transport::class, static fn (): \App\Storage\Transport => new \App\Storage\CurlTransport());
     $app->singleton(\App\Storage\ObjectStorage::class);
     $app->singleton(\App\Payments\GatewayRegistry::class);   // one adapter per gateway per request (PayPal reuses its OAuth token)

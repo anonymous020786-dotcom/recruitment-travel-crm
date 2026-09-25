@@ -67,6 +67,7 @@ final class AuthService
 
         if ($user === null || !$user->isActive || !$passwordOk) {
             $this->attempts->record($email, $ipBinary, false);
+            $this->autoBlock($ipBinary);
 
             if ($user !== null && !$passwordOk) {
                 $failures = $this->users->incrementFailedLogins($user->id);
@@ -160,6 +161,20 @@ final class AuthService
 
         $this->audit->log('password_reset', 'auth', 'user', $user->id, null, null, 'via reset link', $user);
         $this->logger->info('password reset completed', ['user_id' => $user->id]);
+    }
+
+    /** Admin → Security → automatic block: too many failed sign-ins from one address in 15 minutes blocks it for a while. */
+    private function autoBlock(string $ipBinary): void
+    {
+        if ((int) $this->app->config()->get('security.autoblock.threshold', 0) <= 0) {
+            return;
+        }
+        try {
+            $failures = $this->attempts->recentFailuresByIp($ipBinary, (int) $this->app->config()->get('security_console.autoblock.window', 900));
+            $this->app->get(\App\Security\IpRules::class)->maybeAutoBlock($ipBinary, $failures);
+        } catch (\Throwable $e) {
+            $this->logger->warning('automatic IP block failed: {m}', ['m' => $e->getMessage()]);   // never let it break a sign-in
+        }
     }
 
     private function e(string $v): string

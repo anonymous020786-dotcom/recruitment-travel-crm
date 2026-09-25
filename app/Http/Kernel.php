@@ -10,6 +10,7 @@ use App\Http\Middleware\BindBranchScope;
 use App\Http\Middleware\Enforce2fa;
 use App\Http\Middleware\EnforceHttps;
 use App\Http\Middleware\ForceJson;
+use App\Http\Middleware\IpFilter;
 use App\Http\Middleware\MaintenanceGuard;
 use App\Http\Middleware\MinifyHtml;
 use App\Http\Middleware\Passthrough;
@@ -41,6 +42,7 @@ final class Kernel
     public array $global = [
         RequestId::class,
         EnforceHttps::class,
+        IpFilter::class,
         MaintenanceGuard::class,
     ];
 

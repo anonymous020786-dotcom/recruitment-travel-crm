@@ -180,6 +180,10 @@ return [
             'view' => 'View integrations and their status (secrets stay masked)', 'manage' => 'Set, rotate and clear API keys and secrets',
         ],
 
+        'security' => [
+            'view' => 'View the security centre (rate limits, IP rules, sessions, sign-in attempts)', 'manage' => 'Change rate limits, two-factor policy and IP rules; sign users out',
+        ],
+
         'branches' => [
             'view' => 'View branches', 'manage' => 'Create, edit and deactivate branches',
         ],
@@ -210,6 +214,7 @@ return [
             '*',
             '!roles.manage',   // only super_admin edits the permission matrix
             '!integrations.*', // only super_admin sees or changes API keys and secrets
+            '!security.*',     // only super_admin changes rate limits, IP rules and the two-factor policy
         ],
 
         'manager' => [

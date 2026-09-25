@@ -90,6 +90,11 @@ if (\PHP_SAPI !== 'cli' || !\defined('SKIP_CREDENTIAL_OVERLAY')) {
         $app->get(\App\Integrations\Credentials::class)->applyToConfig();
     } catch (\Throwable) {
     }
+    // Rate limits, the two-factor policy and the IP-rules flag saved in Admin → Security (same rule: skipped when unavailable).
+    try {
+        $app->get(\App\Security\SecurityPolicy::class)->applyToConfig();
+    } catch (\Throwable) {
+    }
 }
 
 // ---- Error / exception handlers ------------------------------------------
