@@ -24,5 +24,5 @@ No SDK, no Composer package: `App\Storage` implements the S3 API directly (works
 ## Honest limits
 Verified with request-shape/signature tests and fakes, **not against a live bucket** — do the first run with a test bucket: *Test connection*, upload one document, download it, then *Move the next 25*. Documents inside the bucket are not in the local documents backup; enable bucket versioning for point-in-time recovery.
 
-## Tests (+37; 1206 total)
+## Tests (+37; 1191 total)
 `SigV4Test` (5, AWS vectors) · `S3ClientTest` (13: request shape and signature on the wire, addressing styles, HEAD/GET/DELETE, streaming download, presigned URL contents and signature, expiry clamp, listing, bucket-check messages, failures, lifecycle XML and its Content-MD5) · `ObjectStorageDocumentsTest` (19: upload placement and the outage fail-safe, delete, signed-link vs proxy delivery, 503, authorisation before any link, migrator success / failure / verification mismatch / dry run / missing files, cost arithmetic checked by hand, admin screens and actions, off-site backups incl. verification, unsafe names, pruning).

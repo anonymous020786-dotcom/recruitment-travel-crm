@@ -36,6 +36,7 @@ use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\BranchAdminController;
 use App\Controllers\Crm\IntegrationController;
 use App\Controllers\Crm\LeadSourceAdminController;
+use App\Controllers\Crm\OnlinePaymentController;
 use App\Controllers\Crm\RoleAdminController;
 use App\Controllers\Crm\SettingsController;
 use App\Controllers\Crm\StorageController;
@@ -47,6 +48,7 @@ use App\Controllers\Crm\PasskeyController;
 use App\Controllers\HealthController;
 use App\Controllers\Public\BlogBoardController;
 use App\Controllers\Public\ContactController;
+use App\Controllers\Public\PayController;
 use App\Controllers\Public\JobBoardController;
 use App\Controllers\Public\PackageBoardController;
 use App\Controllers\Public\PublicPageController;
@@ -69,6 +71,15 @@ return static function (Router $router): void {
         $r->get('/travel-packages/{slug}', [PackageBoardController::class, 'show'])->name('packages.show');
         $r->get('/blog', [BlogBoardController::class, 'index'])->name('blog.index');
         $r->get('/blog/{slug}', [BlogBoardController::class, 'show'])->name('blog.show');
+    });
+
+    // ---- Online payments (customer + gateways): no session, no CSRF — every gateway message is verified by its own signature ----
+    $router->group(['middleware' => ['web.public'], 'name' => 'public.'], static function (Router $r): void {
+        $r->get('/pay/{id}', [PayController::class, 'show'])->middleware(['throttle:pay_public'])->name('pay.show');
+        $r->post('/pay/{id}/go', [PayController::class, 'go'])->middleware(['throttle:pay_public'])->name('pay.go');
+        $r->get('/pay/{id}/return', [PayController::class, 'returned'])->middleware(['throttle:pay_public'])->name('pay.return');
+        $r->post('/pay/{id}/return', [PayController::class, 'returned'])->middleware(['throttle:pay_public'])->name('pay.return.post');
+        $r->post('/webhooks/{gateway}', [PayController::class, 'webhook'])->middleware(['throttle:webhook'])->name('webhooks');
     });
 
     // ---- Public forms (session for flash/CSRF, not shared-cached) -------
@@ -449,6 +460,10 @@ return static function (Router $router): void {
         $r->post('/admin/blog/{post}/publish', [BlogController::class, 'publish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.publish');
         $r->post('/admin/blog/{post}/unpublish', [BlogController::class, 'unpublish'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.unpublish');
         $r->post('/admin/blog/{post}/archive', [BlogController::class, 'archive'])->middleware(['can:blog.manage', 'throttle:write'])->name('admin.blog.archive');
+
+        // ---- Online payments (staff): pay links for invoices ----
+        $r->post('/invoices/{invoice}/online-payments', [OnlinePaymentController::class, 'store'])->middleware(['can:payments.create', 'throttle:payments.write'])->name('invoices.online.store');
+        $r->post('/online-payments/{link}/cancel', [OnlinePaymentController::class, 'cancel'])->middleware(['can:payments.create', 'throttle:payments.write'])->name('online_payments.cancel');
 
         // ---- Admin: integrations (super admin only; secrets are write-only; writes need a fresh password confirmation) ----
         $r->get('/admin/integrations', [IntegrationController::class, 'index'])->middleware(['can:integrations.view'])->name('admin.integrations.index');

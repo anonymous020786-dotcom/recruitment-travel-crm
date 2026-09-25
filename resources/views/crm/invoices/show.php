@@ -74,6 +74,10 @@ $refLink = $invoice->referenceNumber !== null
             </div>
         <?php endif ?>
 
+        <?php if (!empty($online) && ($online['links'] !== [] || $online['can_create'])): ?>
+            <?= $this->partial('crm.invoices._online', ['invoice' => $invoice, 'online' => $online]) ?>
+        <?php endif ?>
+
         <div id="history">
             <?= component('card', ['title' => 'Status history', 'body' => (function () use ($history, $label) {
                 $html = '<ol class="space-y-3 text-sm">';

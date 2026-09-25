@@ -25,6 +25,7 @@ final class RouteAuditTest extends DbTestCase
         'GET /', 'GET /about', 'GET /robots.txt', 'GET /sitemap.xml', 'GET /contact', 'POST /contact',
         'GET /overseas-jobs', 'GET /overseas-jobs/{slug}', 'GET /overseas-jobs/{slug}/apply', 'POST /overseas-jobs/{slug}/apply',
         'GET /blog', 'GET /blog/{slug}',
+        'GET /pay/{id}', 'POST /pay/{id}/go', 'GET /pay/{id}/return', 'POST /pay/{id}/return', 'POST /webhooks/{gateway}',
         'GET /travel-packages', 'GET /travel-packages/{slug}', 'GET /travel-packages/{slug}/enquire', 'POST /travel-packages/{slug}/enquire',
         'GET /health', 'GET /api/ping',
         'GET /login', 'POST /login', 'POST /login/passkey/options', 'POST /login/passkey',
@@ -60,6 +61,13 @@ final class RouteAuditTest extends DbTestCase
         'POST /account/sessions/revoke'         => 'own sessions only',
         'POST /account/sessions/revoke-all'     => 'own sessions, behind step-up',
         'POST /candidates/{candidate}/documents/{document}/review' => 'DocumentService requires documents.verify OR documents.reject (either one)',
+    ];
+
+    /** Public writes with no session, so no CSRF token — and why each is safe. */
+    private const CSRF_EXEMPT = [
+        'POST /pay/{id}/go'          => 'starts a checkout for an unguessable pay link; no session exists; rate limited',
+        'POST /pay/{id}/return'      => 'the gateway posts the customer back; the result is acted on only after the gateway\'s own signature/hash verifies',
+        'POST /webhooks/{gateway}'   => 'server-to-server; nothing is trusted until the gateway\'s signature verifies (bad ones are logged and refused)',
     ];
 
     /** Signed-in writes exempt from the per-user write throttle. */
@@ -157,12 +165,16 @@ final class RouteAuditTest extends DbTestCase
             }
         }
 
-        self::assertSame([], $missing, 'write route(s) without CSRF verification');
+        self::assertSame([], array_values(array_diff($missing, array_keys(self::CSRF_EXEMPT))), 'write route(s) without CSRF verification');
+        self::assertSame([], array_values(array_diff(array_keys(self::CSRF_EXEMPT), $missing)), 'listed CSRF exemption(s) that now verify CSRF or no longer exist — update the list');
     }
 
     public function test_no_state_change_hides_behind_a_get(): void
     {
-        $formsOnly = ['/leads/{lead}/merge']; // GET renders the confirmation form; the POST does the merge
+        $formsOnly = [
+            '/leads/{lead}/merge',                                  // GET renders the confirmation form; the POST does the merge
+            '/pay/{id}', '/pay/{id}/return',                         // read-only pay page / the customer's return page (any payment it triggers is verified by the gateway's signature and idempotent)
+        ];
         $suspicious = [];
         foreach ($this->routes as $r) {
             if (in_array('GET', $r->methods, true) && !in_array($r->uri, $formsOnly, true) && preg_match('#/(delete|destroy|remove|revoke|approve|reject|cancel|reverse|void|issue|pay|paid|complete|publish|logout|convert|merge|assign)(/|$)#', $r->uri)) {
@@ -236,6 +248,7 @@ final class RouteAuditTest extends DbTestCase
         $exceptions = [
             'ExportRepository'      => 'the controller checks requested_by === the current user (404 otherwise)',
             'TourPackageRepository' => 'packages are an organisation-wide catalogue with no branch',
+            'GatewayPaymentRepository' => 'customer pay links are reached by their unguessable 128-bit id; every staff route resolves the invoice through its branch scope first (OnlinePaymentController)',
             'UserAdminRepository'   => 'staff accounts are organisation-wide; every route needs users.view / users.manage and UserAdminService enforces who may act on whom (super admins, self, last super admin)',
         ];
         $unscoped = [];

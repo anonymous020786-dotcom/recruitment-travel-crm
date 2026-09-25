@@ -22,5 +22,7 @@ return [
         'import'         => ['by' => ['user'],        'limit' => 5,   'window_seconds' => 3600],
         'export'         => ['by' => ['user'],        'limit' => 10,  'window_seconds' => 3600],
         'public_form'    => ['by' => ['ip'],          'limit' => 5,   'window_seconds' => 3600],
+        'pay_public'     => ['by' => ['ip'],          'limit' => 60,  'window_seconds' => 60],
+        'webhook'        => ['by' => ['ip'],          'limit' => 600, 'window_seconds' => 60],
     ],
 ];

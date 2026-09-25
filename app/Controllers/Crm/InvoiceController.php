@@ -33,6 +33,7 @@ final class InvoiceController extends CrmController
         private readonly TourBookingRepository $bookings,
         private readonly InvoiceService $service,
         private readonly \App\Repositories\PaymentAllocationRepository $allocations,
+        private readonly \App\Payments\OnlinePaymentService $online,
     ) {
     }
 
@@ -117,6 +118,7 @@ final class InvoiceController extends CrmController
             'lines'     => $this->lines->forInvoice($model->id),
             'history'   => $this->history->forInvoice($model->id),
             'payments'  => can('payments.view') ? $this->allocations->forInvoice($model->id) : null,
+            'online'    => can('payments.view') || can('payments.create') ? $this->online->panel($model, $this->currentUser(), session()?->get('new_pay_link')) : null,
             'canPay'    => can('payments.create') && in_array($model->status, Invoice::COLLECTIBLE, true) && $model->outstandingMinor() > 0,
             'canEdit'   => can('edit', $model) && $model->isDraft(),
             'canIssue'  => can('issue', $model) && $model->isDraft(),
