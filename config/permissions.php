@@ -180,6 +180,10 @@ return [
             'view' => 'View integrations and their status (secrets stay masked)', 'manage' => 'Set, rotate and clear API keys and secrets',
         ],
 
+        'cms' => [
+            'view' => 'View website pages', 'manage' => 'Write and edit website pages; submit them for review', 'publish' => 'Publish, schedule, unpublish and archive website pages',
+        ],
+
         'security' => [
             'view' => 'View the security centre (rate limits, IP rules, sessions, sign-in attempts)', 'manage' => 'Change rate limits, two-factor policy and IP rules; sign users out',
         ],
@@ -227,7 +231,7 @@ return [
             'jobs.*',
             'applications.*', '!applications.view_all',
             'interviews.*', 'medical.*', 'visa.*', 'travel.*',
-            'tours.*', 'blog.*',
+            'tours.*', 'blog.*', 'cms.view', 'cms.manage',
             'invoices.*', 'payments.*', 'allocations.manage', 'refunds.*', 'receipts.*',
             'reports.view', 'reports.finance.view', 'reports.export',
             'communication.*', 'tasks.*', 'imports.run', 'exports.run',

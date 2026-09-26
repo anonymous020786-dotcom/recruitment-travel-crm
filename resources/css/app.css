@@ -71,6 +71,35 @@
     }
     .nav-link.is-active { @apply bg-brand-50 text-brand-700; }
 
+    /* Website page content (App\Cms\CmsFormatter output) ------------- */
+    .cms-prose { @apply leading-relaxed text-slate-800; }
+    .cms-prose > * + * { @apply mt-4; }
+    .cms-prose h2 { @apply mt-8 text-2xl font-semibold text-slate-900; }
+    .cms-prose h3 { @apply mt-6 text-xl font-semibold text-slate-900; }
+    .cms-prose h4 { @apply mt-4 text-lg font-semibold text-slate-900; }
+    .cms-prose a { @apply font-medium text-brand-600; }
+    .cms-prose a.btn-primary { @apply text-white; }
+    .cms-prose ul { @apply list-disc space-y-1 pl-6; }
+    .cms-prose ol { @apply list-decimal space-y-1 pl-6; }
+    .cms-prose blockquote { @apply border-l-4 border-brand-200 bg-brand-50 px-4 py-2 text-slate-700; }
+    .cms-prose hr { @apply my-8 border-slate-200; }
+    .cms-prose pre { @apply overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-100; }
+    .cms-prose code { @apply rounded bg-slate-100 px-1 py-0.5 text-sm; }
+    .cms-prose pre code { @apply bg-transparent p-0 text-slate-100; }
+    .cms-prose figure { @apply my-6; }
+    .cms-prose figure img { @apply mx-auto h-auto max-w-full rounded-lg; }
+    .cms-prose figcaption { @apply mt-2 text-center text-sm text-slate-500; }
+    .cms-prose .cms-table { @apply overflow-x-auto; }
+    .cms-prose table { @apply w-full border-collapse text-sm; }
+    .cms-prose th { @apply border-b-2 border-slate-300 bg-slate-50 px-3 py-2 font-semibold; }
+    .cms-prose td { @apply border-b border-slate-200 px-3 py-2; }
+    .cms-prose .cms-toc { @apply rounded-lg border border-slate-200 bg-white p-4 text-sm; }
+    .cms-prose .cms-toc ol { @apply list-decimal pl-5; }
+    .cms-prose .cms-cards { @apply grid list-none gap-3 pl-0 sm:grid-cols-2; }
+    .cms-prose .cms-card { @apply block rounded-lg border border-slate-200 bg-white p-4; }
+    .cms-prose details { @apply rounded-lg border border-slate-200 bg-white p-3; }
+    .cms-prose summary { @apply cursor-pointer font-medium text-slate-900; }
+
     /* Skeleton -------------------------------------------- */
     .skeleton { @apply animate-pulse rounded bg-slate-200; }
 }

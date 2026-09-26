@@ -35,6 +35,7 @@ use App\Controllers\Crm\AuditLogController;
 use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\BranchAdminController;
 use App\Controllers\Crm\IntegrationController;
+use App\Controllers\Crm\CmsPageController;
 use App\Controllers\Crm\SecurityController;
 use App\Controllers\Crm\UserPermissionController;
 use App\Controllers\Crm\LeadSourceAdminController;
@@ -53,6 +54,7 @@ use App\Controllers\Public\ContactController;
 use App\Controllers\Public\PayController;
 use App\Controllers\Public\JobBoardController;
 use App\Controllers\Public\PackageBoardController;
+use App\Controllers\Public\CmsPublicController;
 use App\Controllers\Public\PublicPageController;
 use App\Controllers\Public\SeoController;
 use App\Http\Router;
@@ -73,6 +75,7 @@ return static function (Router $router): void {
         $r->get('/travel-packages/{slug}', [PackageBoardController::class, 'show'])->name('packages.show');
         $r->get('/blog', [BlogBoardController::class, 'index'])->name('blog.index');
         $r->get('/blog/{slug}', [BlogBoardController::class, 'show'])->name('blog.show');
+        $r->get('/preview/{token}', [CmsPublicController::class, 'preview'])->middleware(['throttle:pay_public'])->name('cms.preview');
     });
 
     // ---- Online payments (customer + gateways): no session, no CSRF — every gateway message is verified by its own signature ----
@@ -473,6 +476,28 @@ return static function (Router $router): void {
         $r->post('/online-payments/{link}/cancel', [OnlinePaymentController::class, 'cancel'])->middleware(['can:payments.create', 'throttle:payments.write'])->name('online_payments.cancel');
 
         // ---- Admin: integrations (super admin only; secrets are write-only; writes need a fresh password confirmation) ----
+        // ---- Admin: website pages (CMS). Writers hold cms.manage, publishers cms.publish ----
+        $r->get('/admin/cms', [CmsPageController::class, 'index'])->middleware(['can:cms.view', 'throttle:dashboard'])->name('admin.cms.index');
+        $r->get('/admin/cms/create', [CmsPageController::class, 'create'])->middleware(['can:cms.manage'])->name('admin.cms.create');
+        $r->post('/admin/cms', [CmsPageController::class, 'store'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.store');
+        $r->post('/admin/cms/bulk', [CmsPageController::class, 'bulk'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.bulk');
+        $r->get('/admin/cms/{page}/edit', [CmsPageController::class, 'edit'])->middleware(['can:cms.view'])->name('admin.cms.edit');
+        $r->put('/admin/cms/{page}', [CmsPageController::class, 'update'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.update');
+        $r->get('/admin/cms/{page}/preview', [CmsPageController::class, 'preview'])->middleware(['can:cms.view'])->name('admin.cms.preview');
+        $r->get('/admin/cms/{page}/revisions', [CmsPageController::class, 'revisions'])->middleware(['can:cms.view'])->name('admin.cms.revisions');
+        $r->post('/admin/cms/{page}/revisions/{version}/restore', [CmsPageController::class, 'revertRevision'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.revert');
+        $r->post('/admin/cms/{page}/submit', [CmsPageController::class, 'submit'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.submit');
+        $r->post('/admin/cms/{page}/duplicate', [CmsPageController::class, 'duplicate'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.duplicate');
+        $r->post('/admin/cms/{page}/trash', [CmsPageController::class, 'trash'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.trash');
+        $r->post('/admin/cms/{page}/untrash', [CmsPageController::class, 'untrash'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.untrash');
+        $r->post('/admin/cms/{page}/restore', [CmsPageController::class, 'restore'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.restore');
+        $r->post('/admin/cms/{page}/preview-link', [CmsPageController::class, 'createPreviewLink'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.preview_link');
+        $r->post('/admin/cms/{page}/preview-link/revoke', [CmsPageController::class, 'revokePreviewLinks'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.preview_revoke');
+        $r->post('/admin/cms/{page}/send-back', [CmsPageController::class, 'sendBack'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.send_back');
+        $r->post('/admin/cms/{page}/publish', [CmsPageController::class, 'publish'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.publish');
+        $r->post('/admin/cms/{page}/unpublish', [CmsPageController::class, 'unpublish'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.unpublish');
+        $r->post('/admin/cms/{page}/archive', [CmsPageController::class, 'archive'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.archive');
+        $r->post('/admin/cms/{page}/purge', [CmsPageController::class, 'purge'])->middleware(['can:cms.publish', 'confirm', 'throttle:write'])->name('admin.cms.purge');
         // ---- Admin: security centre (super admin; every change needs a fresh password confirmation) ----
         $r->get('/admin/security', [SecurityController::class, 'index'])->middleware(['can:security.view', 'throttle:dashboard'])->name('admin.security');
         $r->get('/admin/security/rate-limits', [SecurityController::class, 'rateLimits'])->middleware(['can:security.view'])->name('admin.security.rate_limits');
@@ -541,4 +566,7 @@ return static function (Router $router): void {
         $r->post('/jobs/{job}/benefits', [JobController::class, 'storeBenefit'])->middleware(['can:jobs.edit', 'throttle:write'])->name('jobs.benefits.store');
         $r->delete('/jobs/{job}/benefits/{benefit}', [JobController::class, 'destroyBenefit'])->middleware(['can:jobs.edit', 'throttle:write'])->name('jobs.benefits.destroy');
     });
+
+    // ---- Website pages (Admin → Pages) and, later, redirects: answer a GET that no route above matched ----
+    $router->fallback([CmsPublicController::class, 'page'], ['web.public']);
 };

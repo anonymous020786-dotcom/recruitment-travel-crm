@@ -34,6 +34,7 @@ return [
     ['label' => 'Branches',     'icon' => 'admin',        'path' => '/admin/branches', 'permission' => 'branches.view'],
     ['label' => 'Lead sources', 'icon' => 'admin',        'path' => '/admin/lead-sources', 'permission' => 'settings.view'],
     ['label' => 'Audit log',    'icon' => 'admin',        'path' => '/admin/audit',    'permission' => 'audit.view'],
+    ['label' => 'Pages',        'icon' => 'admin',        'path' => '/admin/cms',      'permission' => 'cms.view'],
     ['label' => 'Blog',         'icon' => 'admin',        'path' => '/admin/blog',     'permission' => 'blog.view'],
     ['label' => 'Roles',        'icon' => 'admin',        'path' => '/admin/roles',    'permission' => 'roles.manage'],
     ['label' => 'Settings',     'icon' => 'admin',        'path' => '/admin/settings', 'permission' => 'settings.view'],

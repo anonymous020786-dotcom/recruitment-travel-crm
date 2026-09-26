@@ -8,7 +8,8 @@
 $title = $title ?? (string) config('seo.default_title');
 $description = $description ?? (string) config('seo.default_description');
 $appName = (string) config('app.name');
-$canonical = rtrim((string) config('app.url', ''), '/') . '/' . ltrim($canonical ?? '', '/');
+$canonical = str_starts_with((string) ($canonical ?? ''), 'https://') ? (string) $canonical : rtrim((string) config('app.url', ''), '/') . '/' . ltrim($canonical ?? '', '/');
+$chrome = $chrome ?? true;   // false: a landing page without the menu and footer
 $nav = [
     '/' => 'Home',
     '/overseas-jobs' => 'Jobs',
@@ -30,8 +31,8 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?= e_attr($canonical) ?>">
     <meta property="og:site_name" content="<?= e_attr($appName) ?>">
-    <meta property="og:title" content="<?= e_attr($title) ?>">
-    <meta property="og:description" content="<?= e_attr($description) ?>">
+    <meta property="og:title" content="<?= e_attr($ogTitle ?? $title) ?>">
+    <meta property="og:description" content="<?= e_attr($ogDescription ?? $description) ?>">
     <?php
     // The picture in link previews: a page's own image, else the one set in Admin → Settings, else the shipped default card.
     $shareBase = rtrim((string) config('app.url', ''), '/');
@@ -62,6 +63,7 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
 <body class="flex min-h-full flex-col">
 <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:ring-2 focus:ring-brand-500">Skip to content</a>
 
+<?php if ($chrome): ?>
 <header class="border-b border-slate-200 bg-white">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <a href="/" class="flex items-center gap-2">
@@ -79,11 +81,13 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
         <a href="/login" class="btn btn-secondary btn-sm">Staff sign in</a>
     </div>
 </header>
+<?php endif ?>
 
 <main id="main" class="flex-1">
     <?= $this->yield('content') ?>
 </main>
 
+<?php if ($chrome): ?>
 <footer class="mt-16 border-t border-slate-200 bg-white">
     <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:justify-between">
         <p>&copy; <?= date('Y') ?> <?= e((string) setting('business.name', $appName)) ?>. All rights reserved.</p>
@@ -97,6 +101,7 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
         </nav>
     </div>
 </footer>
+<?php endif ?>
 
 <?= $this->partial('partials.integrations-body') ?>
 </body>

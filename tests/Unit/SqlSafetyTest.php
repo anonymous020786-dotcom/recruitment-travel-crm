@@ -36,6 +36,7 @@ final class SqlSafetyTest extends TestCase
         'column'       => 'IntegrityRepository constant map',
         'n'            => 'loop counter used in placeholder names',
         'prefix'       => 'placeholder-name prefix',
+        'ph'           => 'list of ? placeholders built by array_fill',
         'year'         => 'int',
         'scope'        => 'constant sequence scope (bound value or key text)',
         'i'            => 'loop counter used in placeholder names',

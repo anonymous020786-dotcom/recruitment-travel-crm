@@ -7,12 +7,13 @@ namespace App\Controllers\Public;
 use App\Controllers\Controller;
 use App\Http\Response;
 use App\Repositories\BlogRepository;
+use App\Repositories\CmsPageRepository;
 use App\Repositories\PublicCatalogRepository;
 
 /** robots.txt and sitemap.xml (static pages plus every open public job and active public package). */
 final class SeoController extends Controller
 {
-    public function __construct(private readonly PublicCatalogRepository $catalog, private readonly BlogRepository $blog)
+    public function __construct(private readonly PublicCatalogRepository $catalog, private readonly BlogRepository $blog, private readonly CmsPageRepository $cms)
     {
     }
 
@@ -54,6 +55,10 @@ final class SeoController extends Controller
 
         foreach ($this->blog->sitemap() as $b) {
             $urls[] = ['loc' => $base . '/blog/' . rawurlencode($b['slug']), 'priority' => '0.6', 'changefreq' => 'monthly', 'lastmod' => substr($b['updated_at'], 0, 10)];
+        }
+
+        foreach ($this->cms->sitemap() as $c) {
+            $urls[] = ['loc' => $base . '/' . $c['path'], 'priority' => $c['priority'], 'changefreq' => $c['changefreq'], 'lastmod' => substr($c['updated_at'], 0, 10)];
         }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"

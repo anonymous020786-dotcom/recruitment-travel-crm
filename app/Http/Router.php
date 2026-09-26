@@ -22,6 +22,9 @@ final class Router
     /** @var array<string,Route> */
     private array $named = [];
 
+    /** @var array{handler:mixed,middleware:list<string>}|null runs for a GET/HEAD that no route matched (CMS pages, redirects) */
+    private ?array $fallback = null;
+
     /** @var array{prefix:string,middleware:list<string>,name:string} */
     private array $group = ['prefix' => '', 'middleware' => [], 'name' => ''];
 
@@ -54,6 +57,17 @@ final class Router
     public function delete(string $uri, mixed $handler): Route
     {
         return $this->addRoute(['DELETE'], $uri, $handler);
+    }
+
+    /**
+     * What to do with a GET/HEAD request that matches no route at all (a request that matches a path with the wrong method is
+     * still a 405). The handler may throw HttpException::notFound itself.
+     *
+     * @param list<string> $middleware
+     */
+    public function fallback(mixed $handler, array $middleware = []): void
+    {
+        $this->fallback = ['handler' => $handler, 'middleware' => $middleware];
     }
 
     public function any(string $uri, mixed $handler): Route
@@ -165,6 +179,15 @@ final class Router
 
         if ($matchedOtherMethod !== []) {
             throw HttpException::methodNotAllowed(array_values(array_unique($matchedOtherMethod)));
+        }
+
+        if ($this->fallback !== null && in_array($method, ['GET', 'HEAD'], true)) {
+            $fallback = $this->fallback;
+
+            return (new Pipeline($this->container))
+                ->send($request)
+                ->through($kernel->expand($fallback['middleware']))
+                ->then(fn (Request $req) => $this->toResponse($this->container->call($fallback['handler'], $this->handlerArgs($req))));
         }
 
         throw HttpException::notFound("No route for {$method} {$path}");
