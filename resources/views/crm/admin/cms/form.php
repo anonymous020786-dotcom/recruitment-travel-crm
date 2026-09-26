@@ -135,6 +135,7 @@ $err = static function (string $k): string {
             <?= $err('body') ?>
             <details class="mt-2 text-xs text-slate-600">
                 <summary class="cursor-pointer font-medium">Formatting help</summary>
+                <p class="mt-2">Pictures: upload them in the <a href="/admin/cms/media" target="_blank" rel="noopener">media library<span class="sr-only"> (opens in a new tab)</span></a> and paste the code it gives you.</p>
                 <div class="mt-2 space-y-1">
                     <p><code>## Heading</code>, <code>### Sub-heading</code> · <code>**bold**</code> <code>*italic*</code> <code>`code`</code> · <code>[text](https://…)</code> or <code>[text](/jobs)</code></p>
                     <p><code>- item</code> lists · <code>1. item</code> numbered · <code>&gt; quote</code> · <code>---</code> line · <code>![description](/path/or/https://image.jpg "caption")</code></p>

@@ -35,6 +35,7 @@ use App\Controllers\Crm\AuditLogController;
 use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\BranchAdminController;
 use App\Controllers\Crm\IntegrationController;
+use App\Controllers\Crm\CmsMediaController;
 use App\Controllers\Crm\CmsPageController;
 use App\Controllers\Crm\CmsSiteController;
 use App\Controllers\Crm\SecurityController;
@@ -495,6 +496,10 @@ return static function (Router $router): void {
         $r->put('/admin/cms/menus/{id}', [CmsSiteController::class, 'updateMenuItem'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.menus.update');
         $r->post('/admin/cms/menus/{id}/move', [CmsSiteController::class, 'moveMenuItem'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.menus.move');
         $r->post('/admin/cms/menus/{id}/delete', [CmsSiteController::class, 'deleteMenuItem'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.menus.delete');
+        $r->get('/admin/cms/media', [CmsMediaController::class, 'index'])->middleware(['can:cms.view'])->name('admin.cms.media');
+        $r->post('/admin/cms/media', [CmsMediaController::class, 'store'])->middleware(['can:cms.manage', 'throttle:upload'])->name('admin.cms.media.store');
+        $r->put('/admin/cms/media/{file}', [CmsMediaController::class, 'update'])->middleware(['can:cms.manage', 'throttle:write'])->name('admin.cms.media.update');
+        $r->post('/admin/cms/media/{file}/delete', [CmsMediaController::class, 'destroy'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.media.delete');
         // ---- Admin: website pages (CMS). Writers hold cms.manage, publishers cms.publish ----
         $r->get('/admin/cms', [CmsPageController::class, 'index'])->middleware(['can:cms.view', 'throttle:dashboard'])->name('admin.cms.index');
         $r->get('/admin/cms/create', [CmsPageController::class, 'create'])->middleware(['can:cms.manage'])->name('admin.cms.create');

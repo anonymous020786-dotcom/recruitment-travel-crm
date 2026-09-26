@@ -1,6 +1,6 @@
 <?php
-/** @var string $active pages|redirects|snippets|menus */
-$tabs = ['pages' => ['/admin/cms', 'Pages'], 'redirects' => ['/admin/cms/redirects', 'Redirects'], 'snippets' => ['/admin/cms/snippets', 'Snippets'], 'menus' => ['/admin/cms/menus', 'Menus']];
+/** @var string $active pages|redirects|snippets|menus|media */
+$tabs = ['pages' => ['/admin/cms', 'Pages'], 'redirects' => ['/admin/cms/redirects', 'Redirects'], 'snippets' => ['/admin/cms/snippets', 'Snippets'], 'menus' => ['/admin/cms/menus', 'Menus'], 'media' => ['/admin/cms/media', 'Media']];
 ?>
 <nav class="mb-5 flex flex-wrap gap-1 border-b border-slate-200" aria-label="Website sections">
     <?php foreach ($tabs as $key => [$href, $label]): ?>
