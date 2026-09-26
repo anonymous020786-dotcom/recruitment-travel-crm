@@ -18,7 +18,7 @@ $val = static fn (string $k): string => (string) old($k, $editing ? (string) ($b
 
     <div class="grid gap-4 sm:grid-cols-3">
         <div class="sm:col-span-2"><?= component('field', ['name' => 'name', 'label' => 'Branch name', 'required' => true, 'value' => $val('name'), 'attrs' => 'maxlength="120"']) ?></div>
-        <?= component('field', ['name' => 'code', 'label' => 'Code', 'required' => true, 'value' => $val('code'), 'attrs' => 'maxlength="20" style="text-transform:uppercase" placeholder="MUM"', 'hint' => 'Letters, numbers, hyphens']) ?>
+        <?= component('field', ['name' => 'code', 'label' => 'Code', 'required' => true, 'value' => $val('code'), 'attrs' => 'maxlength="20" autocapitalize="characters" placeholder="MUM"', 'hint' => 'Letters, numbers, hyphens']) ?>
     </div>
     <?= component('field', ['name' => 'address_line1', 'label' => 'Address', 'value' => $val('address_line1'), 'attrs' => 'maxlength="180"']) ?>
     <?= component('field', ['name' => 'address_line2', 'label' => 'Address (line 2)', 'value' => $val('address_line2'), 'attrs' => 'maxlength="180"']) ?>

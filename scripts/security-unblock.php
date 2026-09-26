@@ -3,7 +3,8 @@
 declare(strict_types=1);
 
 /**
- * Emergency exit: remove every IP allow/block rule and switch the automatic block off, from the command line.
+ * Emergency exit: remove every IP allow/block rule, switch the automatic block off, and switch off the firewall's lockdown and
+ * country rules, from the command line.
  * Use it if you blocked yourself out of the panel:
  *
  *   php scripts/security-unblock.php
@@ -24,7 +25,7 @@ if (\PHP_SAPI !== 'cli') {
 $app = require dirname(__DIR__) . '/bootstrap/app.php';
 
 $removed = $app->get(IpRules::class)->clearAll();
-$app->get(Db::class)->affectingStatement("DELETE FROM security_settings WHERE name IN ('autoblock.threshold', 'autoblock.minutes')");
+$app->get(Db::class)->affectingStatement("DELETE FROM security_settings WHERE name IN ('autoblock.threshold', 'autoblock.minutes', 'fw.lockdown', 'fw.geo_scope')");
 
-fwrite(\STDOUT, "Removed {$removed} IP rule(s) and switched the automatic block off.\n");
+fwrite(\STDOUT, "Removed {$removed} IP rule(s); switched off the automatic block, firewall lockdown and country rules.\n");
 exit(0);

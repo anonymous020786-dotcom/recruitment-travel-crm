@@ -38,6 +38,7 @@ use App\Controllers\Crm\IntegrationController;
 use App\Controllers\Crm\CmsMediaController;
 use App\Controllers\Crm\CmsPageController;
 use App\Controllers\Crm\CmsSiteController;
+use App\Controllers\Crm\FirewallController;
 use App\Controllers\Crm\SecurityController;
 use App\Controllers\Crm\UserPermissionController;
 use App\Controllers\Crm\LeadSourceAdminController;
@@ -522,6 +523,19 @@ return static function (Router $router): void {
         $r->post('/admin/cms/{page}/unpublish', [CmsPageController::class, 'unpublish'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.unpublish');
         $r->post('/admin/cms/{page}/archive', [CmsPageController::class, 'archive'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.archive');
         $r->post('/admin/cms/{page}/purge', [CmsPageController::class, 'purge'])->middleware(['can:cms.publish', 'confirm', 'throttle:write'])->name('admin.cms.purge');
+        // ---- Admin: application firewall (super admin; changes need a fresh password confirmation) ----
+        $r->get('/admin/security/firewall', [FirewallController::class, 'index'])->middleware(['can:security.view', 'throttle:dashboard'])->name('admin.firewall');
+        $r->get('/admin/security/firewall/settings', [FirewallController::class, 'settings'])->middleware(['can:security.view'])->name('admin.firewall.settings');
+        $r->put('/admin/security/firewall/settings', [FirewallController::class, 'saveSettings'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.firewall.settings.save');
+        $r->post('/admin/security/firewall/geo', [FirewallController::class, 'saveGeo'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.firewall.geo');
+        $r->post('/admin/security/firewall/lockdown', [FirewallController::class, 'lockdown'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.firewall.lockdown');
+        $r->get('/admin/security/firewall/rules', [FirewallController::class, 'rules'])->middleware(['can:security.view'])->name('admin.firewall.rules');
+        $r->post('/admin/security/firewall/rules', [FirewallController::class, 'storeRule'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.firewall.rules.store');
+        $r->put('/admin/security/firewall/rules/{id}', [FirewallController::class, 'updateRule'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.firewall.rules.update');
+        $r->post('/admin/security/firewall/rules/{id}/toggle', [FirewallController::class, 'toggleRule'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.firewall.rules.toggle');
+        $r->post('/admin/security/firewall/rules/{id}/delete', [FirewallController::class, 'deleteRule'])->middleware(['can:security.manage', 'confirm', 'throttle:write'])->name('admin.firewall.rules.delete');
+        $r->get('/admin/security/firewall/test', [FirewallController::class, 'tester'])->middleware(['can:security.view'])->name('admin.firewall.test');
+        $r->post('/admin/security/firewall/test', [FirewallController::class, 'tester'])->middleware(['can:security.view', 'throttle:search'])->name('admin.firewall.test.run');
         // ---- Admin: security centre (super admin; every change needs a fresh password confirmation) ----
         $r->get('/admin/security', [SecurityController::class, 'index'])->middleware(['can:security.view', 'throttle:dashboard'])->name('admin.security');
         $r->get('/admin/security/rate-limits', [SecurityController::class, 'rateLimits'])->middleware(['can:security.view'])->name('admin.security.rate_limits');

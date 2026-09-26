@@ -20,15 +20,17 @@ $bars = static function (array $rows, string $color = 'bg-brand-500', ?callable 
         return '<p class="text-sm text-slate-500">Nothing to show yet.</p>';
     }
     $max = max(1, max($rows));
+    // fixed classes in 5% steps: the CSP forbids inline style attributes, and Tailwind only builds classes it can see
+    $widths = ['w-[2%]', 'w-[5%]', 'w-[10%]', 'w-[15%]', 'w-[20%]', 'w-[25%]', 'w-[30%]', 'w-[35%]', 'w-[40%]', 'w-[45%]', 'w-[50%]', 'w-[55%]', 'w-[60%]', 'w-[65%]', 'w-[70%]', 'w-[75%]', 'w-[80%]', 'w-[85%]', 'w-[90%]', 'w-[95%]', 'w-full'];
     $html = '<ul class="space-y-2">';
     foreach ($rows as $label => $n) {
-        $pct = max(2, (int) round($n / $max * 100));
+        $step = $n <= 0 ? 0 : max(1, (int) round($n / $max * 20));
         $name = ucwords(str_replace('_', ' ', (string) $label));
         $link = $href !== null ? $href((string) $label) : null;
         $html .= '<li class="text-sm"><div class="flex items-baseline justify-between gap-2"><span class="text-slate-700">'
             . ($link ? '<a href="' . e_attr($link) . '">' . e($name) . '</a>' : e($name)) . '</span>'
             . '<span class="font-medium tabular-nums text-slate-900">' . (int) $n . '</span></div>'
-            . '<div class="mt-1 h-2 rounded bg-slate-100"><div class="h-2 rounded ' . $color . '" style="width:' . $pct . '%"></div></div></li>';
+            . '<div class="mt-1 h-2 rounded bg-slate-100"><div class="h-2 rounded ' . $color . ' ' . $widths[$step] . '"></div></div></li>';
     }
 
     return $html . '</ul>';
@@ -37,11 +39,12 @@ $bars = static function (array $rows, string $color = 'bg-brand-500', ?callable 
 /** Vertical bars, one per month, with the value above and the month below. */
 $trend = static function (array $values, array $months, string $color) use ($monthLabel): string {
     $max = max(1, $values === [] ? 1 : max($values));
+    $heights = ['h-[2%]', 'h-[6%]', 'h-[10%]', 'h-[15%]', 'h-[20%]', 'h-[25%]', 'h-[30%]', 'h-[35%]', 'h-[40%]', 'h-[45%]', 'h-[50%]', 'h-[55%]', 'h-[60%]', 'h-[65%]', 'h-[70%]', 'h-[75%]', 'h-[80%]', 'h-[85%]', 'h-[90%]', 'h-[95%]', 'h-full'];
     $html = '<div class="flex h-28 items-end gap-2" role="img" aria-label="' . e_attr(implode(', ', array_map(static fn ($m, $v) => $m . ': ' . $v, $months, $values))) . '">';
     foreach ($values as $i => $v) {
-        $h = $v === 0 ? 2 : max(6, (int) round($v / $max * 100));
+        $h = $v <= 0 ? 0 : max(1, (int) round($v / $max * 20));
         $html .= '<div class="flex h-full flex-1 flex-col items-center justify-end gap-1"><span class="text-xs tabular-nums text-slate-600">' . (int) $v . '</span>'
-            . '<div class="w-full rounded-t ' . $color . '" style="height:' . $h . '%"></div>'
+            . '<div class="w-full rounded-t ' . $color . ' ' . $heights[$h] . '"></div>'
             . '<span class="text-xs text-slate-400">' . e($monthLabel((string) ($months[$i] ?? ''))) . '</span></div>';
     }
 

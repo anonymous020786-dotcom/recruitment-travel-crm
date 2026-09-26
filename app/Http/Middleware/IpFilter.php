@@ -33,7 +33,9 @@ final class IpFilter implements Middleware
         try {
             $rules = $this->app->get(IpRules::class);
             $ip = $request->ip();
-            if ($rules->verdict($ip) === 'block') {
+            $verdict = $rules->verdict($ip);
+            $request->setAttribute('ip_verdict', $verdict);   // the firewall reuses it (an allow-listed address skips the firewall)
+            if ($verdict === 'block') {
                 $rules->noteBlocked($ip);
 
                 return $this->blocked();

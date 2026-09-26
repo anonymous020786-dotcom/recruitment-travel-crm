@@ -218,6 +218,25 @@ final class Request
 
     // ---- Headers / cookies / files ------------------------------------
 
+    /** Every request header, as Name => value (from the HTTP_* server variables). @return array<string,string> */
+    public function headers(): array
+    {
+        $out = [];
+        foreach ($this->server as $key => $value) {
+            if (is_string($key) && str_starts_with($key, 'HTTP_') && is_scalar($value)) {
+                $out[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))))] = (string) $value;
+            }
+        }
+
+        return $out;
+    }
+
+    /** The request target exactly as sent (path + query, still percent-encoded). */
+    public function requestUri(): string
+    {
+        return (string) ($this->server['REQUEST_URI'] ?? '/');
+    }
+
     public function header(string $name, ?string $default = null): ?string
     {
         $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
@@ -292,7 +311,7 @@ final class Request
         return substr((string) ($this->server['HTTP_USER_AGENT'] ?? ''), 0, 255);
     }
 
-    private function isFromTrustedProxy(): bool
+    public function isFromTrustedProxy(): bool
     {
         if ($this->trustedProxies === []) {
             return false;

@@ -42,6 +42,9 @@ return CronRunner::finish($app->get(CronRunner::class)->run('cleanup', 600, func
     $progress($app->get(MailQueue::class)->prune(30));
     $progress($app->get(\App\Security\IpRules::class)->pruneExpired());
     $progress($app->get(\App\Services\UserPermissionService::class)->pruneExpired());
+    $progress($app->get(\App\Security\FirewallAdmin::class)->pruneEvents(30));
+    $progress($app->get(\App\Repositories\CmsPageRepository::class)->purgeTrash(30));
+    $progress($app->get(\App\Repositories\CmsPageRepository::class)->prunePreviewTokens());
 
     $progress($db->affectingStatement(
         "DELETE FROM cron_runs WHERE started_at < (UTC_TIMESTAMP() - INTERVAL 30 DAY)",

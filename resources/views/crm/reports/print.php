@@ -16,7 +16,7 @@ $period = match ($def['filter']) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow, noarchive">
     <title><?= e($def['title']) ?> — <?= e($period) ?></title>
-    <style>
+    <style nonce="<?= e_attr(nonce()) ?>">
         body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0f172a; margin: 24px; font-size: 13px; }
         h1 { font-size: 20px; margin: 0 0 2px; }
         .muted { color: #64748b; }

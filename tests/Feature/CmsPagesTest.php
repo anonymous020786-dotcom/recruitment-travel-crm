@@ -599,9 +599,10 @@ final class CmsPagesTest extends DbTestCase
         self::assertSame(304, $this->send('GET', '/tcms-visa', [], ['If-None-Match' => $etag])->getStatus());
 
         // odd addresses are plain 404s
-        foreach (['/tcms-nothing', '/TCMS-VISA', '/tcms-visa/extra', '/tcms--visa', '/tcms_visa', '/%2e%2e/etc/passwd', '/tcms-visa.php'] as $url) {
+        foreach (['/tcms-nothing', '/TCMS-VISA', '/tcms-visa/extra', '/tcms--visa', '/tcms_visa', '/tcms-visa.php'] as $url) {
             self::assertSame(404, $this->code('GET', $url), $url);
         }
+        self::assertSame(403, $this->code('GET', '/%2e%2e/etc/passwd'), 'a traversal attempt is stopped by the firewall before any page lookup');
         // a real route still wins, and a wrong method on a real route is still a 405, not a page lookup
         self::assertSame(200, $this->code('GET', '/about'));
         self::assertSame(405, $this->code('GET', '/pay/abc/go'));

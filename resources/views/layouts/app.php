@@ -53,7 +53,7 @@ $navMarkup = static function (array $nav, string $currentPath): string {
             <span class="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-xs font-bold text-white">CRM</span>
             <span class="text-sm font-semibold text-slate-900 truncate"><?= e((string) config('app.name')) ?></span>
         </div>
-        <nav aria-label="Main" class="flex flex-col gap-0.5 overflow-y-auto p-2" style="max-height: calc(100vh - 3.5rem)">
+        <nav aria-label="Main" class="flex max-h-[calc(100vh-3.5rem)] flex-col gap-0.5 overflow-y-auto p-2">
             <?= $navMarkup($nav, $currentPath) ?>
         </nav>
     </aside>

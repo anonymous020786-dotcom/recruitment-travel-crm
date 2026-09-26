@@ -63,6 +63,28 @@ final class SecurityPolicy
         $config->set('security.autoblock.threshold', (int) ($stored['autoblock.threshold'] ?? $this->autoDefault('threshold')));
         $config->set('security.autoblock.minutes', (int) ($stored['autoblock.minutes'] ?? $this->autoDefault('minutes')));
         $config->set('security.ip_rules_active', (int) ($stored['ip.rules'] ?? 0) > 0);
+        // the firewall's settings (Admin → Security → Firewall) ride on the same query
+        $fw = [];
+        foreach ($stored as $name => $value) {
+            if (str_starts_with($name, 'fw.')) {
+                $fw[substr($name, 3)] = $value;
+            }
+        }
+        $config->set('firewall.settings', $fw);
+    }
+
+    /** One raw setting (null when not saved). */
+    public function setting(string $name): ?string
+    {
+        return $this->load()[$name] ?? null;
+    }
+
+    /** Save (or with null, remove) one raw setting and re-apply the overlay so the change is live for this request too. */
+    public function setSetting(string $name, ?string $value, ?User $actor): void
+    {
+        $value === null ? $this->delete($name) : $this->put($name, $value, $actor);
+        $this->stored = null;
+        $this->applyToConfig();
     }
 
     // ---- rate limits --------------------------------------------------------------------------------------------

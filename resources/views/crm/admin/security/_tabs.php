@@ -1,6 +1,6 @@
 <?php
 /** @var string $active overview|rate-limits|policy|ip-rules|sessions */
-$tabs = ['overview' => ['/admin/security', 'Overview'], 'rate-limits' => ['/admin/security/rate-limits', 'Rate limits'], 'policy' => ['/admin/security/policy', 'Two-factor & auto-block'], 'ip-rules' => ['/admin/security/ip-rules', 'IP rules'], 'sessions' => ['/admin/security/sessions', 'Sessions']];
+$tabs = ['overview' => ['/admin/security', 'Overview'], 'rate-limits' => ['/admin/security/rate-limits', 'Rate limits'], 'policy' => ['/admin/security/policy', 'Two-factor & auto-block'], 'ip-rules' => ['/admin/security/ip-rules', 'IP rules'], 'sessions' => ['/admin/security/sessions', 'Sessions'], 'firewall' => ['/admin/security/firewall', 'Firewall']];
 ?>
 <nav class="mb-5 flex flex-wrap gap-1 border-b border-slate-200" aria-label="Security sections">
     <?php foreach ($tabs as $key => [$href, $label]): ?>
