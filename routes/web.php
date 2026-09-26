@@ -36,6 +36,7 @@ use App\Controllers\Crm\BlogController;
 use App\Controllers\Crm\BranchAdminController;
 use App\Controllers\Crm\IntegrationController;
 use App\Controllers\Crm\CmsPageController;
+use App\Controllers\Crm\CmsSiteController;
 use App\Controllers\Crm\SecurityController;
 use App\Controllers\Crm\UserPermissionController;
 use App\Controllers\Crm\LeadSourceAdminController;
@@ -476,6 +477,24 @@ return static function (Router $router): void {
         $r->post('/online-payments/{link}/cancel', [OnlinePaymentController::class, 'cancel'])->middleware(['can:payments.create', 'throttle:payments.write'])->name('online_payments.cancel');
 
         // ---- Admin: integrations (super admin only; secrets are write-only; writes need a fresh password confirmation) ----
+        // ---- Admin: website redirects, snippets and menus (change the live site → cms.publish) ----
+        $r->get('/admin/cms/redirects', [CmsSiteController::class, 'redirects'])->middleware(['can:cms.view'])->name('admin.cms.redirects');
+        $r->post('/admin/cms/redirects', [CmsSiteController::class, 'storeRedirect'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.redirects.store');
+        $r->post('/admin/cms/redirects/import', [CmsSiteController::class, 'importRedirects'])->middleware(['can:cms.publish', 'throttle:import'])->name('admin.cms.redirects.import');
+        $r->put('/admin/cms/redirects/{id}', [CmsSiteController::class, 'updateRedirect'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.redirects.update');
+        $r->post('/admin/cms/redirects/{id}/toggle', [CmsSiteController::class, 'toggleRedirect'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.redirects.toggle');
+        $r->post('/admin/cms/redirects/{id}/delete', [CmsSiteController::class, 'deleteRedirect'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.redirects.delete');
+        $r->get('/admin/cms/snippets', [CmsSiteController::class, 'snippets'])->middleware(['can:cms.view'])->name('admin.cms.snippets');
+        $r->get('/admin/cms/snippets/create', [CmsSiteController::class, 'createSnippet'])->middleware(['can:cms.publish'])->name('admin.cms.snippets.create');
+        $r->post('/admin/cms/snippets', [CmsSiteController::class, 'storeSnippet'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.snippets.store');
+        $r->get('/admin/cms/snippets/{key}/edit', [CmsSiteController::class, 'editSnippet'])->middleware(['can:cms.view'])->name('admin.cms.snippets.edit');
+        $r->put('/admin/cms/snippets/{key}', [CmsSiteController::class, 'updateSnippet'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.snippets.update');
+        $r->post('/admin/cms/snippets/{key}/delete', [CmsSiteController::class, 'deleteSnippet'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.snippets.delete');
+        $r->get('/admin/cms/menus', [CmsSiteController::class, 'menus'])->middleware(['can:cms.view'])->name('admin.cms.menus');
+        $r->post('/admin/cms/menus', [CmsSiteController::class, 'storeMenuItem'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.menus.store');
+        $r->put('/admin/cms/menus/{id}', [CmsSiteController::class, 'updateMenuItem'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.menus.update');
+        $r->post('/admin/cms/menus/{id}/move', [CmsSiteController::class, 'moveMenuItem'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.menus.move');
+        $r->post('/admin/cms/menus/{id}/delete', [CmsSiteController::class, 'deleteMenuItem'])->middleware(['can:cms.publish', 'throttle:write'])->name('admin.cms.menus.delete');
         // ---- Admin: website pages (CMS). Writers hold cms.manage, publishers cms.publish ----
         $r->get('/admin/cms', [CmsPageController::class, 'index'])->middleware(['can:cms.view', 'throttle:dashboard'])->name('admin.cms.index');
         $r->get('/admin/cms/create', [CmsPageController::class, 'create'])->middleware(['can:cms.manage'])->name('admin.cms.create');

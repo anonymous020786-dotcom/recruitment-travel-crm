@@ -17,6 +17,17 @@ $nav = [
     '/about' => 'About',
     '/contact' => 'Contact',
 ];
+// Admin → Pages → Menus replaces the built-in links once a menu has at least one active item.
+$menuRepo = app(App\Repositories\CmsSiteRepository::class);
+$headerMenu = $menuRepo->publicMenu('header');
+$footerMenu = $menuRepo->publicMenu('footer');
+if ($headerMenu !== []) {
+    $nav = [];
+    foreach ($headerMenu as $item) {
+        $nav[$item['url']] = $item['label'];
+    }
+}
+$newTab = array_column(array_merge($headerMenu, $footerMenu), 'new_tab', 'url');
 $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)->path() : '/';
 ?>
 <!doctype html>
@@ -72,7 +83,7 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
         </a>
         <nav aria-label="Primary" class="hidden gap-1 sm:flex">
             <?php foreach ($nav as $href => $label): ?>
-                <a href="<?= e_url($href) ?>"
+                <a href="<?= e_url($href) ?>"<?= !empty($newTab[$href]) ? ' target="_blank" rel="noopener"' : '' ?>
                    class="rounded-lg px-3 py-1.5 text-sm font-medium <?= ($href === '/' ? $current === '/' : str_starts_with($current, $href)) ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50' ?>">
                     <?= e($label) ?>
                 </a>
@@ -93,11 +104,15 @@ $current = app()->bound(App\Http\Request::class) ? app(App\Http\Request::class)-
         <p>&copy; <?= date('Y') ?> <?= e((string) setting('business.name', $appName)) ?>. All rights reserved.</p>
         <nav aria-label="Footer" class="flex flex-wrap gap-3">
             <?php if ($bizPhone !== ''): ?><a href="tel:<?= e_attr(preg_replace('/[^0-9+]/', '', $bizPhone)) ?>"><?= e($bizPhone) ?></a><?php endif ?>
+            <?php if ($footerMenu !== []): foreach ($footerMenu as $item): ?>
+                <a href="<?= e_url($item['url']) ?>"<?= $item['new_tab'] ? ' target="_blank" rel="noopener"' : '' ?>><?= e($item['label']) ?></a>
+            <?php endforeach; else: ?>
             <a href="/about">About</a>
             <a href="/overseas-jobs">Jobs</a>
             <a href="/travel-packages">Travel</a>
             <a href="/blog">Blog</a>
             <a href="/contact">Contact</a>
+            <?php endif ?>
         </nav>
     </div>
 </footer>

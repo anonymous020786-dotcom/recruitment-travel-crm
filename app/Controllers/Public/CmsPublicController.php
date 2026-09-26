@@ -11,6 +11,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Repositories\CmsPageRepository;
 use App\Services\CmsPageService;
+use App\Services\CmsSiteService;
 
 /**
  * Website pages on the public site. `page()` is the router's fallback: it runs only for a GET that no route matched, so a
@@ -25,11 +26,23 @@ final class CmsPublicController extends Controller
         private readonly CmsPageRepository $pages,
         private readonly CmsPageService $service,
         private readonly CmsRenderer $renderer,
+        private readonly CmsSiteService $site,
     ) {
     }
 
     public function page(Request $request): Response
     {
+        // a redirect set up in Admin → Pages → Redirects wins over a page (the editor refuses to create one where a page lives)
+        $redirect = $this->site->resolve($request->path(), (string) parse_url($request->fullUrl(), PHP_URL_QUERY));
+        if ($redirect !== null) {
+            if ($redirect['url'] === null) {
+                return view_response('public.cms.gone', [], 410)->withHeader('Cache-Control', 'public, max-age=3600');
+            }
+
+            return Response::redirect($redirect['url'], $redirect['code'], allowExternal: true)
+                ->withHeader('Cache-Control', in_array($redirect['code'], [301, 308], true) ? 'public, max-age=3600' : 'no-store');
+        }
+
         $path = trim($request->path(), '/');
         if ($path === '' || strlen($path) > 150 || preg_match(self::PATH, $path) !== 1) {
             throw HttpException::notFound('No page here.');

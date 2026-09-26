@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cms;
 
+use App\Repositories\CmsSiteRepository;
 use App\Repositories\PublicCatalogRepository;
 use App\Support\PublicFormat;
 
@@ -14,7 +15,7 @@ use App\Support\PublicFormat;
  */
 final class CmsRenderer
 {
-    public function __construct(private readonly PublicCatalogRepository $catalog)
+    public function __construct(private readonly PublicCatalogRepository $catalog, private readonly CmsSiteRepository $site)
     {
     }
 
@@ -60,9 +61,28 @@ final class CmsRenderer
             'faq' => self::faq($faq),
             'youtube' => '<p><a class="cms-card" href="https://www.youtube.com/watch?v=' . self::e($arg) . '" rel="noopener">▶ Watch the video on YouTube</a></p>',
             'button' => $this->button($arg),
-            'snippet' => '',   // filled in by the snippets library (step 14.7b)
+            // a snippet's own placeholders are filled too, but a snippet can never pull in another snippet (no loops)
+            'snippet' => $this->renderSnippet($arg, $headings, $faq),
             default => '',
         };
+    }
+
+    /**
+     * @param list<array{level:int,id:string,text:string}> $headings
+     * @param list<array{q:string,a:string}> $faq
+     */
+    private function renderSnippet(string $key, array $headings, array $faq): string
+    {
+        $html = $this->site->activeSnippetHtml($key);
+        if ($html === null || $html === '') {
+            return '';
+        }
+
+        return (string) preg_replace_callback(
+            '#<div class="cms-sc" data-sc="([a-z]+)" data-a="([^"]*)"></div>#',
+            fn (array $m): string => $m[1] === 'snippet' ? '' : $this->fill($m[1], html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5, 'UTF-8'), $headings, $faq),
+            $html,
+        );
     }
 
     private function jobs(int $n): string

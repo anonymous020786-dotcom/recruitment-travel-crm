@@ -24,6 +24,7 @@ if ($tab === 'trash') {
     'actions' => $canManage ? '<a class="btn btn-primary" href="/admin/cms/create">New page</a>' : '',
 ]) ?>
 
+<?= $this->partial('crm.admin.cms._tabs', ['active' => 'pages']) ?>
 <nav class="mb-4 flex flex-wrap gap-1 border-b border-slate-200" aria-label="Page status">
     <?php foreach ($tabs as $key => $label): ?>
         <a href="/admin/cms<?= $key === 'all' ? '' : '?tab=' . e_attr($key) ?>" class="-mb-px border-b-2 px-3 py-2 text-sm font-medium <?= $key === $tab ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-600' ?>"<?= $key === $tab ? ' aria-current="page"' : '' ?>><?= e($label) ?> <span class="text-xs text-slate-400"><?= (int) ($counts[$key] ?? 0) ?></span></a>

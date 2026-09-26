@@ -68,5 +68,5 @@ Website pages with a real editorial workflow. Migration **0023** (`cms_pages`, `
 ## Tests
 `CmsFormatterTest` (14) and `CmsPagesTest` (28). Guard tests updated: the public `GET /preview/{token}` route is on the audited anonymous list.
 
-## Still to come (14.7b)
-Menus editor, 301 redirects manager (and automatic redirects when a draft's address changes), reusable snippets for `{{snippet:key}}` (currently renders nothing), a media library, and bringing the blog onto the same revisions/scheduling features.
+## Follow-up steps
+Redirects, snippets and menus: done in step 14.7b. Media library: step 14.7c.
